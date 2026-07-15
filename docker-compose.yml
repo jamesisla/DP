@@ -1,0 +1,49 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: protecciondatos-${CLIENT_SLUG:-demo}-db
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-protecciondatos}
+      POSTGRES_USER: ${POSTGRES_USER:-proteccion}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-proteccion}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - protecciondatos_db_${CLIENT_SLUG:-demo}:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-proteccion} -d ${POSTGRES_DB:-protecciondatos}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+    container_name: protecciondatos-${CLIENT_SLUG:-demo}-backend
+    environment:
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-proteccion}:${POSTGRES_PASSWORD:-proteccion}@db:5432/${POSTGRES_DB:-protecciondatos}
+      SECRET_KEY: ${SECRET_KEY:-change-me}
+      CORS_ORIGINS: http://localhost:${FRONTEND_PORT:-5173},http://127.0.0.1:${FRONTEND_PORT:-5173}
+    ports:
+      - "${BACKEND_PORT:-8000}:8000"
+    volumes:
+      - ./backend/alembic:/app/alembic
+      - ./backend/alembic.ini:/app/alembic.ini
+    depends_on:
+      db:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ./frontend
+    container_name: protecciondatos-${CLIENT_SLUG:-demo}-frontend
+    environment:
+      VITE_API_URL: ${VITE_API_URL:-/api}
+    ports:
+      - "${FRONTEND_PORT:-5173}:5173"
+    depends_on:
+      - backend
+
+volumes:
+  protecciondatos_db_demo:
+    name: protecciondatos_db_${CLIENT_SLUG:-demo}

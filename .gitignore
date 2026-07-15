@@ -1,0 +1,30 @@
+# Node dependencies
+**/node_modules/
+**/dist/
+**/.vite/
+
+# Python / FastAPI
+**/__pycache__/
+**/*.pyc
+**/*.pyo
+**/*.pyd
+**/.pytest_cache/
+**/.venv/
+**/venv/
+**/env/
+
+# Databases / Docker local volumes
+**/postgres_data/
+**/*.db
+**/*.sqlite3
+
+# Environment files & Secrets
+.env
+**/.env
+**/.env.*
+!**/.env.example
+
+# Logs and OS files
+**/*.log
+**/.DS_Store
+**/Thumbs.db

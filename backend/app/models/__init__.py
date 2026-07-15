@@ -1,0 +1,38 @@
+from app.models.domain import (
+    Area,
+    CaseTicket,
+    Comentario,
+    Consent,
+    Documento,
+    Fase,
+    Finding,
+    FlujoAprobacion,
+    ImplementationProject,
+    LogAuditoria,
+    MatrizLevantamiento,
+    Proveedor,
+    Riesgo,
+    Tarea,
+    TreatmentActivity,
+    User,
+)
+
+__all__ = [
+    "Area",
+    "CaseTicket",
+    "Comentario",
+    "Consent",
+    "Documento",
+    "Fase",
+    "Finding",
+    "FlujoAprobacion",
+    "ImplementationProject",
+    "LogAuditoria",
+    "MatrizLevantamiento",
+    "Proveedor",
+    "Riesgo",
+    "Tarea",
+    "TreatmentActivity",
+    "User",
+]
+
