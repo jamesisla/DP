@@ -131,6 +131,9 @@ class RiesgoRead(BaseModel):
     nivel: str
     descripcion: str
     puntuacion: int
+    probabilidad: int = 2
+    impacto: int = 3
+    requiere_eipd: bool = False
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -140,6 +143,9 @@ class RiesgoCreate(BaseModel):
     nivel: str = "Medio"
     descripcion: str
     puntuacion: int = 5
+    probabilidad: int = 2
+    impacto: int = 3
+    requiere_eipd: bool = False
 
 
 # Comment & Document Schemas
@@ -225,6 +231,114 @@ class LogAuditoriaRead(BaseModel):
     usuario: UserRead | None = None
 
     model_config = ConfigDict(from_attributes=True)
+
+
+# ARCO+ Schemas (Ley 21.719)
+class ArcoRequestRead(BaseModel):
+    id: int
+    folio: str
+    tipo_derecho: str
+    titular_nombre: str
+    titular_rut: str
+    titular_email: str
+    fecha_ingreso: date
+    dias_habiles_limite: int
+    fecha_limite_legal: date
+    estado: str
+    descripcion_solicitud: str
+    fundamento_respuesta: str = ""
+    area_derivada_id: int | None = None
+    responsable_asignado_id: int | None = None
+    area_derivada: AreaRead | None = None
+    responsable_asignado: UserRead | None = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class ArcoRequestCreate(BaseModel):
+    tipo_derecho: str
+    titular_nombre: str
+    titular_rut: str
+    titular_email: str
+    descripcion_solicitud: str
+    area_derivada_id: int | None = None
+    responsable_asignado_id: int | None = None
+
+
+class ArcoRequestUpdate(BaseModel):
+    estado: str
+    fundamento_respuesta: str = ""
+    area_derivada_id: int | None = None
+    responsable_asignado_id: int | None = None
+
+
+# Security Breach Schemas
+class SecurityBreachRead(BaseModel):
+    id: int
+    codigo_incidente: str
+    fecha_deteccion: datetime
+    fecha_limite_notificacion: datetime
+    tipo_incidente: str
+    gravedad: str
+    descripcion: str
+    datos_afectados: str
+    cantidad_titulares_afectados: int
+    medidas_contencion: str
+    notificado_agencia: bool
+    fecha_notificacion_agencia: datetime | None = None
+    notificado_titulares: bool
+    estado: str
+    reportado_por_id: int | None = None
+    reportado_por: UserRead | None = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class SecurityBreachCreate(BaseModel):
+    tipo_incidente: str
+    gravedad: str = "Alta"
+    descripcion: str
+    datos_afectados: str
+    cantidad_titulares_afectados: int = 0
+    medidas_contencion: str = ""
+
+
+class SecurityBreachUpdate(BaseModel):
+    estado: str
+    medidas_contencion: str
+    notificado_agencia: bool = False
+    notificado_titulares: bool = False
+
+
+# Impact Assessment Schemas (EIPD / DPIA)
+class ImpactAssessmentRead(BaseModel):
+    id: int
+    titulo: str
+    area_id: int
+    proceso_relacionado: str
+    motivo_alto_riesgo: str
+    analisis_necesidad: str
+    riesgos_derechos: str
+    medidas_mitigacion: str
+    riesgo_residual: str
+    opinion_dpo: str
+    estado: str
+    area: AreaRead | None = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class ImpactAssessmentCreate(BaseModel):
+    titulo: str
+    area_id: int
+    proceso_relacionado: str
+    motivo_alto_riesgo: str
+    analisis_necesidad: str = ""
+    riesgos_derechos: str = ""
+    medidas_mitigacion: str = ""
+    riesgo_residual: str = "Aceptable"
+    opinion_dpo: str = ""
+    estado: str = "Borrador"
 
 
 # Backward Compatibility Schemas

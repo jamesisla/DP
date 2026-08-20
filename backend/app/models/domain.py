@@ -48,7 +48,6 @@ class ImplementationProject(Base, TimestampMixin):
     owner: Mapped[str] = mapped_column(String(160), default="DPO")
     summary: Mapped[str] = mapped_column(Text, default="")
     
-    # New Phase 1 fields
     fecha_inicio: Mapped[date] = mapped_column(Date, default=date(2025, 12, 1))
     fecha_fin: Mapped[date] = mapped_column(Date, default=date(2026, 12, 1))
     estado: Mapped[str] = mapped_column(String(80), default="Activo")
@@ -106,9 +105,12 @@ class Riesgo(Base, TimestampMixin):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     matriz_id: Mapped[int | None] = mapped_column(ForeignKey("matrices_levantamiento.id"), nullable=True)
-    nivel: Mapped[str] = mapped_column(String(40), default="Medio")  # Bajo, Medio, Alto
+    nivel: Mapped[str] = mapped_column(String(40), default="Medio")  # Bajo, Medio, Alto, Crítico
     descripcion: Mapped[str] = mapped_column(Text, nullable=False)
     puntuacion: Mapped[int] = mapped_column(Integer, default=5)  # 1 to 25
+    probabilidad: Mapped[int] = mapped_column(Integer, default=2)  # 1 to 5
+    impacto: Mapped[int] = mapped_column(Integer, default=3)  # 1 to 5
+    requiere_eipd: Mapped[bool] = mapped_column(Boolean, default=False)
 
     matriz: Mapped[MatrizLevantamiento | None] = relationship("MatrizLevantamiento")
 
@@ -181,7 +183,71 @@ class LogAuditoria(Base, TimestampMixin):
     usuario: Mapped[User | None] = relationship("User")
 
 
-# Keep old tables or mock them for backward compatibility if routes use them
+# Ley 21.719 Specialized Modules
+
+class ArcoRequest(Base, TimestampMixin):
+    __tablename__ = "arco_requests"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    folio: Mapped[str] = mapped_column(String(50), unique=True, index=True, nullable=False)
+    tipo_derecho: Mapped[str] = mapped_column(String(50), nullable=False)  # Acceso, Rectificación, Cancelación, Oposición, Portabilidad, Bloqueo
+    titular_nombre: Mapped[str] = mapped_column(String(180), nullable=False)
+    titular_rut: Mapped[str] = mapped_column(String(20), nullable=False)
+    titular_email: Mapped[str] = mapped_column(String(255), nullable=False)
+    fecha_ingreso: Mapped[date] = mapped_column(Date, default=date.today)
+    dias_habiles_limite: Mapped[int] = mapped_column(Integer, default=15)  # 15 business days legal limit
+    fecha_limite_legal: Mapped[date] = mapped_column(Date, nullable=False)
+    estado: Mapped[str] = mapped_column(String(80), default="Ingresada")  # Ingresada, En análisis, Respondida favorable, Rechazada fundada, Prorrogada
+    descripcion_solicitud: Mapped[str] = mapped_column(Text, nullable=False)
+    fundamento_respuesta: Mapped[str] = mapped_column(Text, default="")
+    area_derivada_id: Mapped[int | None] = mapped_column(ForeignKey("areas.id"), nullable=True)
+    responsable_asignado_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True)
+
+    area_derivada: Mapped[Area | None] = relationship("Area")
+    responsable_asignado: Mapped[User | None] = relationship("User")
+
+
+class SecurityBreach(Base, TimestampMixin):
+    __tablename__ = "security_breaches"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    codigo_incidente: Mapped[str] = mapped_column(String(50), unique=True, index=True, nullable=False)
+    fecha_deteccion: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    fecha_limite_notificacion: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)  # 72 hours limit
+    tipo_incidente: Mapped[str] = mapped_column(String(100), nullable=False)  # Acceso no autorizado, Exfiltración, Ransomware, Extravío físico
+    gravedad: Mapped[str] = mapped_column(String(40), default="Alta")  # Baja, Media, Alta, Crítica
+    descripcion: Mapped[str] = mapped_column(Text, nullable=False)
+    datos_afectados: Mapped[str] = mapped_column(Text, nullable=False)
+    cantidad_titulares_afectados: Mapped[int] = mapped_column(Integer, default=0)
+    medidas_contencion: Mapped[str] = mapped_column(Text, default="")
+    notificado_agencia: Mapped[bool] = mapped_column(Boolean, default=False)
+    fecha_notificacion_agencia: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    notificado_titulares: Mapped[bool] = mapped_column(Boolean, default=False)
+    estado: Mapped[str] = mapped_column(String(80), default="En contención")  # En contención, En investigación, Notificado a Agencia, Mitigado y Cerrado
+    reportado_por_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True)
+
+    reportado_por: Mapped[User | None] = relationship("User")
+
+
+class ImpactAssessment(Base, TimestampMixin):
+    __tablename__ = "impact_assessments"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    titulo: Mapped[str] = mapped_column(String(200), nullable=False)
+    area_id: Mapped[int] = mapped_column(ForeignKey("areas.id"), nullable=False)
+    proceso_relacionado: Mapped[str] = mapped_column(String(180), nullable=False)
+    motivo_alto_riesgo: Mapped[str] = mapped_column(Text, nullable=False)
+    analisis_necesidad: Mapped[str] = mapped_column(Text, default="")
+    riesgos_derechos: Mapped[str] = mapped_column(Text, default="")
+    medidas_mitigacion: Mapped[str] = mapped_column(Text, default="")
+    riesgo_residual: Mapped[str] = mapped_column(String(40), default="Aceptable")
+    opinion_dpo: Mapped[str] = mapped_column(Text, default="")
+    estado: Mapped[str] = mapped_column(String(80), default="Borrador")  # Borrador, En revisión DPO, Aprobada, Observada
+
+    area: Mapped[Area] = relationship("Area")
+
+
+# Backward Compatibility Tables
 class TreatmentActivity(Base, TimestampMixin):
     __tablename__ = "treatment_activities"
 

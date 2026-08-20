@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
-import { AlertTriangle, Clock, ListTodo, Briefcase, Activity } from "lucide-react";
+import { AlertTriangle, Clock, ListTodo, Briefcase, Activity, UserCheck, ShieldAlert, ChevronRight } from "lucide-react";
 
-export function Dashboard({ data, onReload }) {
+export function Dashboard({ data, onReload, onNavigate }) {
   const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
 
   useEffect(() => {
@@ -29,11 +29,9 @@ export function Dashboard({ data, onReload }) {
 
   if (!data) return <div className="p-8 text-slate-500">Cargando dashboard...</div>;
 
-  // Extract global progress from "Avance General" metric
-  const progressStr = data.metrics.find(m => m.label === "Avance General")?.value || "0%";
+  const progressStr = data.metrics.find(m => m.label.includes("Avance General"))?.value || "0%";
   const progressVal = parseInt(progressStr) || 0;
 
-  // Get color class based on progress
   function getProgressColor(progress) {
     if (progress === 100) return "bg-emerald-500";
     if (progress > 50) return "bg-teal-600";
@@ -48,29 +46,77 @@ export function Dashboard({ data, onReload }) {
     return "text-slate-500 bg-slate-50 border-slate-200";
   }
 
+  const stats = data.stats || {};
+
   return (
     <div className="space-y-6 p-6 lg:p-8 max-w-7xl mx-auto">
       
       {/* Critical Path Delayed Task Banner */}
       {data.critical_path_alert && (
-        <div className="flex items-start gap-4 rounded-xl border border-rose-200 bg-rose-50 p-4 text-rose-800 shadow-sm animate-pulse">
-          <AlertTriangle className="mt-0.5 text-rose-600 shrink-0 animate-bounce" size={22} />
-          <div>
-            <h4 className="font-bold text-sm tracking-tight">ALERTA DE CAMINO CRÍTICO DETECTADO</h4>
-            <p className="mt-1 text-xs sm:text-sm text-rose-700 font-medium">
-              {data.critical_path_alert}
-            </p>
+        <div 
+          onClick={() => onNavigate && onNavigate("project")}
+          className="flex items-start justify-between gap-4 rounded-xl border border-rose-300 bg-rose-50 p-4 text-rose-900 shadow-sm cursor-pointer hover:bg-rose-100/70 transition-all animate-pulse"
+        >
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="mt-0.5 text-rose-600 shrink-0" size={22} />
+            <div>
+              <h4 className="font-bold text-sm tracking-tight">ALERTA DE CAMINO CRÍTICO DETECTADO</h4>
+              <p className="mt-1 text-xs text-rose-800 font-medium">
+                {data.critical_path_alert}
+              </p>
+            </div>
           </div>
+          <ChevronRight size={18} className="text-rose-500 shrink-0 self-center" />
+        </div>
+      )}
+
+      {/* Unnotified Breaches or Urgent ARCO Alert */}
+      {(stats.unnotified_breaches > 0 || stats.urgent_arco > 0) && (
+        <div className="grid gap-4 md:grid-cols-2">
+          {stats.unnotified_breaches > 0 && (
+            <div 
+              onClick={() => onNavigate && onNavigate("breaches")}
+              className="flex items-center justify-between p-3.5 rounded-xl border border-rose-300 bg-rose-50 text-rose-900 shadow-2xs cursor-pointer hover:bg-rose-100/80 transition-all"
+            >
+              <div className="flex items-center gap-2.5">
+                <ShieldAlert size={20} className="text-rose-600" />
+                <div>
+                  <p className="font-bold text-xs">Brechas por Notificar (72h)</p>
+                  <p className="text-[11px] text-rose-700 font-medium">{stats.unnotified_breaches} incidente(s) pendiente(s) de reporte a la Agencia</p>
+                </div>
+              </div>
+              <ChevronRight size={16} className="text-rose-500" />
+            </div>
+          )}
+
+          {stats.urgent_arco > 0 && (
+            <div 
+              onClick={() => onNavigate && onNavigate("arco")}
+              className="flex items-center justify-between p-3.5 rounded-xl border border-amber-300 bg-amber-50 text-amber-900 shadow-2xs cursor-pointer hover:bg-amber-100/80 transition-all"
+            >
+              <div className="flex items-center gap-2.5">
+                <UserCheck size={20} className="text-amber-600" />
+                <div>
+                  <p className="font-bold text-xs">Solicitudes ARCO+ Urgentes (&le; 5 días)</p>
+                  <p className="text-[11px] text-amber-800 font-medium">{stats.urgent_arco} solicitud(es) próxima(s) al límite legal de 15 días</p>
+                </div>
+              </div>
+              <ChevronRight size={16} className="text-amber-600" />
+            </div>
+          )}
         </div>
       )}
 
       {/* Main KPI Grid */}
       <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
-        {data.metrics.map((metric) => (
-          <div className="rounded-xl border border-line bg-white p-5 shadow-sm hover:shadow-md transition-shadow" key={metric.label}>
+        {data.metrics.map((metric, idx) => (
+          <div 
+            className="rounded-xl border border-line bg-white p-5 shadow-sm hover:shadow-md transition-shadow cursor-default" 
+            key={idx}
+          >
             <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">{metric.label}</p>
             <div className="mt-3 flex items-baseline justify-between">
-              <p className="text-3xl font-extrabold text-slate-800 tracking-tight">{metric.value}</p>
+              <p className="text-2xl font-black text-slate-800 tracking-tight">{metric.value}</p>
               <span className="rounded-full bg-slate-50 border border-slate-200 px-2.5 py-0.5 text-xs font-bold text-slate-600">
                 {metric.trend}
               </span>
@@ -120,7 +166,7 @@ export function Dashboard({ data, onReload }) {
               <Briefcase className="text-brand" size={20} />
               Avance Ponderado
             </h3>
-            <p className="text-sm text-slate-500 leading-relaxed">
+            <p className="text-xs text-slate-500 leading-relaxed">
               El avance global se calcula proporcionalmente según la ponderación legal de cada fase descrita en la metodología de la Ley 21.719.
             </p>
             <div className="flex gap-2 text-xs font-bold text-slate-400">
@@ -137,7 +183,7 @@ export function Dashboard({ data, onReload }) {
               <Clock className="text-amber-600" size={20} />
               Plazo de Entrada en Vigencia
             </h3>
-            <p className="text-sm text-slate-500 mt-1">
+            <p className="text-xs text-slate-500 mt-1">
               Las sanciones legales y la fiscalización comienzan de forma obligatoria el 1 de diciembre de 2026.
             </p>
           </div>
@@ -185,7 +231,8 @@ export function Dashboard({ data, onReload }) {
             {data.phases.map((phase) => (
               <div 
                 key={phase.id} 
-                className="p-3.5 rounded-lg border border-slate-150 bg-slate-50 hover:bg-white hover:border-slate-300 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+                onClick={() => onNavigate && onNavigate("project")}
+                className="p-3.5 rounded-lg border border-slate-150 bg-slate-50 hover:bg-white hover:border-slate-300 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-4 cursor-pointer"
               >
                 <div className="space-y-1">
                   <p className="font-bold text-slate-800 text-sm">{phase.nombre}</p>
@@ -195,7 +242,6 @@ export function Dashboard({ data, onReload }) {
                 </div>
 
                 <div className="flex items-center gap-3 min-w-[200px] justify-between sm:justify-end">
-                  {/* Progress Bar bar */}
                   <div className="w-24 bg-slate-200 rounded-full h-2 overflow-hidden">
                     <div 
                       className={`h-full rounded-full transition-all duration-500 ${getProgressColor(phase.progreso)}`} 
@@ -226,7 +272,6 @@ export function Dashboard({ data, onReload }) {
               {data.recent_activity.length > 0 ? (
                 data.recent_activity.map((log) => (
                   <div className="relative pl-6 pb-4 border-l-2 border-slate-200 last:border-0 last:pb-0" key={log.id}>
-                    {/* Circle icon */}
                     <span className="absolute -left-[6px] top-1.5 h-2.5 w-2.5 rounded-full bg-teal-600 border border-white"></span>
                     <div className="text-xs">
                       <div className="flex justify-between font-bold text-slate-700">
@@ -248,8 +293,14 @@ export function Dashboard({ data, onReload }) {
             </div>
           </div>
 
-          <div className="border-t border-slate-100 pt-3 mt-4 text-center">
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Trazabilidad Total en la Pestaña Auditoría</p>
+          <div 
+            onClick={() => onNavigate && onNavigate("audit")}
+            className="border-t border-slate-100 pt-3 mt-4 text-center cursor-pointer hover:text-brand transition-colors"
+          >
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center justify-center gap-1">
+              <span>Trazabilidad Total en Auditoría</span>
+              <ChevronRight size={12} />
+            </p>
           </div>
         </div>
 

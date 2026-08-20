@@ -261,20 +261,85 @@ def seed_initial_data(db: Session) -> None:
         db.add(matriz_ti)
         db.flush()
 
-    # 8. Seed Riesgos
+    # 8. Seed Riesgos with 5x5 Probability and Impact
     if not db.query(Riesgo).first():
         db.add_all([
             Riesgo(
                 matriz_id=matriz_ti.id,
                 nivel="Alto",
                 descripcion="Ficha Social y Beneficios Internos: Cuenta con transferencia internacional a EE.UU. de datos sensibles de salud sin cláusulas contractuales adecuadas.",
-                puntuacion=16
+                puntuacion=20,
+                probabilidad=4,
+                impacto=5,
+                requiere_eipd=True
             ),
             Riesgo(
                 matriz_id=matriz_ti.id,
                 nivel="Bajo",
-                descripcion="Plataforma de Trámites Digitales: Datos básicos almacenados localmente con acceso limitado y logs de auditoría activos.",
-                puntuacion=4
+                descripcion="Plataforma de Trámites Digitales: Datos identificativos básicos almacenados localmente con control de credenciales y bitácora activa.",
+                puntuacion=4,
+                probabilidad=2,
+                impacto=2,
+                requiere_eipd=False
+            )
+        ])
+        db.flush()
+
+    # 8.1 Seed ARCO+ Requests
+    if not db.query(ArcoRequest).first():
+        today = date.today()
+        from app.core.helpers import add_business_days
+        db.add_all([
+            ArcoRequest(
+                folio="ARCO-2026-0001",
+                tipo_derecho="Acceso",
+                titular_nombre="María José Valenzuela",
+                titular_rut="16.432.198-4",
+                titular_email="mj.valenzuela@correo.cl",
+                fecha_ingreso=today,
+                dias_habiles_limite=15,
+                fecha_limite_legal=add_business_days(today, 15),
+                estado="En análisis",
+                descripcion_solicitud="Solicito copia íntegra y detallada de mis registros de postulaciones y antecedentes socioeconómicos almacenados en el sistema.",
+                area_derivada_id=db_areas["Legal y Cumplimiento"].id,
+                responsable_asignado_id=db_users["admin@protecciondatos.cl"].id
+            ),
+            ArcoRequest(
+                folio="ARCO-2026-0002",
+                tipo_derecho="Rectificación",
+                titular_nombre="Carlos Roberto Morales",
+                titular_rut="11.876.543-2",
+                titular_email="carlos.morales@empresa.cl",
+                fecha_ingreso=today,
+                dias_habiles_limite=15,
+                fecha_limite_legal=add_business_days(today, 15),
+                estado="Ingresada",
+                descripcion_solicitud="Solicito actualizar mi domicilio fiscal y correo electrónico en la base de datos de trámites institucionales.",
+                area_derivada_id=db_areas["Atención Ciudadana"].id,
+                responsable_asignado_id=db_users["invitado@protecciondatos.cl"].id
+            )
+        ])
+        db.flush()
+
+    # 8.2 Seed Security Breaches (72h)
+    if not db.query(SecurityBreach).first():
+        from datetime import timedelta
+        now = datetime.now()
+        db.add_all([
+            SecurityBreach(
+                codigo_incidente="INC-2026-0001",
+                fecha_deteccion=now,
+                fecha_limite_notificacion=now + timedelta(hours=72),
+                tipo_incidente="Acceso no autorizado",
+                gravedad="Alta",
+                descripcion="Detección de intento de escalamiento de privilegios en el servidor web de postulaciones. Se comprometieron temporalmente registros de contacto.",
+                datos_afectados="Nombres, RUNs y correos electrónicos de 150 usuarios.",
+                cantidad_titulares_afectados=150,
+                medidas_contencion="Bloqueo inmediato de IPs de origen, forzado de cambio de contraseñas de administradores y parche de seguridad aplicado.",
+                notificado_agencia=False,
+                notificado_titulares=False,
+                estado="En contención",
+                reportado_por_id=db_users["ti@protecciondatos.cl"].id
             )
         ])
         db.flush()

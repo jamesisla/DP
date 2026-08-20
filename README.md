@@ -10,20 +10,18 @@ Plataforma SaaS para apoyar la implementacion y gestion de cumplimiento de la Le
 - Deploy local: Docker Compose
 - Multi-cliente: una instancia separada de frontend, backend y base de datos por cliente
 
-## MVP incluido
+## Módulos y Funcionalidades Incluidas (Fase 1 y 2)
 
-- Login simple con JWT
-- Dashboard principal
-- Modulo DPO
-- Proyecto de implementacion
-- Matriz de levantamiento
-- Catalogo de actividades de tratamiento
-- Comite Ejecutivo
-- Informe de hallazgos
-- Politica de tratamiento de datos
-- Procedimientos, riesgos y acciones
-- Casos/tickets ligeros
-- Consentimientos
+- **Login & RBAC:** JWT con soporte de roles gubernamentales (Jefe de Servicio, DPO, Comité, Responsable de Área).
+- **Dashboard Ejecutivo:** Avance ponderado de 6 fases, cuenta regresiva legal al 1 de diciembre de 2026, alertas de camino crítico y bitácora en vivo.
+- **Proyecto de Adecuación:** Desglose metodológico de tareas con dependencias y asignación por división.
+- **Matriz de Levantamiento:** Encuesta guiada de 14 campos, mapa de flujo visual y consolidación en Matriz Maestra.
+- **Motor de Riesgos 5×5 & EIPD:** Cálculo de Probabilidad (1-5) × Impacto (1-5), mapa de calor por área e identificación de tratamientos de alto riesgo que requieren Evaluación de Impacto.
+- **Editor de Documentos Inteligente:** Inyección de tokens (`{{catalogo}}`, `{{lista_datos_sensibles}}`, etc.), barra de formato rápido y vista previa formateada en tiempo real.
+- **Comité Ejecutivo & Actas:** Flujos de aprobación formal (Borrador -> Revisión -> Aprobado -> Firmado) con actas descargables.
+- **Gestión de Solicitudes ARCO+ (15 Días Hábiles):** Control de plazos perentorios de la Ley 21.719 con semáforo de urgencia y generador de oficios de respuesta.
+- **Gestión de Brechas de Seguridad (72 Horas):** Temporizador legal para notificación obligatoria a la Agencia de Protección de Datos y generación del formulario oficial.
+- **Trazabilidad & Expediente ZIP:** Bitácora inmutable de auditoría y descarga de expediente estructurado en un solo ZIP fiscalizable.
 
 ## Uso local
 

@@ -1,0 +1,28 @@
+# ==============================================================================
+# SYSTEMD SERVICE UNIT FOR SIGE-DP BACKEND (FASTAPI)
+# Path: /etc/systemd/system/sige-dp.service
+# ==============================================================================
+
+[Unit]
+Description=SIGE-DP Backend Service (FastAPI Ley 21.719)
+After=network.target
+
+[Service]
+Type=simple
+User=opc
+Group=opc
+WorkingDirectory=/opt/sige-dp/backend
+Environment="PATH=/opt/sige-dp/backend/venv/bin:/usr/local/bin:/usr/bin:/bin"
+EnvironmentFile=/opt/sige-dp/backend/.env
+ExecStart=/opt/sige-dp/backend/venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8000 --workers 1 --limit-concurrency 50
+
+# Restart policy for 100% uptime
+Restart=always
+RestartSec=5s
+
+# Low RAM limits
+MemoryMax=300M
+MemoryHigh=250M
+
+[Install]
+WantedBy=multi-user.target
