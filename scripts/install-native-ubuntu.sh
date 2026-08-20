@@ -82,8 +82,14 @@ cd "$PROJECT_DIR/frontend"
 npm install --production=false
 npm run build
 
-# 6. Asignar Permisos al Directorio
+# 6. Asignar Permisos al Directorio para Nginx y Backend
+chmod 755 /opt
+chmod 755 "$PROJECT_DIR"
+chmod 755 "$PROJECT_DIR/frontend"
+chmod -R 755 "$PROJECT_DIR/frontend/dist" 2>/dev/null || true
 chown -R "$APP_USER:$APP_USER" "$PROJECT_DIR"
+chmod -R 775 "$PROJECT_DIR/backend"
+usermod -aG "$APP_USER" www-data 2>/dev/null || true
 
 # 7. Configurar Servicio Systemd para Backend
 echo "=== 5. Registrando Servicio Systemd (sige-dp.service) ==="
@@ -127,16 +133,15 @@ nginx -t
 systemctl enable --now nginx
 systemctl reload nginx || systemctl restart nginx
 
-# 9. Configuración de Firewall (Puertos 80 y 443)
+# 9. Configuración de Firewall e Iptables (Puertos 80 y 443)
 echo "=== 7. Habilitando Puertos HTTP/HTTPS en Firewall ==="
+iptables -I INPUT 1 -p tcp --dport 80 -j ACCEPT 2>/dev/null || true
+iptables -I INPUT 1 -p tcp --dport 443 -j ACCEPT 2>/dev/null || true
+
 if command -v ufw &>/dev/null && ufw status | grep -q "Status: active"; then
   ufw allow 80/tcp
   ufw allow 443/tcp
 fi
-
-# Reglas iptables en OCI
-iptables -I INPUT 6 -m state --state NEW -p tcp --dport 80 -j ACCEPT 2>/dev/null || true
-iptables -I INPUT 6 -m state --state NEW -p tcp --dport 443 -j ACCEPT 2>/dev/null || true
 
 echo ""
 echo "========================================================="
