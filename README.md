@@ -23,7 +23,27 @@ Plataforma SaaS para apoyar la implementacion y gestion de cumplimiento de la Le
 - **Gestión de Brechas de Seguridad (72 Horas):** Temporizador legal para notificación obligatoria a la Agencia de Protección de Datos y generación del formulario oficial.
 - **Trazabilidad & Expediente ZIP:** Bitácora inmutable de auditoría y descarga de expediente estructurado en un solo ZIP fiscalizable.
 
-## Uso local
+## Despliegue en Oracle Cloud (OCI Always Free - 1GB RAM)
+
+### En Ubuntu Minimal (Recomendado):
+```bash
+# 1. Optimizar RAM (< 90MB en reposo)
+curl -fsSL https://raw.githubusercontent.com/jamesisla/DP/main/scripts/optimize-ubuntu.sh | sudo bash
+
+# 2. Descargar, compilar y desplegar desde GitHub
+curl -fsSL https://raw.githubusercontent.com/jamesisla/DP/main/scripts/install-native-ubuntu.sh | sudo bash
+```
+
+### En Oracle Linux Minimal:
+```bash
+# 1. Optimizar RAM
+curl -fsSL https://raw.githubusercontent.com/jamesisla/DP/main/scripts/optimize-oci.sh | sudo bash
+
+# 2. Desplegar
+curl -fsSL https://raw.githubusercontent.com/jamesisla/DP/main/scripts/install-native-oci.sh | sudo bash
+```
+
+## Uso local con Docker
 
 ```bash
 cp .env.example .env
