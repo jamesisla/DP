@@ -241,7 +241,7 @@ export function SecurityBreaches({ breaches = [], token, user, onReload }) {
                     <div>
                       <span className="font-bold text-slate-700 block">Datos Personales Comprometidos:</span>
                       <p className="text-slate-600 mt-0.5 font-medium">
-                        {b.datos_afectados} ({b.cantidad_titulares_afectados:,} titulares estimados)
+                        {b.datos_afectados} ({b.cantidad_titulares_afectados?.toLocaleString() || b.cantidad_titulares_afectados} titulares estimados)
                       </p>
                     </div>
                   </div>
