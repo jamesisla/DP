@@ -432,7 +432,7 @@ export function Shell({ session, onLogout }) {
             </div>
             <div>
               <p className="font-bold text-sm tracking-tight text-slate-800">
-                {isCyber ? "SIGE-CYBER" : "SIGE-DP"}
+                {isCyber ? "LEXAPP · CIBER" : "LEXAPP · DATOS"}
               </p>
               <p className={`text-[10px] font-bold uppercase tracking-wider ${isCyber ? "text-indigo-600" : "text-teal-700"}`}>
                 {isCyber ? "Ley 21.663 · Ciberseguridad" : "Ley 21.719 · Datos Personales"}
