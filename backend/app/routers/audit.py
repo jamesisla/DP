@@ -378,3 +378,43 @@ def verify_dp_hash(
     }
 
 
+# ==============================================================================
+# ENTRENADOR DE ENTREVISTAS DE FISCALIZACIÓN (AGENCIA DE DATOS - LEY N° 21.719)
+# ==============================================================================
+
+@router.get("/inspector-qa-dp")
+def get_inspector_qa_dp(_: Annotated[User, Depends(get_current_user)]):
+    """Obtiene el banco de preguntas complejas de fiscalización de la Agencia de Datos con argumentación defensiva."""
+    return [
+        {
+            "id": 1,
+            "pregunta": "¿Cuál es la base de licitud para tratar los datos sensibles de salud de los funcionarios/usuarios?",
+            "fundamento_legal": "Art. 13 y 14 Ley N° 21.719 (Tratamiento de Datos Sensibles y Consentimiento Expreso).",
+            "respuesta_defensiva": "Demostramos que el tratamiento se ampara en mandato legal expreso para la gestión funcionaria y de seguridad social, contando con consentimiento explícito y cifrado de extremo a extremo en la base de datos.",
+            "ruta_evidencia": "Suite Datos > Matriz de Tratamientos (RAT) > Columna Base Legal & Finalidad"
+        },
+        {
+            "id": 2,
+            "pregunta": "¿Cómo garantizan que un tercero proveedor en la nube no reutiliza los datos para entrenar modelos de IA?",
+            "fundamento_legal": "Art. 16 Ley N° 21.719 (Obligaciones del Encargado del Tratamiento).",
+            "respuesta_defensiva": "Todos los contratos con proveedores tecnológicos cuentan con el Anexo DPA firmado donde se prohíbe explícitamente la reutilización de datos y se exige certificación ISO 27001 y retención en centros de datos autorizados.",
+            "ruta_evidencia": "Suite Datos > Terceros/Proveedores > Anexo DPA Firmado (Art. 16)"
+        },
+        {
+            "id": 3,
+            "pregunta": "¿Qué mecanismo utiliza la institución para asegurar que una solicitud de cancelación ARCO+ se ejecuta en 15 días hábiles?",
+            "fundamento_legal": "Art. 20 Ley N° 21.719 (Plazo Perentorio de Atención de Derechos).",
+            "respuesta_defensiva": "La plataforma asigna automáticamente un temporizador legal de 15 días hábiles con cálculo de feriados chilenos y genera un hash inmutable de trazabilidad de la resolución emitida.",
+            "ruta_evidencia": "Suite Datos > Derechos ARCO+ > Semáforo de Días Hábiles & Folio"
+        },
+        {
+            "id": 4,
+            "pregunta": "¿Cómo se acredita el principio de Responsabilidad Proactiva ante una eventual investigación de la Agencia?",
+            "fundamento_legal": "Art. 28 Ley N° 21.719 (Principio de Responsabilidad Proactiva / Accountability).",
+            "respuesta_defensiva": "Se acredita mediante el Expediente Digital de Cumplimiento (.ZIP) que consolida el nombramiento del DPO, la bitácora inmutable de accesos, las evaluaciones de impacto EIPD y la matriz de riesgos mitigada.",
+            "ruta_evidencia": "Suite Datos > Auditoría & Expediente ZIP > Descarga Expediente Maestro"
+        }
+    ]
+
+
+

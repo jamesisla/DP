@@ -20,7 +20,7 @@ import { Panel } from "../components/Panel";
 import { api, API_URL } from "../lib/api";
 
 export function AuditLogs({ auditLogs = [], token, onReload }) {
-  const [activeTab, setActiveTab] = useState("audit"); // 'audit', 'mock_audit', 'ledger'
+  const [activeTab, setActiveTab] = useState("audit"); // 'audit', 'mock_audit', 'ledger', 'qa'
   const [filterQuery, setFilterQuery] = useState("");
 
   // Mock audit state
@@ -35,10 +35,23 @@ export function AuditLogs({ auditLogs = [], token, onReload }) {
   const [verificationResult, setVerificationResult] = useState(null);
   const [verifying, setVerifying] = useState(false);
 
+  // Inspector QA state
+  const [qaList, setQaList] = useState([]);
+
   useEffect(() => {
     loadMockAuditQuestions();
     loadLedger();
+    loadInspectorQa();
   }, [token]);
+
+  async function loadInspectorQa() {
+    try {
+      const data = await api("/inspector-qa-dp", token);
+      setQaList(data);
+    } catch (err) {
+      console.error("Error cargando Q&A fiscalizador:", err);
+    }
+  }
 
   async function loadLedger() {
     try {
@@ -172,7 +185,7 @@ export function AuditLogs({ auditLogs = [], token, onReload }) {
       </div>
 
       {/* Tab Selector */}
-      <div className="flex bg-slate-200/70 p-1 rounded-xl border border-slate-300 max-w-xl">
+      <div className="flex bg-slate-200/70 p-1 rounded-xl border border-slate-300 max-w-2xl">
         <button
           onClick={() => setActiveTab("audit")}
           className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-all ${activeTab === "audit" ? "bg-white text-slate-900 shadow-2xs" : "text-slate-600 hover:text-slate-900"}`}
@@ -183,13 +196,19 @@ export function AuditLogs({ auditLogs = [], token, onReload }) {
           onClick={() => setActiveTab("mock_audit")}
           className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-all ${activeTab === "mock_audit" ? "bg-white text-teal-800 shadow-2xs" : "text-slate-600 hover:text-slate-900"}`}
         >
-          Simulador Fiscalización
+          Simulador
         </button>
         <button
           onClick={() => setActiveTab("ledger")}
           className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-all ${activeTab === "ledger" ? "bg-white text-indigo-700 shadow-2xs" : "text-slate-600 hover:text-slate-900"}`}
         >
-          Verificador SHA-256 ({ledger.total_evidencias_selladas})
+          Verificador SHA-256
+        </button>
+        <button
+          onClick={() => setActiveTab("qa")}
+          className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-all ${activeTab === "qa" ? "bg-white text-teal-800 shadow-2xs" : "text-slate-600 hover:text-slate-900"}`}
+        >
+          Entrenador Q&A ({qaList.length})
         </button>
       </div>
 
@@ -451,6 +470,49 @@ export function AuditLogs({ auditLogs = [], token, onReload }) {
             </div>
           </div>
 
+        </div>
+      ) : (
+        /* TAB 4: INSPECTOR Q&A DEFENSE GUIDE (DPO) */
+        <div className="rounded-xl border border-line bg-white p-6 shadow-sm space-y-6">
+          <div className="flex items-center gap-3 border-b border-slate-100 pb-3">
+            <div className="grid h-10 w-10 place-items-center rounded-xl bg-teal-50 text-teal-700 border border-teal-100">
+              <Scale size={20} />
+            </div>
+            <div>
+              <h3 className="font-bold text-slate-800 text-sm">Entrenador de Entrevistas de Fiscalización (Agencia de Datos)</h3>
+              <p className="text-xs text-slate-400">Guía de argumentación jurídica defensiva y rutas de evidencia para responder a los inspectores de la Ley N° 21.719.</p>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            {qaList.map((qa) => (
+              <div key={qa.id} className="p-4 rounded-xl border border-slate-200 bg-slate-50/60 space-y-3">
+                <div className="flex items-start gap-3">
+                  <span className="font-mono text-xs font-bold px-2 py-0.5 rounded bg-teal-100 text-teal-800 shrink-0 mt-0.5">
+                    Pregunta #{qa.id}
+                  </span>
+                  <h4 className="font-bold text-xs text-slate-900 leading-snug">{qa.pregunta}</h4>
+                </div>
+
+                <div className="space-y-2 text-xs">
+                  <div className="p-2.5 bg-white border border-slate-200 rounded-lg">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase block">Fundamento Legal Obligatorio:</span>
+                    <p className="font-semibold text-slate-700 mt-0.5">{qa.fundamento_legal}</p>
+                  </div>
+
+                  <div className="p-3 bg-emerald-50/70 border border-emerald-200 rounded-lg">
+                    <span className="text-[10px] font-bold text-emerald-800 uppercase block">Respuesta Jurídico-Técnica Recomendada:</span>
+                    <p className="text-emerald-950 font-medium mt-0.5 leading-relaxed">{qa.respuesta_defensiva}</p>
+                  </div>
+
+                  <div className="p-2.5 bg-indigo-50/50 border border-indigo-200 rounded-lg flex items-center justify-between gap-2">
+                    <span className="text-[11px] font-bold text-indigo-900">Ruta de Evidencia en LexApp:</span>
+                    <span className="font-mono text-[10px] bg-white px-2 py-0.5 rounded border border-indigo-200 text-indigo-800">{qa.ruta_evidencia}</span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 

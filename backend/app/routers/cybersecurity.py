@@ -1772,6 +1772,120 @@ def download_executive_onepager_cyber(_: Annotated[User, Depends(get_current_use
     return StreamingResponse(io.BytesIO(doc.encode("utf-8")), media_type="text/markdown", headers=headers)
 
 
+# ==============================================================================
+# BASES TÉCNICAS CHILECOMPRA & CLÁUSULAS CADENA DE SUMINISTRO (LEY N° 21.663)
+# ==============================================================================
+
+@router.get("/procurement-security-clauses")
+def download_procurement_security_clauses(_: Annotated[User, Depends(get_current_user)]):
+    """Genera las Cláusulas Tipo de Ciberseguridad para Licitaciones y Compras Públicas en Mercado Público."""
+    now = datetime.now()
+    doc = f"""# PLIEGO TÉCNICO DE CIBERSEGURIDAD Y GESTIÓN DE RIESGO DE LA CADENA DE SUMINISTRO
+## ANEXO MANDATORIO PARA BASES DE LICITACIÓN Y CONTRATOS TECNOLÓGICOS DEL ESTADO
+**Marco Legal:** Artículo 8 y 10 de la Ley N° 21.663 (Ciberseguridad ANCI) · Directivas ChileCompra  
+**Fecha de Emisión:** {now.strftime('%d de %B de %Y')}
+
+---
+
+### CLÁUSULA PRIMERA: OBLIGACIÓN DE CUMPLIMIENTO DEL MARCO DE CIBERSEGURIDAD
+El PROVEEDOR se obliga a implementar controles técnicos equivalentes a **CIS Controls v8 / ISO 27001** y garantizar que los sistemas provistos no contienen vulnerabilidades críticas conocidas (CVE con CVSS > 7.0).
+
+### CLÁUSULA SEGUNDA: AUTENTICACIÓN MULTIFACTOR (MFA) Y ACCESO PRIVILEGIADO
+Todo acceso de soporte remoto, administración o mantenimiento provisto por el ADJUDICATARIO deberá realizarse mediante canales seguros (VPN TLS 1.3 / SSH con llaves ED25519) y con **Autenticación Multifactor (MFA) obligatoria**.
+
+### CLÁUSULA TERCERA: NOTIFICACIÓN DE INCIDENTES EN CADENA DE SUMINISTRO (SLA < 12 HORAS)
+Si la infraestructura, código o servidores del PROVEEDOR sufren un incidente o compromiso, el PROVEEDOR deberá reportarlo al CISO del SERVICIO en un plazo improrrogable inferior a **12 horas corridas**.
+
+### CLÁUSULA CUARTA: AUDITORÍAS DE SEGURIDAD Y PENTESTING
+El SERVICIO se reserva el derecho de realizar auditorías de seguridad, escaneos de vulnerabilidades y pruebas de penetración (Pentesting) sobre los entregables del contrato.
+
+---
+*Anexo de Ciberseguridad validado para Compras Públicas de Tecnología.*
+"""
+    headers = {"Content-Disposition": f"attachment; filename=Pliego_Tipo_ChileCompra_Ciberseguridad_{now.strftime('%Y%m%d')}.md"}
+    return StreamingResponse(io.BytesIO(doc.encode("utf-8")), media_type="text/markdown", headers=headers)
+
+
+# ==============================================================================
+# PROTOCOLO DE DESCONEXIÓN & AISLAMIENTO DE EMERGENCIA ANCI (WAR ROOM)
+# ==============================================================================
+
+@router.get("/crisis-isolation-protocol")
+def download_crisis_isolation_protocol(_: Annotated[User, Depends(get_current_user)]):
+    """Genera la Guía de Desconexión de Red y Aislamiento de Servidores ante Incidentes Críticos."""
+    now = datetime.now()
+    doc = f"""# PROTOCOLO OPERACIONAL DE AISLAMIENTO Y DESCONEXIÓN DE RED
+## PROCEDIMIENTO DE RESPUESTA A INCIDENTES CRÍTICOS (WAR ROOM ANCI)
+**Fecha:** {now.strftime('%d de %B de %Y')} | **Autoridad:** Oficial CISO & Comité de Crisis
+
+---
+
+### 1. CRITERIOS DE ACTIVACIÓN DE DESCONEXIÓN DE EMERGENCIA
+* Detección de actividad activa de Ransomware en servidores de producción.
+* Comunicación anómala masiva con servidores C2 (Command & Control) en Internet.
+* Exfiltración de bases de datos críticas no autorizada.
+
+### 2. MATRIZ DE ACCIONES TÉCNICAS INMEDIATAS (PRIMEROS 15 MINUTOS)
+1. **Aislamiento Lógico de Red:** Deshabilitar interfaces de red en el Switch/Hypervisor:
+   ```bash
+   # Desconexión inmediata de interfaz en Linux
+   sudo ip link set dev eth0 down
+   ```
+2. **Preservación Forense de Memoria RAM (NO APAGAR EL SERVIDOR):**
+   ```bash
+   # Volcado de memoria RAM con LiME
+   sudo insmod lime.ko "path=/tmp/ram_dump.lime format=raw"
+   ```
+3. **Bloqueo Perimetral en Firewall:** Bloquear tráfico saliente hacia las IPs atacantes detectadas por Wazuh.
+4. **Activación de Alerta Temprana ANCI:** Remitir formulario antes de cumplir las **3 horas legales**.
+
+---
+*Protocolo de Continuidad BCP/PRI suscrito por la Jefatura de Ciberseguridad.*
+"""
+    headers = {"Content-Disposition": f"attachment; filename=Protocolo_Aislamiento_Emergencia_ANCI_{now.strftime('%Y%m%d')}.md"}
+    return StreamingResponse(io.BytesIO(doc.encode("utf-8")), media_type="text/markdown", headers=headers)
+
+
+# ==============================================================================
+# ENTRENADOR DE ENTREVISTAS DE FISCALIZACIÓN ANCI (INSPECTOR Q&A)
+# ==============================================================================
+
+@router.get("/inspector-qa-cyber")
+def get_inspector_qa_cyber(_: Annotated[User, Depends(get_current_user)]):
+    """Obtiene el banco de preguntas complejas de fiscalización ANCI con argumentación y ruta de evidencia."""
+    return [
+        {
+            "id": 1,
+            "pregunta": "¿Cómo acredita que su institución notificó el incidente antes de las 3 horas de detectado?",
+            "fundamento_legal": "Art. 12 Ley N° 21.663 (Plazo improrrogable de Alerta Temprana).",
+            "respuesta_defensiva": "Demostramos la hora exacta de detección registrada en el Libro Oficial de Incidentes con telemetría de Wazuh SIEM y el comprobante de envío digital del Oficio de Alerta Temprana generado por LexApp GRC.",
+            "ruta_evidencia": "Suite Ciberseguridad > Incidentes ANCI > Libro de Incidentes (MD)"
+        },
+        {
+            "id": 2,
+            "pregunta": "¿Qué garantías existen de que sus respaldos no pueden ser eliminados o cifrados por un ransomware?",
+            "fundamento_legal": "Art. 8 Ley N° 21.663 (Medidas de Resiliencia y Continuidad Operacional).",
+            "respuesta_defensiva": "Los respaldos institucionales se almacenan en repositorios MinIO con 'Object Lock' en modo Compliance estricto (WORM) por 90 días, lo que impide técnica y criptográficamente su borrado incluso con credenciales de administrador.",
+            "ruta_evidencia": "Suite Ciberseguridad > Activos Críticos > Control WORM Habilitado"
+        },
+        {
+            "id": 3,
+            "pregunta": "¿Cuándo fue la última vez que su Comité de Crisis ejecutó un simulacro de ataque cibernético?",
+            "fundamento_legal": "Art. 8 Ley N° 21.663 y Directiva de Operadores de Importancia Vital.",
+            "respuesta_defensiva": "El Comité de Crisis realizó un War Game de Ransomware el 25 de Agosto de 2026, suscribiendo el Acta Oficial con plan de acción y lecciones aprendidas.",
+            "ruta_evidencia": "Suite Ciberseguridad > Simulador de Crisis / War Games > Acta Oficial"
+        },
+        {
+            "id": 4,
+            "pregunta": "¿Cómo audita que sus proveedores de soporte técnico cumplen con los estándares de ciberseguridad?",
+            "fundamento_legal": "Art. 10 Ley N° 21.663 (Riesgo en Cadena de Suministro).",
+            "respuesta_defensiva": "El 100% de los proveedores de servicios esenciales cuentan con anexos de ciberseguridad firmados, compromiso de notificación en <24h y acceso administrado mediante MFA/PAM.",
+            "ruta_evidencia": "Suite Ciberseguridad > Terceros/Proveedores > Cláusula ANCI Firmada"
+        }
+    ]
+
+
+
 
 
 

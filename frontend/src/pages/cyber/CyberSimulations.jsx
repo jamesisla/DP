@@ -116,13 +116,24 @@ export function CyberSimulations({ simulations = [], token, user, onReload }) {
           </div>
         </div>
 
-        <button
-          onClick={openCreate}
-          className="flex items-center gap-1.5 rounded bg-indigo-600 px-4 py-2 text-xs font-bold text-white hover:bg-indigo-700 shadow-sm"
-        >
-          <Play size={14} />
-          Iniciar Ejercicio de Simulación
-        </button>
+        <div className="flex items-center gap-2.5 flex-wrap">
+          <a
+            href={`${API_URL.replace("/api", "")}/api/cyber/crisis-isolation-protocol?token=${token}`}
+            download
+            className="flex items-center gap-1.5 rounded-lg border border-rose-300 bg-rose-50 px-3 py-2 text-xs font-bold text-rose-900 hover:bg-rose-100 shadow-2xs transition-colors shrink-0"
+            title="Descargar Protocolo Operacional de Aislamiento y Desconexión de Red ante Ataques Críticos (War Room)"
+          >
+            <span>🚨 Protocolo Desconexión Red (MD)</span>
+          </a>
+
+          <button
+            onClick={openCreate}
+            className="flex items-center gap-1.5 rounded bg-indigo-600 px-4 py-2 text-xs font-bold text-white hover:bg-indigo-700 shadow-sm"
+          >
+            <Play size={14} />
+            Iniciar Ejercicio de Simulación
+          </button>
+        </div>
       </div>
 
       {/* Preset Scenarios Cards */}

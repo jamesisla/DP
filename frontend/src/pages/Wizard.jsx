@@ -262,6 +262,12 @@ export function Wizard({ myMatrix, masterMatrix, areas, user, token, onReload })
               >
                 Lista de Tratamientos ({treatments.length})
               </button>
+              <button
+                onClick={() => setActiveTab("lifecycle")}
+                className={`px-3 py-1.5 rounded text-xs font-semibold border ${activeTab === "lifecycle" ? "bg-teal-50 border-teal-300 text-teal-900" : "bg-white border-slate-200 text-slate-500"}`}
+              >
+                Ciclo de Vida & Flujo del Dato
+              </button>
               {activeTab === "form" && (
                 <span className="px-3 py-1.5 rounded text-xs font-semibold bg-brand/5 border border-brand/20 text-brand">
                   {editingIndex !== null ? "Editando Tratamiento" : "Nueva Encuesta"}
@@ -345,6 +351,93 @@ export function Wizard({ myMatrix, masterMatrix, areas, user, token, onReload })
                   <p className="text-xs mt-1">Haz clic en "Añadir Tratamiento" para rellenar la encuesta interactiva.</p>
                 </div>
               )}
+            </div>
+          ) : activeTab === "lifecycle" ? (
+            /* DATA LIFECYCLE PIPELINE VIEW */
+            <div className="space-y-6">
+              <div className="border-b border-slate-150 pb-3">
+                <span className="text-[10px] uppercase font-bold text-teal-600 tracking-wider">Trazabilidad de Extremo a Extremo</span>
+                <h3 className="text-sm font-bold text-slate-800">Ciclo de Vida de los Datos Personales (Art. 13 a 28 Ley N° 21.719)</h3>
+                <p className="text-xs text-slate-400">Visualización de las 5 etapas operacionales por las que transita la información ciudadana e institucional.</p>
+              </div>
+
+              {/* 5 Stages Grid */}
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+                {[
+                  {
+                    step: "1. Captura & Origen",
+                    color: "border-sky-300 bg-sky-50/50 text-sky-900",
+                    badge: "Formularios / ClaveÚnica",
+                    desc: "Recolección con deber de información (Art. 14). Consentimiento explícito o mandato legal."
+                  },
+                  {
+                    step: "2. Almacenamiento",
+                    color: "border-indigo-300 bg-indigo-50/50 text-indigo-900",
+                    badge: "PostgreSQL AES-256",
+                    desc: "Cifrado en reposo y en tránsito. Aislamiento lógico y control de accesos MFA."
+                  },
+                  {
+                    step: "3. Tratamiento / Uso",
+                    color: "border-teal-300 bg-teal-50/50 text-teal-900",
+                    badge: "Base Legal RAT (Art. 15)",
+                    desc: "Procesamiento estricto conforme a la finalidad declarada. Prohibición de desvío de fines."
+                  },
+                  {
+                    step: "4. Encargados / Nube",
+                    color: "border-amber-300 bg-amber-50/50 text-amber-900",
+                    badge: "Contratos DPA (Art. 16)",
+                    desc: "Proveedores regulados con SLA de notificación <24h y servidores en países adecuados."
+                  },
+                  {
+                    step: "5. Supresión / Archivo",
+                    color: "border-rose-300 bg-rose-50/50 text-rose-900",
+                    badge: "Anonimización Presidio",
+                    desc: "Destrucción segura certificada al vencer el plazo de conservación o anonimización irreversible."
+                  }
+                ].map((s, i) => (
+                  <div key={i} className={`p-3.5 rounded-xl border ${s.color} space-y-2 flex flex-col justify-between`}>
+                    <div className="space-y-1">
+                      <span className="text-[10px] font-black uppercase tracking-wider block">{s.step}</span>
+                      <span className="inline-block text-[10px] font-bold px-2 py-0.5 rounded bg-white border border-slate-200 shadow-2xs font-mono">
+                        {s.badge}
+                      </span>
+                      <p className="text-[11px] leading-relaxed pt-1 text-slate-700">{s.desc}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Treatments mapping in lifecycle */}
+              <div className="space-y-3 pt-2">
+                <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider">Actividades de Tratamiento Mapeadas ({treatments.length})</h4>
+                <div className="grid gap-3 md:grid-cols-2">
+                  {treatments.map((t, idx) => (
+                    <div key={idx} className="p-3.5 rounded-xl border border-slate-200 bg-white shadow-2xs space-y-2">
+                      <div className="flex justify-between items-start gap-2">
+                        <h5 className="font-bold text-xs text-slate-800">{t.proceso}</h5>
+                        <span className={`text-[10px] px-2 py-0.5 rounded font-bold ${t.datos_sensibles === "Sí" ? "bg-rose-50 text-rose-700 border border-rose-200" : "bg-teal-50 text-teal-800 border border-teal-200"}`}>
+                          {t.datos_sensibles === "Sí" ? "Datos Sensibles" : "Datos Generales"}
+                        </span>
+                      </div>
+
+                      <div className="grid gap-2 grid-cols-2 text-[11px] p-2 bg-slate-50 rounded-lg border border-slate-150">
+                        <div>
+                          <span className="text-slate-400 font-bold block">Base Legal:</span>
+                          <span className="text-slate-700 font-medium truncate block">{t.base_legal}</span>
+                        </div>
+                        <div>
+                          <span className="text-slate-400 font-bold block">Conservación:</span>
+                          <span className="text-slate-700 font-medium">{t.plazo_conservacion || "5 años"}</span>
+                        </div>
+                      </div>
+
+                      <div className="text-[11px] text-slate-500 truncate" title={t.tipo_datos}>
+                        <strong>Datos:</strong> {t.tipo_datos}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
           ) : (
             /* SURVEY FORM WITH INTEGRATED VISUAL FLOW MAP */

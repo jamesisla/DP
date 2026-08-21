@@ -485,13 +485,91 @@ def download_executive_onepager_dp(_: Annotated[User, Depends(get_current_user)]
 ---
 
 ### 3. DICTAMEN DE CONFORMIDAD DEL DELEGADO (DPO)
-> **Conclusión:** El organismo cuenta con una postura sólida de **Responsabilidad Proactiva (Accountability)**. Se han cerrado las brechas críticas en contratos con terceros y la plataforma se encuentra lista para la entrada en vigor obligatoria de la Agencia de Datos.
-
 ---
 *Firma Digital del Delegado de Protección de Datos (DPO) y Jefe Superior del Servicio*
 """
     headers = {"Content-Disposition": f"attachment; filename=Informe_Ejecutivo_Directorio_Privacidad_1P_{now.strftime('%Y%m%d')}.md"}
     return StreamingResponse(io.BytesIO(doc.encode("utf-8")), media_type="text/markdown", headers=headers)
+
+
+# ==============================================================================
+# BASES TÉCNICAS CHILECOMPRA & PLIEGO DPA (MERCADO PÚBLICO - LEY N° 21.719)
+# ==============================================================================
+
+@router.get("/procurement-dpa-clauses")
+def download_procurement_dpa_clauses(_: Annotated[User, Depends(get_current_user)]):
+    """Genera las Cláusulas Tipo y Pliego de Protección de Datos para Licitaciones y Compras Públicas."""
+    now = datetime.now()
+    doc = f"""# PLIEGO TÉCNICO Y CLÁUSULAS TIPO DE PROTECCIÓN DE DATOS PERSONALES
+## ANEXO OBLIGATORIO PARA BASES DE LICITACIÓN Y CONTRATOS ADMINISTRATIVOS
+**Marco Legal:** Artículo 16 y 28 de la Ley N° 21.719 · Ley N° 19.886 de Compras Públicas  
+**Fecha de Emisión:** {now.strftime('%d de %B de %Y')}
+
+---
+
+### CLÁUSULA PRIMERA: CONDICIÓN DE ENCARGADO DEL TRATAMIENTO
+El PROVEEDOR o ADJUDICATARIO actuará exclusivamente en calidad de **Encargado del Tratamiento** respecto de cualquier dato personal o sensible al que acceda con ocasión del contrato, tratando los datos únicamente bajo las instrucciones expresas del SERVICIO.
+
+### CLÁUSULA SEGUNDA: CONFIDENCIALIDAD Y DEBER DE SECRETO
+El PROVEEDOR garantiza que todo su personal ha suscrito acuerdos de confidencialidad y mantendrá el deber de secreto profesional durante y después de finalizada la relación contractual, bajo pena de las sanciones del Art. 50 de la Ley N° 21.719.
+
+### CLÁUSULA TERCERA: MEDIDAS DE SEGURIDAD Y CIFRADO
+El PROVEEDOR implementará cifrado en reposo y en tránsito (**AES-256 / TLS 1.3**), control de accesos multifactor (MFA) y bitácoras inmutables de acceso.
+
+### CLÁUSULA CUARTA: NOTIFICACIÓN DE INCIDENTES (SLA 24 HORAS)
+En caso de cualquier incidente o sospecha de filtración de datos, el PROVEEDOR deberá notificar al Delegado de Protección de Datos (DPO) del SERVICIO en un plazo máximo e improrrogable de **24 horas corridas**.
+
+### CLÁUSULA QUINTA: DESTINO Y SUPRESIÓN DE LOS DATOS AL TÉRMINO
+Finalizado el contrato, el PROVEEDOR deberá certificar la destrucción o entrega total de las bases de datos en un plazo de **15 días hábiles**.
+
+---
+*Anexo validado para su incorporación en Mercado Público (ChileCompra).*
+"""
+    headers = {"Content-Disposition": f"attachment; filename=Pliego_Tipo_ChileCompra_Datos_Personales_{now.strftime('%Y%m%d')}.md"}
+    return StreamingResponse(io.BytesIO(doc.encode("utf-8")), media_type="text/markdown", headers=headers)
+
+
+# ==============================================================================
+# COMUNICADO OFICIAL DE CRISIS A TITULARES & PRENSA (ART. 18 LEY 21.719)
+# ==============================================================================
+
+@router.get("/crisis-citizen-notification")
+def download_crisis_citizen_notification(_: Annotated[User, Depends(get_current_user)]):
+    """Genera el Comunicado Oficial de Crisis y Carta a Titulares Afectados por Filtraciones."""
+    now = datetime.now()
+    doc = f"""# COMUNICADO OFICIAL DE SEGURIDAD Y PROTECCIÓN DE DATOS
+## NOTIFICACIÓN TRANSPARENTE A TITULARES DE DATOS PERSONALES AFECTADOS
+**Fecha:** {now.strftime('%d de %B de %Y')} | **Emisor:** Delegado de Protección de Datos (DPO) e Institución
+
+---
+
+### Estimado(a) Ciudadano(a) / Titular de Datos:
+
+Por medio de la presente comunicación y en estricto cumplimiento del **Artículo 18 de la Ley N° 21.719**, le informamos formal y transparentemente sobre un incidente de seguridad que ha comprometido datos personales bajo custodia de nuestro organismo.
+
+#### 1. ¿QUÉ OCURRIÓ?
+El día {now.strftime('%d de %B de %Y')}, nuestro Centro de Ciberseguridad detectó un acceso no autorizado que afectó una base de datos institucional. Las medidas de contención se activaron de inmediato y la Agencia Nacional de Protección de Datos fue notificada conforme al plazo legal de 72 horas.
+
+#### 2. ¿QUÉ DATOS SE VIERON COMPROMETIDOS?
+* Nombres completos y RUT.
+* Correos electrónicos institucionales/personales.
+* **IMPORTANTE:** No se vieron afectadas contraseñas en texto plano ni información de tarjetas bancarias.
+
+#### 3. MEDIDAS ADOPTADAS POR LA INSTITUCIÓN
+* Aislamiento preventivo del servidor y revocación total de credenciales de acceso.
+* Refuerzo de políticas de autenticación multifactor (MFA).
+* Inicio de acciones legales y denuncia ante el Ministerio Público y el CSIRT Nacional.
+
+#### 4. RECOMENDACIONES PARA EL TITULAR
+* Desconfíe de correos o llamadas telefónicas que soliciten claves bancarias o pagos a nombre de nuestra institución.
+* Si detecta actividad sospechosa, contáctenos directamente al canal oficial: `dpo@institucion.gob.cl`.
+
+---
+*Firma Digital del Delegado de Protección de Datos (DPO) y Máxima Autoridad Institucional*
+"""
+    headers = {"Content-Disposition": f"attachment; filename=Comunicado_Oficial_Crisis_Titulares_{now.strftime('%Y%m%d')}.md"}
+    return StreamingResponse(io.BytesIO(doc.encode("utf-8")), media_type="text/markdown", headers=headers)
+
 
 
 

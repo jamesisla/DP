@@ -133,13 +133,24 @@ export function Providers({ providers = [], areas = [], token, onReload }) {
           </p>
         </div>
 
-        <button
-          onClick={openCreate}
-          className="flex items-center gap-1.5 rounded bg-teal-700 px-4 py-2 text-xs font-bold text-white hover:bg-teal-800 shadow-sm shrink-0"
-        >
-          <Plus size={15} />
-          Nuevo Proveedor
-        </button>
+        <div className="flex items-center gap-2.5 flex-wrap">
+          <a
+            href={`${API_URL.replace("/api", "")}/api/documents/procurement-dpa-clauses?token=${token}`}
+            download
+            className="flex items-center gap-1.5 rounded-lg border border-teal-300 bg-teal-50 px-3 py-2 text-xs font-bold text-teal-900 hover:bg-teal-100 shadow-2xs transition-colors shrink-0"
+            title="Descargar Pliego y Cláusulas Tipo DPA para Bases de Licitación en Mercado Público / ChileCompra"
+          >
+            <span>📋 Pliego ChileCompra DPA (MD)</span>
+          </a>
+
+          <button
+            onClick={openCreate}
+            className="flex items-center gap-1.5 rounded bg-teal-700 px-4 py-2 text-xs font-bold text-white hover:bg-teal-800 shadow-sm shrink-0"
+          >
+            <Plus size={15} />
+            Ingresar Proveedor
+          </button>
+        </div>
       </div>
 
       {/* Tabs */}

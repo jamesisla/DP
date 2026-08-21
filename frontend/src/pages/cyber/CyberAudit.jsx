@@ -15,15 +15,26 @@ import {
 import { api, API_URL } from "../../lib/api";
 
 export function CyberAudit({ token }) {
-  const [activeTab, setActiveTab] = useState("expediente"); // 'expediente', 'ledger'
+  const [activeTab, setActiveTab] = useState("expediente"); // 'expediente', 'ledger', 'qa'
   const [ledger, setLedger] = useState({ total_evidencias_selladas: 0, ledger: [] });
   const [hashInput, setHashInput] = useState("");
   const [verificationResult, setVerificationResult] = useState(null);
   const [verifying, setVerifying] = useState(false);
+  const [qaList, setQaList] = useState([]);
 
   useEffect(() => {
     loadLedger();
+    loadCyberQa();
   }, [token]);
+
+  async function loadCyberQa() {
+    try {
+      const data = await api("/cyber/inspector-qa-cyber", token);
+      setQaList(data);
+    } catch (err) {
+      console.error("Error cargando Q&A CISO:", err);
+    }
+  }
 
   async function loadLedger() {
     try {
@@ -85,18 +96,24 @@ export function CyberAudit({ token }) {
       </div>
 
       {/* Tab Selector */}
-      <div className="flex bg-slate-200/70 p-1 rounded-xl border border-slate-300 max-w-md">
+      <div className="flex bg-slate-200/70 p-1 rounded-xl border border-slate-300 max-w-lg">
         <button
           onClick={() => setActiveTab("expediente")}
           className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-all ${activeTab === "expediente" ? "bg-white text-indigo-900 shadow-2xs" : "text-slate-600 hover:text-slate-900"}`}
         >
-          Expediente Oficial (ZIP)
+          Expediente Oficial
         </button>
         <button
           onClick={() => setActiveTab("ledger")}
           className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-all ${activeTab === "ledger" ? "bg-white text-indigo-900 shadow-2xs" : "text-slate-600 hover:text-slate-900"}`}
         >
           Verificador SHA-256 ({ledger.total_evidencias_selladas})
+        </button>
+        <button
+          onClick={() => setActiveTab("qa")}
+          className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-all ${activeTab === "qa" ? "bg-white text-indigo-900 shadow-2xs" : "text-slate-600 hover:text-slate-900"}`}
+        >
+          Entrenador Q&A ({qaList.length})
         </button>
       </div>
 
@@ -235,6 +252,49 @@ export function CyberAudit({ token }) {
             </div>
           </div>
 
+        </div>
+      ) : (
+        /* TAB 3: INSPECTOR Q&A DEFENSE GUIDE (CISO) */
+        <div className="rounded-xl border border-line bg-white p-6 shadow-sm space-y-6">
+          <div className="flex items-center gap-3 border-b border-slate-100 pb-3">
+            <div className="grid h-10 w-10 place-items-center rounded-xl bg-indigo-50 text-indigo-700 border border-indigo-100">
+              <ShieldCheck size={20} />
+            </div>
+            <div>
+              <h3 className="font-bold text-slate-800 text-sm">Entrenador de Entrevistas de Fiscalización (ANCI)</h3>
+              <p className="text-xs text-slate-400">Guía de argumentación técnica y defensa ante auditorías de la Agencia Nacional de Ciberseguridad (Ley N° 21.663).</p>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            {qaList.map((qa) => (
+              <div key={qa.id} className="p-4 rounded-xl border border-slate-200 bg-slate-50/60 space-y-3">
+                <div className="flex items-start gap-3">
+                  <span className="font-mono text-xs font-bold px-2 py-0.5 rounded bg-indigo-100 text-indigo-800 shrink-0 mt-0.5">
+                    Pregunta #{qa.id}
+                  </span>
+                  <h4 className="font-bold text-xs text-slate-900 leading-snug">{qa.pregunta}</h4>
+                </div>
+
+                <div className="space-y-2 text-xs">
+                  <div className="p-2.5 bg-white border border-slate-200 rounded-lg">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase block">Fundamento Legal / Exigencia ANCI:</span>
+                    <p className="font-semibold text-slate-700 mt-0.5">{qa.fundamento_legal}</p>
+                  </div>
+
+                  <div className="p-3 bg-indigo-50/70 border border-indigo-200 rounded-lg">
+                    <span className="text-[10px] font-bold text-indigo-900 uppercase block">Respuesta de Defensa Técnica del CISO:</span>
+                    <p className="text-indigo-950 font-medium mt-0.5 leading-relaxed">{qa.respuesta_defensiva}</p>
+                  </div>
+
+                  <div className="p-2.5 bg-slate-100 border border-slate-200 rounded-lg flex items-center justify-between gap-2">
+                    <span className="text-[11px] font-bold text-slate-700">Ruta de Evidencia Demostrable:</span>
+                    <span className="font-mono text-[10px] bg-white px-2 py-0.5 rounded border border-slate-300 text-slate-800">{qa.ruta_evidencia}</span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 

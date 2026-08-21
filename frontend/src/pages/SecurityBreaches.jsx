@@ -165,13 +165,24 @@ export function SecurityBreaches({ breaches = [], token, user, onReload }) {
           </div>
         </div>
 
-        <button
-          onClick={openCreate}
-          className="flex items-center gap-1.5 rounded bg-rose-600 px-4 py-2 text-sm font-semibold text-white hover:bg-rose-700 shadow-sm shrink-0"
-        >
-          <Plus size={16} />
-          Reportar Nueva Brecha
-        </button>
+        <div className="flex items-center gap-2.5 flex-wrap">
+          <a
+            href={`${API_URL.replace("/api", "")}/api/documents/crisis-citizen-notification?token=${token}`}
+            download
+            className="flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 shadow-2xs transition-colors shrink-0"
+            title="Descargar Plantilla Oficial de Notificación Transparente a Titulares de Datos y Comunicado de Prensa (Art. 18)"
+          >
+            <span>📢 Comunicado Oficial Titulares (MD)</span>
+          </a>
+
+          <button
+            onClick={openCreate}
+            className="flex items-center gap-1.5 rounded bg-rose-600 px-4 py-2 text-xs font-bold text-white hover:bg-rose-700 shadow-sm shrink-0"
+          >
+            <Plus size={15} />
+            Reportar Nueva Brecha
+          </button>
+        </div>
       </div>
 
       {/* Unnotified Alert Banner */}

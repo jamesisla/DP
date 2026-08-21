@@ -84,6 +84,15 @@ export function CyberPolicies({ policies = [], token, user, onReload }) {
             </p>
           </div>
         </div>
+
+        <a
+          href={`${API_URL.replace("/api", "")}/api/cyber/procurement-security-clauses?token=${token}`}
+          download
+          className="flex items-center gap-1.5 rounded-lg border border-indigo-300 bg-indigo-50 px-3.5 py-2 text-xs font-bold text-indigo-900 hover:bg-indigo-100 shadow-2xs transition-colors shrink-0"
+          title="Descargar Pliego y Cláusulas Tipo de Ciberseguridad para Bases de Licitación en Mercado Público / ChileCompra"
+        >
+          <span>📋 Pliego ChileCompra Ciberseguridad (MD)</span>
+        </a>
       </div>
 
       {/* Grid: Policies List (Left) & Editor (Right) */}
