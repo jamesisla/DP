@@ -5,7 +5,7 @@ from datetime import date, datetime, timedelta
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from fastapi.responses import StreamingResponse
+from fastapi.responses import StreamingResponse, Response
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
@@ -232,7 +232,7 @@ def update_cyber_tarea(
 
 
 # ==============================================================================
-# ACTIVOS CRÍTICOS & SERVICIOS ESENCIALES (RSIC / OIV / PSE)
+# FASE II: ACTIVOS CRÍTICOS, TOPOLOGÍA MULTICAPA Y DEPENDENCIAS (RSIC / OIV)
 # ==============================================================================
 
 @router.get("/assets", response_model=list[CyberAssetRead])
@@ -253,9 +253,14 @@ def create_cyber_asset(
         codigo_activo=codigo,
         nombre=payload.nombre,
         tipo=payload.tipo,
+        capa_tecnologica=payload.capa_tecnologica or "Servidor",
         criticidad=payload.criticidad,
         servicio_esencial=payload.servicio_esencial,
         ubicacion_o_ip=payload.ubicacion_o_ip,
+        puertos_expuestos=payload.puertos_expuestos or "443/tcp, 22/tcp",
+        version_so=payload.version_so or "Ubuntu 24.04 LTS",
+        impacto_caida_servicio=payload.impacto_caida_servicio or "Interrupción de trámite en línea",
+        dependencias_ids=payload.dependencias_ids or [],
         area_responsable_id=payload.area_responsable_id,
         cifrado_activo=payload.cifrado_activo,
         mfa_activo=payload.mfa_activo,
@@ -281,8 +286,124 @@ def delete_cyber_asset(id: int, current_user: Annotated[User, Depends(get_curren
     return None
 
 
+@router.get("/topology-tree")
+def get_topology_tree(_: Annotated[User, Depends(get_current_user)], db: Annotated[Session, Depends(get_db)]):
+    """Mapeo de Topología Multicapa y Dependencias de Servicios Esenciales (BIA)."""
+    assets = db.query(CyberAsset).all()
+    
+    layers = {
+        "Perímetro / Red": [],
+        "Servidor Central": [],
+        "Base de Datos": [],
+        "Aplicación Web / API": [],
+        "Nube (OCI / AWS)": [],
+        "Endpoint Crítico": []
+    }
+    
+    for a in assets:
+        capa = a.capa_tecnologica if a.capa_tecnologica in layers else "Servidor Central"
+        layers[capa].append({
+            "id": a.id,
+            "codigo": a.codigo_activo,
+            "nombre": a.nombre,
+            "tipo": a.tipo,
+            "ip": a.ubicacion_o_ip,
+            "criticidad": a.criticidad,
+            "servicio_esencial": a.servicio_esencial,
+            "puertos": a.puertos_expuestos,
+            "so": a.version_so,
+            "impacto": a.impacto_caida_servicio,
+            "dependencias": a.dependencias_ids or [],
+            "conforme": a.estado_cumplimiento == "Conforme"
+        })
+        
+    return {
+        "total_activos": len(assets),
+        "layers": layers
+    }
+
+
+@router.get("/hardening-script")
+def download_hardening_script():
+    """Generador automático de Script de Hardening y Auditoría de Controles Técnicos Mínimos (ANCI / CIS Benchmarks)."""
+    script_content = """#!/bin/bash
 # ==============================================================================
-# INCIDENTES Y NOTIFICACIÓN ANCI (ALERTA 3H & INFORME 72H)
+# LEXAPP GRC · SCRIPT DE HARDENING Y AUDITORÍA DE SEGURIDAD LINUX (LEY 21.663)
+# ==============================================================================
+# Ejecuta este script para auditar y aplicar controles técnicos mínimos en servidores RSIC.
+
+set -e
+
+echo "========================================================="
+echo " [LEXAPP GRC] Auditoría Técnica de Controles Mínimos ANCI"
+echo "========================================================="
+
+if [ "$EUID" -ne 0 ]; then
+  echo "[-] Por favor ejecuta este script con privilegios de root: sudo bash $0"
+  exit 1
+fi
+
+SCORE=100
+echo ""
+echo "=== 1. Verificando Configuración de SSH (Hardening) ==="
+SSHD_CONFIG="/etc/ssh/sshd_config"
+if [ -f "$SSHD_CONFIG" ]; then
+  if grep -qE "^PermitRootLogin (no|prohibit-password)" "$SSHD_CONFIG"; then
+    echo "[✓] PermitRootLogin restringido."
+  else
+    echo "[!] PermitRootLogin habilitado para contraseñas (-15 pts)."
+    SCORE=$((SCORE - 15))
+  fi
+
+  if grep -qE "^PasswordAuthentication no" "$SSHD_CONFIG"; then
+    echo "[✓] PasswordAuthentication deshabilitada (Uso forzado de llaves SSH)."
+  else
+    echo "[!] PasswordAuthentication permitida (-15 pts)."
+    SCORE=$((SCORE - 15))
+  fi
+fi
+
+echo ""
+echo "=== 2. Verificando Firewall Perimetral (iptables / UFW) ==="
+if ufw status 2>/dev/null | grep -q "Status: active"; then
+  echo "[✓] Firewall UFW activo."
+elif iptables -L -n | grep -q "ACCEPT"; then
+  echo "[✓] Reglas iptables activas."
+else
+  echo "[!] No se detectó firewall perimetral activo (-20 pts)."
+  SCORE=$((SCORE - 20))
+fi
+
+echo ""
+echo "=== 3. Verificando Puertos Expuestos ==="
+echo "Puertos en escucha local:"
+ss -tuln | head -n 10
+
+echo ""
+echo "=== 4. Verificando Parámetros de Kernel (sysctl) ==="
+if sysctl net.ipv4.tcp_syncookies | grep -q "1"; then
+  echo "[✓] TCP SYN Cookies habilitado (Anti-SYN Flood DDoS)."
+else
+  echo "[!] SYN Cookies deshabilitado (-10 pts)."
+  SCORE=$((SCORE - 10))
+fi
+
+echo ""
+echo "========================================================="
+echo " PUNTUACIÓN DE CUMPLIMIENTO TÉCNICO ANCI: $SCORE / 100"
+if [ "$SCORE" -ge 80 ]; then
+  echo " Estado: CONFORME PARA RSIC [✓]"
+else
+  echo " Estado: REQUIERE ADECUACIÓN URGENTE [!]"
+fi
+echo "========================================================="
+"""
+    headers = {"Content-Disposition": "attachment; filename=lexapp_hardening_audit.sh"}
+    return Response(content=script_content, media_type="text/x-sh", headers=headers)
+
+
+# ==============================================================================
+# FASE IV: INCIDENTES, ALERTA 3H, INDICADORES DE COMPROMISO (IoC) Y FORENSE
 # ==============================================================================
 
 @router.get("/incidents", response_model=list[CyberIncidentANCIRead])
@@ -314,6 +435,14 @@ def create_cyber_incident(
         descripcion=payload.descripcion,
         sistemas_comprometidos=payload.sistemas_comprometidos,
         medidas_contencion_aplicadas=payload.medidas_contencion_aplicadas,
+        iocs_json=payload.iocs_json or {"ips_atacantes": [], "hashes_malware": [], "urls_c2": []},
+        checklist_forense_json=payload.checklist_forense_json or {
+            "volcado_ram": False,
+            "congelamiento_logs": False,
+            "aislamiento_red": False,
+            "hash_sha256": ""
+        },
+        tiempo_deteccion_minutos=payload.tiempo_deteccion_minutos or 15,
         alerta_3h_enviada_anci=False,
         informe_72h_enviado_anci=False,
         estado="Alerta Inicial (3h)",
@@ -346,6 +475,12 @@ def update_cyber_incident(
     if payload.medidas_contencion_aplicadas is not None:
         inc.medidas_contencion_aplicadas = payload.medidas_contencion_aplicadas
         
+    if payload.iocs_json is not None:
+        inc.iocs_json = payload.iocs_json
+        
+    if payload.checklist_forense_json is not None:
+        inc.checklist_forense_json = payload.checklist_forense_json
+        
     if payload.alerta_3h_enviada_anci and not inc.alerta_3h_enviada_anci:
         inc.alerta_3h_enviada_anci = True
         inc.fecha_alerta_3h_anci = datetime.now()
@@ -371,26 +506,46 @@ def download_oficio_anci(id: int, _: Annotated[User, Depends(get_current_user)],
     if not inc:
         raise HTTPException(status_code=404, detail="Incidente no encontrado")
         
+    iocs = inc.iocs_json or {}
+    forense = inc.checklist_forense_json or {}
+
     report = "# FORMULARIO OFICIAL DE NOTIFICACIÓN DE INCIDENTE DE CIBERSEGURIDAD\n"
-    report += "### A la Agencia Nacional de Ciberseguridad (ANCI) - Ley N° 21.663\n"
-    report += f"**Código Único Institucional:** {inc.codigo_incidente}\n"
+    report += "### A la Agencia Nacional de Ciberseguridad (ANCI) - Ley N° 21.663\n\n"
+    report += f"**Código Único Institucional:** `{inc.codigo_incidente}`\n"
     report += f"**Fecha de Detección:** {inc.fecha_deteccion.strftime('%d/%m/%Y %H:%M:%S')}\n"
     report += f"**Plazo Límite Alerta Temprana (3 Horas):** {inc.fecha_limite_alerta_3h.strftime('%d/%m/%Y %H:%M:%S')}\n"
     report += f"**Plazo Límite Informe Técnico (72 Horas):** {inc.fecha_limite_informe_72h.strftime('%d/%m/%Y %H:%M:%S')}\n\n"
     report += "---\n\n"
     report += "### 1. Clasificación del Incidente y Organismo Responsable\n"
-    report += f"- **Tipo de Ataque:** {inc.tipo_ataque}\n"
+    report += f"- **Tipo de Ataque / Vector:** {inc.tipo_ataque}\n"
     report += f"- **Severidad Estimada:** {inc.severidad.upper()}\n"
-    report += f"- **¿Afecta un Servicio Esencial u OIV?:** {'SÍ, ALERTA CRÍTICA' if inc.afecta_servicio_esencial else 'No'}\n\n"
-    report += "### 2. Descripción de los Hechos e Indicadores de Compromiso (IoC)\n"
+    report += f"- **¿Afecta un Servicio Esencial u OIV?:** {'SÍ, ALERTA CRÍTICA' if inc.afecta_servicio_esencial else 'No'}\n"
+    report += f"- **Tiempo de Detección:** {inc.tiempo_deteccion_minutos} minutos tras el inicio del vector.\n\n"
+    report += "### 2. Descripción de los Hechos e Indicadores de Compromiso (IoCs)\n"
     report += f"> {inc.descripcion}\n\n"
     report += f"**Redes y Sistemas Afectados (RSIC):**\n{inc.sistemas_comprometidos}\n\n"
-    report += "### 3. Medidas Inmediatas de Contención y Mitigación\n"
-    report += f"{inc.medidas_contencion_aplicadas or 'Aislamiento de red, bloqueo perimetral en firewall y preservación de evidencia forense.'}\n\n"
-    report += "### 4. Estado de Notificaciones a la ANCI\n"
+    
+    report += "**Indicadores Técnicos de Compromiso (IoCs):**\n"
+    ips = iocs.get("ips_atacantes", [])
+    hashes = iocs.get("hashes_malware", [])
+    urls = iocs.get("urls_c2", [])
+    report += f"- **IPs de Origen / Atacantes:** {', '.join(ips) if ips else 'En análisis perimetral'}\n"
+    report += f"- **Hashes de Muestras de Malware (SHA-256):** {', '.join(hashes) if hashes else 'No se detectó payload binario'}\n"
+    report += f"- **Dominios / C2:** {', '.join(urls) if urls else 'Sin tráfico C2 registrado'}\n\n"
+    
+    report += "### 3. Preservación Forense Digital y Cadena de Custodia\n"
+    report += f"- **Volcado de Memoria RAM:** {'EJECUTADO' if forense.get('volcado_ram') else 'Pendiente'}\n"
+    report += f"- **Congelamiento de Logs del Sistema:** {'EJECUTADO' if forense.get('congelamiento_logs') else 'Pendiente'}\n"
+    report += f"- **Aislamiento de Red Seguro:** {'EJECUTADO' if forense.get('aislamiento_red') else 'Pendiente'}\n"
+    report += f"- **Firma Hash SHA-256 del Paquete Forense:** `{forense.get('hash_sha256', 'Pendiente de cálculo')}`\n\n"
+
+    report += "### 4. Medidas Inmediatas de Contención y Mitigación\n"
+    report += f"{inc.medidas_contencion_aplicadas or 'Aislamiento de interfaz de red, revocación masiva de credenciales y bloqueo perimetral.'}\n\n"
+
+    report += "### 5. Estado de Notificaciones a la ANCI\n"
     report += f"- **Alerta Temprana 3 Horas:** {'ENVIADA el ' + inc.fecha_alerta_3h_anci.strftime('%d/%m/%Y %H:%M') if inc.alerta_3h_enviada_anci else 'PENDIENTE DE ENVÍO'}\n"
     report += f"- **Informe Técnico 72 Horas:** {'ENVIADO el ' + inc.fecha_informe_72h_anci.strftime('%d/%m/%Y %H:%M') if inc.informe_72h_enviado_anci else 'En elaboración'}\n\n"
-    report += "---\n*Emitido conforme a los Artículos 12 y 13 de la Ley N° 21.663 de Chile.*"
+    report += "---\n*Emitido conforme a los Artículos 12 y 13 de la Ley N° 21.663 de Ciberseguridad de Chile.*"
 
     headers = {"Content-Disposition": f"attachment; filename=Reporte_Oficial_ANCI_{inc.codigo_incidente}.md"}
     return StreamingResponse(io.BytesIO(report.encode("utf-8")), media_type="text/markdown", headers=headers)
@@ -492,12 +647,12 @@ def download_cyber_evidence_zip(_: Annotated[User, Depends(get_current_user)], d
             "Acta de designación formal del Responsable de Ciberseguridad / CISO ante la Agencia Nacional de Ciberseguridad (ANCI) - Ley 21.663."
         )
         
-        # 2. Activos Críticos RSIC
+        # 2. Activos Críticos RSIC y Topología
         assets = db.query(CyberAsset).all()
         asset_lines = ["# INVENTARIO DE REDES Y SISTEMAS INFORMÁTICOS CRÍTICOS (RSIC)"]
         for a in assets:
-            asset_lines.append(f"- [{a.codigo_activo}] {a.nombre} | Tipo: {a.tipo} | Criticidad: {a.criticidad} | MFA: {a.mfa_activo} | Cifrado: {a.cifrado_activo} | Estado: {a.estado_cumplimiento}")
-        zip_file.writestr("02_Activos_Criticos_RSIC/Inventario_Activos.txt", "\n".join(asset_lines))
+            asset_lines.append(f"- [{a.codigo_activo}] {a.nombre} | Capa: {a.capa_tecnologica} | Tipo: {a.tipo} | Criticidad: {a.criticidad} | Puertos: {a.puertos_expuestos} | SO: {a.version_so} | Impacto: {a.impacto_caida_servicio} | MFA: {a.mfa_activo} | Cifrado: {a.cifrado_activo} | Estado: {a.estado_cumplimiento}")
+        zip_file.writestr("02_Activos_Criticos_RSIC/Inventario_Multicapa_RSIC.txt", "\n".join(asset_lines))
         
         # 3. Madurez NIST / ANCI
         maturity = db.query(CyberMaturityAssessment).order_by(CyberMaturityAssessment.id.desc()).first()
@@ -510,12 +665,12 @@ def download_cyber_evidence_zip(_: Annotated[User, Depends(get_current_user)], d
         for p in policies:
             zip_file.writestr(f"04_Politicas_Continuidad/{p.tipo}_v{p.version}.txt", p.contenido)
             
-        # 5. Incidentes ANCI
+        # 5. Incidentes ANCI y Evidencia Forense
         incidents = db.query(CyberIncidentANCI).all()
-        inc_lines = ["# REGISTRO DE INCIDENTES Y REPORTES ANCI (3h / 72h)"]
+        inc_lines = ["# REGISTRO DE INCIDENTES, INDICADORES DE COMPROMISO (IoCs) Y CADENA FORENSE (3h / 72h)"]
         for i in incidents:
-            inc_lines.append(f"- {i.codigo_incidente} | Tipo: {i.tipo_ataque} | Severidad: {i.severidad} | Alerta 3h Enviada: {i.alerta_3h_enviada_anci} | Estado: {i.estado}")
-        zip_file.writestr("05_Notificaciones_ANCI/Bitacora_Incidentes.txt", "\n".join(inc_lines))
+            inc_lines.append(f"- {i.codigo_incidente} | Tipo: {i.tipo_ataque} | Severidad: {i.severidad} | Alerta 3h: {i.alerta_3h_enviada_anci} | Forense: {i.checklist_forense_json} | Estado: {i.estado}")
+        zip_file.writestr("05_Notificaciones_ANCI/Bitacora_Incidentes_IoCs.txt", "\n".join(inc_lines))
 
     zip_buffer.seek(0)
     headers = {"Content-Disposition": "attachment; filename=Expediente_Ciberseguridad_Ley21663_ANCI.zip"}

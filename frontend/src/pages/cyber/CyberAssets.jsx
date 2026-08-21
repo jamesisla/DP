@@ -11,9 +11,29 @@ import {
   AlertTriangle, 
   XCircle, 
   ShieldCheck, 
-  Cpu 
+  Cpu,
+  Layers,
+  Network,
+  Download,
+  Terminal,
+  Activity,
+  ArrowRight,
+  Database,
+  Globe,
+  Cloud,
+  Laptop
 } from "lucide-react";
-import { api } from "../../lib/api";
+import { API_URL, api } from "../../lib/api";
+
+const CAPAS_TECNOLOGICAS = [
+  { id: "Todas", label: "Todas las Capas", icon: Layers },
+  { id: "Perímetro / Red", label: "Perímetro / Red", icon: Network },
+  { id: "Servidor Central", label: "Servidores", icon: Server },
+  { id: "Base de Datos", label: "Bases de Datos", icon: Database },
+  { id: "Aplicación Web / API", label: "Web / APIs", icon: Globe },
+  { id: "Nube (OCI / AWS)", label: "Nube / Cloud", icon: Cloud },
+  { id: "Endpoint Crítico", label: "Endpoints", icon: Laptop }
+];
 
 const TIPOS_ACTIVOS = [
   "Servidor Central",
@@ -33,16 +53,23 @@ const CRITICIDADES = [
 ];
 
 export function CyberAssets({ assets = [], areas = [], token, user, onReload }) {
+  const [viewMode, setViewMode] = useState("inventory"); // "inventory" | "topology"
   const [search, setSearch] = useState("");
-  const [filterTipo, setFilterTipo] = useState("Todos");
+  const [selectedCapa, setSelectedCapa] = useState("Todas");
   const [filterCrit, setFilterCrit] = useState("Todos");
 
+  // Create Modal State
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [nombre, setNombre] = useState("");
   const [tipo, setTipo] = useState(TIPOS_ACTIVOS[0]);
+  const [capa, setCapa] = useState("Servidor Central");
   const [criticidad, setCriticidad] = useState("Crítico OIV");
   const [servicioEsencial, setServicioEsencial] = useState("");
   const [ubicacionIp, setUbicacionIp] = useState("");
+  const [puertosExpuestos, setPuertosExpuestos] = useState("443/tcp, 22/tcp");
+  const [versionSo, setVersionSo] = useState("Ubuntu 24.04 LTS");
+  const [impactoCaida, setImpactoCaida] = useState("Interrupción de trámite en línea y atención ciudadana");
+  const [dependenciasIds, setDependenciasIds] = useState([]);
   const [areaId, setAreaId] = useState(areas[0] ? String(areas[0].id) : "");
   const [cifradoActivo, setCifradoActivo] = useState(true);
   const [mfaActivo, setMfaActivo] = useState(true);
@@ -50,11 +77,11 @@ export function CyberAssets({ assets = [], areas = [], token, user, onReload }) 
   const [submitting, setSubmitting] = useState(false);
 
   const filtered = assets.filter((a) => {
-    if (filterTipo !== "Todos" && a.tipo !== filterTipo) return false;
+    if (selectedCapa !== "Todas" && a.capa_tecnologica !== selectedCapa && a.tipo !== selectedCapa) return false;
     if (filterCrit !== "Todos" && a.criticidad !== filterCrit) return false;
     if (search) {
       const q = search.toLowerCase();
-      const target = `${a.codigo_activo} ${a.nombre} ${a.servicio_esencial} ${a.ubicacion_o_ip}`.toLowerCase();
+      const target = `${a.codigo_activo} ${a.nombre} ${a.servicio_esencial} ${a.ubicacion_o_ip} ${a.puertos_expuestos} ${a.version_so}`.toLowerCase();
       if (!target.includes(q)) return false;
     }
     return true;
@@ -72,9 +99,14 @@ export function CyberAssets({ assets = [], areas = [], token, user, onReload }) 
   function openCreate() {
     setNombre("");
     setTipo(TIPOS_ACTIVOS[0]);
+    setCapa("Servidor Central");
     setCriticidad("Crítico OIV");
     setServicioEsencial("");
     setUbicacionIp("");
+    setPuertosExpuestos("443/tcp, 22/tcp");
+    setVersionSo("Ubuntu 24.04 LTS");
+    setImpactoCaida("Interrupción de trámite en línea y atención ciudadana");
+    setDependenciasIds([]);
     setAreaId(areas[0] ? String(areas[0].id) : "");
     setCifradoActivo(true);
     setMfaActivo(true);
@@ -89,9 +121,14 @@ export function CyberAssets({ assets = [], areas = [], token, user, onReload }) 
       const payload = {
         nombre,
         tipo,
+        capa_tecnologica: capa,
         criticidad,
         servicio_esencial: servicioEsencial,
         ubicacion_o_ip: ubicacionIp,
+        puertos_expuestos: puertosExpuestos,
+        version_so: versionSo,
+        impacto_caida_servicio: impactoCaida,
+        dependencias_ids: dependenciasIds,
         area_responsable_id: areaId ? parseInt(areaId) : null,
         cifrado_activo: cifradoActivo,
         mfa_activo: mfaActivo,
@@ -133,54 +170,96 @@ export function CyberAssets({ assets = [], areas = [], token, user, onReload }) 
             <Server size={26} />
           </div>
           <div>
-            <span className="text-xs uppercase font-bold text-indigo-600 tracking-wider">Inventario Regulado Ley 21.663</span>
+            <div className="flex items-center gap-2">
+              <span className="text-xs uppercase font-bold text-indigo-600 tracking-wider">Fase II · Ley 21.663</span>
+              <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 font-bold border border-emerald-200">
+                Inventario Multicapa & BIA
+              </span>
+            </div>
             <h2 className="text-xl font-bold text-slate-800 mt-0.5">Redes y Sistemas Informáticos Críticos (RSIC / OIV)</h2>
             <p className="text-xs text-slate-400 mt-0.5">
-              Registro de infraestructura tecnológica esencial, servidores, bases de datos y verificación de controles técnicos mínimos (MFA, Cifrado, Backups).
+              Catálogo de infraestructura tecnológica esencial, mapeo de dependencias operacionales y verificación de controles técnicos mínimos.
             </p>
           </div>
         </div>
 
-        <button
-          onClick={openCreate}
-          className="flex items-center gap-1.5 rounded bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700 shadow-sm shrink-0"
-        >
-          <Plus size={16} />
-          Registrar Activo RSIC
-        </button>
+        <div className="flex items-center gap-2.5 flex-wrap">
+          <a
+            href={`${API_URL.replace("/api", "")}/api/cyber/hardening-script`}
+            download
+            className="flex items-center gap-1.5 rounded border border-slate-300 bg-slate-50 px-3.5 py-2 text-xs font-bold text-slate-700 hover:bg-slate-100 shadow-2xs transition-colors"
+            title="Descargar script Bash para auditar y aplicar Hardening en servidores Linux"
+          >
+            <Terminal size={14} className="text-indigo-600" />
+            Script Hardening Linux (.sh)
+          </a>
+
+          <button
+            onClick={openCreate}
+            className="flex items-center gap-1.5 rounded bg-indigo-600 px-4 py-2 text-xs font-bold text-white hover:bg-indigo-700 shadow-sm"
+          >
+            <Plus size={15} />
+            Registrar Activo RSIC
+          </button>
+        </div>
       </div>
 
-      {/* Filter Bar */}
-      <div className="rounded-xl border border-line bg-white p-4 shadow-sm flex flex-col md:flex-row items-center justify-between gap-4 flex-wrap">
-        <div className="relative w-full md:w-72">
-          <span className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-slate-400">
-            <Search size={15} />
-          </span>
-          <input
-            type="text"
-            className="field pl-9 text-xs h-9 min-h-0 py-0"
-            placeholder="Buscar por código, nombre, IP..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-        </div>
-
-        <div className="flex items-center gap-3 flex-wrap w-full md:w-auto">
-          <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-500">
-            <span>Tipo:</span>
-            <select
-              className="field text-xs h-8 min-h-0 py-0"
-              value={filterTipo}
-              onChange={(e) => setFilterTipo(e.target.value)}
-            >
-              <option value="Todos">Todos los tipos</option>
-              {TIPOS_ACTIVOS.map(t => (
-                <option key={t} value={t}>{t}</option>
-              ))}
-            </select>
+      {/* View Switcher & Capas Filter Bar */}
+      <div className="space-y-3">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+          
+          {/* Multilayer Pills */}
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 max-w-full">
+            {CAPAS_TECNOLOGICAS.map((c) => {
+              const Icon = c.icon;
+              const isSelected = selectedCapa === c.id;
+              return (
+                <button
+                  key={c.id}
+                  onClick={() => setSelectedCapa(c.id)}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${isSelected ? "bg-indigo-600 text-white shadow-2xs" : "bg-white border border-slate-200 text-slate-600 hover:bg-slate-50"}`}
+                >
+                  <Icon size={13} />
+                  <span>{c.label}</span>
+                </button>
+              );
+            })}
           </div>
 
-          <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-500">
+          {/* View Toggle (Cards vs Dependency Topology) */}
+          <div className="flex bg-slate-200/70 p-0.5 rounded-lg border border-slate-300 text-xs shrink-0">
+            <button
+              onClick={() => setViewMode("inventory")}
+              className={`px-3 py-1 rounded-md text-xs font-bold transition-all ${viewMode === "inventory" ? "bg-white text-slate-800 shadow-2xs" : "text-slate-500 hover:text-slate-800"}`}
+            >
+              Inventario RSIC ({filtered.length})
+            </button>
+            <button
+              onClick={() => setViewMode("topology")}
+              className={`px-3 py-1 rounded-md text-xs font-bold transition-all ${viewMode === "topology" ? "bg-white text-indigo-700 shadow-2xs" : "text-slate-500 hover:text-slate-800"}`}
+            >
+              Mapeo de Dependencias (BIA)
+            </button>
+          </div>
+
+        </div>
+
+        {/* Search & Criticality Filter */}
+        <div className="rounded-xl border border-line bg-white p-3.5 shadow-sm flex flex-col md:flex-row items-center justify-between gap-3">
+          <div className="relative w-full md:w-80">
+            <span className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-slate-400">
+              <Search size={14} />
+            </span>
+            <input
+              type="text"
+              className="field pl-9 text-xs h-8 min-h-0 py-0"
+              placeholder="Buscar por código, IP, servicio esencial, puertos..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
+
+          <div className="flex items-center gap-2 text-xs font-semibold text-slate-500 w-full md:w-auto">
             <span>Criticidad:</span>
             <select
               className="field text-xs h-8 min-h-0 py-0"
@@ -196,82 +275,139 @@ export function CyberAssets({ assets = [], areas = [], token, user, onReload }) 
         </div>
       </div>
 
-      {/* Assets Grid */}
-      {filtered.length > 0 ? (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {filtered.map((asset) => (
-            <div
-              key={asset.id}
-              className="rounded-xl border border-line bg-white p-5 shadow-sm hover:shadow-md transition-all flex flex-col justify-between gap-4"
-            >
-              <div className="space-y-3">
-                <div className="flex justify-between items-start gap-2">
-                  <span className="font-mono text-xs font-bold text-indigo-700 bg-indigo-50 border border-indigo-200 px-2 py-0.5 rounded">
-                    {asset.codigo_activo}
-                  </span>
-                  <span className={`text-[10px] px-2 py-0.5 rounded border ${getCritBadge(asset.criticidad)}`}>
-                    {asset.criticidad}
-                  </span>
-                </div>
+      {/* VIEW MODE 1: INVENTORY CARDS */}
+      {viewMode === "inventory" ? (
+        filtered.length > 0 ? (
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {filtered.map((asset) => (
+              <div
+                key={asset.id}
+                className="rounded-xl border border-line bg-white p-5 shadow-sm hover:shadow-md transition-all flex flex-col justify-between gap-4"
+              >
+                <div className="space-y-3">
+                  <div className="flex justify-between items-start gap-2">
+                    <span className="font-mono text-xs font-bold text-indigo-700 bg-indigo-50 border border-indigo-200 px-2 py-0.5 rounded">
+                      {asset.codigo_activo}
+                    </span>
+                    <span className={`text-[10px] px-2 py-0.5 rounded border ${getCritBadge(asset.criticidad)}`}>
+                      {asset.criticidad}
+                    </span>
+                  </div>
 
-                <div>
-                  <h4 className="font-bold text-sm text-slate-800">{asset.nombre}</h4>
-                  <p className="text-[11px] text-slate-400 font-medium mt-0.5">{asset.tipo} · {asset.ubicacion_o_ip}</p>
-                  {asset.servicio_esencial && (
-                    <p className="text-xs text-indigo-600 font-semibold mt-1">
-                      Servicio Esencial: {asset.servicio_esencial}
+                  <div>
+                    <h4 className="font-bold text-sm text-slate-800">{asset.nombre}</h4>
+                    <p className="text-[11px] text-slate-400 font-medium mt-0.5">
+                      <span className="text-indigo-600 font-semibold">{asset.capa_tecnologica || asset.tipo}</span> · {asset.ubicacion_o_ip}
                     </p>
-                  )}
+                    {asset.servicio_esencial && (
+                      <p className="text-xs text-slate-700 font-semibold mt-1 bg-slate-50 p-1.5 rounded border border-slate-150">
+                        Servicio Esencial: <span className="text-indigo-600">{asset.servicio_esencial}</span>
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Technical Specs: Ports & OS */}
+                  <div className="grid grid-cols-2 gap-2 text-[11px] text-slate-600 pt-1">
+                    <div className="p-2 bg-slate-50 border border-slate-200 rounded">
+                      <span className="text-[9px] font-bold text-slate-400 uppercase block">Puertos Expuestos</span>
+                      <span className="font-mono font-semibold text-slate-700">{asset.puertos_expuestos || "443/tcp, 22/tcp"}</span>
+                    </div>
+                    <div className="p-2 bg-slate-50 border border-slate-200 rounded">
+                      <span className="text-[9px] font-bold text-slate-400 uppercase block">Sistema / Versión</span>
+                      <span className="font-semibold text-slate-700 truncate block">{asset.version_so || "Linux"}</span>
+                    </div>
+                  </div>
+
+                  {/* Technical Controls Badges */}
+                  <div className="p-2.5 bg-slate-50 border border-slate-200 rounded-lg space-y-1.5 text-[11px]">
+                    <span className="font-bold text-slate-600 text-[10px] uppercase block">Controles Técnicos Mínimos:</span>
+                    <div className="flex flex-wrap gap-2">
+                      <span className={`inline-flex items-center gap-1 font-semibold ${asset.cifrado_activo ? "text-emerald-700" : "text-slate-400"}`}>
+                        <Lock size={12} /> Cifrado {asset.cifrado_activo ? "✓" : "✗"}
+                      </span>
+                      <span className={`inline-flex items-center gap-1 font-semibold ${asset.mfa_activo ? "text-emerald-700" : "text-slate-400"}`}>
+                        <KeyRound size={12} /> MFA {asset.mfa_activo ? "✓" : "✗"}
+                      </span>
+                      <span className={`inline-flex items-center gap-1 font-semibold ${asset.respaldo_inmutable ? "text-emerald-700" : "text-slate-400"}`}>
+                        <HardDrive size={12} /> Backup {asset.respaldo_inmutable ? "✓" : "✗"}
+                      </span>
+                    </div>
+                  </div>
                 </div>
 
-                {/* Technical Controls Badges */}
-                <div className="p-2.5 bg-slate-50 border border-slate-200 rounded-lg space-y-1.5 text-[11px]">
-                  <span className="font-bold text-slate-600 text-[10px] uppercase block">Controles Técnicos Mínimos:</span>
-                  <div className="flex flex-wrap gap-2">
-                    <span className={`inline-flex items-center gap-1 font-semibold ${asset.cifrado_activo ? "text-emerald-700" : "text-slate-400"}`}>
-                      <Lock size={12} /> Cifrado {asset.cifrado_activo ? "✓" : "✗"}
+                <div className="flex justify-between items-center pt-3 border-t border-slate-100 text-xs">
+                  <span className={`font-bold px-2 py-0.5 rounded text-[10px] ${asset.estado_cumplimiento === "Conforme" ? "bg-emerald-50 text-emerald-700 border border-emerald-200" : "bg-amber-50 text-amber-700 border border-amber-200"}`}>
+                    {asset.estado_cumplimiento}
+                  </span>
+
+                  <button
+                    type="button"
+                    onClick={() => handleDelete(asset.id)}
+                    className="text-slate-400 hover:text-rose-600 p-1 rounded"
+                    title="Eliminar activo"
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="rounded-xl border border-dashed border-slate-350 p-12 text-center text-slate-400 bg-white">
+            <Server size={40} className="mx-auto mb-2 opacity-40" />
+            <p className="font-semibold text-sm">No hay activos críticos registrados en esta capa</p>
+            <p className="text-xs mt-1">Registra servidores, bases de datos o portales esenciales para el catálogo RSIC.</p>
+          </div>
+        )
+      ) : (
+        /* VIEW MODE 2: DEPENDENCY & BIA TOPOLOGY MAP */
+        <div className="rounded-xl border border-line bg-white p-6 shadow-sm space-y-6">
+          <div className="border-b border-slate-100 pb-3">
+            <h3 className="text-base font-bold text-slate-800">Mapeo de Interconexiones y Análisis de Impacto en el Negocio (BIA)</h3>
+            <p className="text-xs text-slate-500 mt-0.5">
+              Evaluación de dependencias tecnológicas: Si un nodo de infraestructura crítica falla, qué servicios esenciales se interrumpen.
+            </p>
+          </div>
+
+          <div className="space-y-4">
+            {assets.map((a) => (
+              <div key={a.id} className="p-4 rounded-xl border border-slate-200 bg-slate-50/70 space-y-3">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                  <div className="flex items-center gap-2.5">
+                    <span className="font-mono text-xs font-bold text-indigo-700 bg-white border border-slate-200 px-2 py-0.5 rounded">
+                      {a.codigo_activo}
                     </span>
-                    <span className={`inline-flex items-center gap-1 font-semibold ${asset.mfa_activo ? "text-emerald-700" : "text-slate-400"}`}>
-                      <KeyRound size={12} /> MFA {asset.mfa_activo ? "✓" : "✗"}
-                    </span>
-                    <span className={`inline-flex items-center gap-1 font-semibold ${asset.respaldo_inmutable ? "text-emerald-700" : "text-slate-400"}`}>
-                      <HardDrive size={12} /> Backup {asset.respaldo_inmutable ? "✓" : "✗"}
-                    </span>
+                    <h4 className="font-bold text-xs text-slate-800">{a.nombre}</h4>
+                    <span className="text-[10px] text-slate-400 font-medium">({a.capa_tecnologica || a.tipo})</span>
+                  </div>
+                  <span className={`text-[10px] px-2 py-0.5 rounded border ${getCritBadge(a.criticidad)}`}>
+                    {a.criticidad}
+                  </span>
+                </div>
+
+                <div className="grid gap-3 sm:grid-cols-2 text-xs">
+                  <div className="p-2.5 bg-white border border-slate-200 rounded-lg">
+                    <span className="text-[10px] font-bold text-indigo-600 uppercase block">Servicio Esencial Dependiente:</span>
+                    <p className="font-semibold text-slate-800 mt-0.5">{a.servicio_esencial || "Infraestructura interna / Sin servicio público directo"}</p>
+                  </div>
+
+                  <div className="p-2.5 bg-white border border-rose-200 rounded-lg">
+                    <span className="text-[10px] font-bold text-rose-700 uppercase block">Impacto ante Caída / Ciberataque:</span>
+                    <p className="font-semibold text-slate-800 mt-0.5">{a.impacto_caida_servicio || "Interrupción de operaciones y riesgo de continuidad"}</p>
                   </div>
                 </div>
               </div>
-
-              <div className="flex justify-between items-center pt-3 border-t border-slate-100 text-xs">
-                <span className={`font-bold px-2 py-0.5 rounded text-[10px] ${asset.estado_cumplimiento === "Conforme" ? "bg-emerald-50 text-emerald-700 border border-emerald-200" : "bg-amber-50 text-amber-700 border border-amber-200"}`}>
-                  {asset.estado_cumplimiento}
-                </span>
-
-                <button
-                  type="button"
-                  onClick={() => handleDelete(asset.id)}
-                  className="text-slate-400 hover:text-rose-600 p-1 rounded"
-                  title="Eliminar activo"
-                >
-                  <Trash2 size={14} />
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-      ) : (
-        <div className="rounded-xl border border-dashed border-slate-350 p-12 text-center text-slate-400 bg-white">
-          <Server size={40} className="mx-auto mb-2 opacity-40" />
-          <p className="font-semibold text-sm">No hay activos críticos registrados</p>
-          <p className="text-xs mt-1">Registra servidores, bases de datos o portales esenciales para el catálogo RSIC.</p>
+            ))}
+          </div>
         </div>
       )}
 
       {/* --- CREATE ASSET MODAL --- */}
       {createModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40 p-4">
-          <div className="w-full max-w-lg rounded-xl border border-line bg-white p-6 shadow-soft max-h-[90vh] overflow-y-auto">
-            <h3 className="text-lg font-bold text-slate-800 mb-1">Registrar Activo Crítico (RSIC)</h3>
-            <p className="text-xs text-slate-400 mb-4">Conforme a la clasificación de OIV y Prestadores de Servicios Esenciales.</p>
+          <div className="w-full max-w-xl rounded-xl border border-line bg-white p-6 shadow-soft max-h-[90vh] overflow-y-auto">
+            <h3 className="text-lg font-bold text-slate-800 mb-1">Registrar Activo Crítico RSIC (Multicapa)</h3>
+            <p className="text-xs text-slate-400 mb-4">Conforme al Art. 4 y 5 de la Ley N° 21.663 para OIV y Prestadores de Servicios Esenciales.</p>
 
             <form onSubmit={handleCreateSubmit} className="space-y-4">
               <div>
@@ -280,7 +416,7 @@ export function CyberAssets({ assets = [], areas = [], token, user, onReload }) 
                   id="as-nom"
                   className="field mt-1 text-sm"
                   required
-                  placeholder="Ej. Servidor de Base de Datos Principal"
+                  placeholder="Ej. Servidor Central de Postulaciones y Trámites"
                   value={nombre}
                   onChange={(e) => setNombre(e.target.value)}
                 />
@@ -288,15 +424,15 @@ export function CyberAssets({ assets = [], areas = [], token, user, onReload }) 
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="field-label" htmlFor="as-tipo">Tipo de Activo</label>
+                  <label className="field-label" htmlFor="as-capa">Capa Tecnológica</label>
                   <select
-                    id="as-tipo"
+                    id="as-capa"
                     className="field mt-1 text-xs"
-                    value={tipo}
-                    onChange={(e) => setTipo(e.target.value)}
+                    value={capa}
+                    onChange={(e) => setCapa(e.target.value)}
                   >
-                    {TIPOS_ACTIVOS.map(t => (
-                      <option key={t} value={t}>{t}</option>
+                    {CAPAS_TECNOLOGICAS.filter(c => c.id !== "Todas").map(c => (
+                      <option key={c.id} value={c.id}>{c.label}</option>
                     ))}
                   </select>
                 </div>
@@ -329,20 +465,55 @@ export function CyberAssets({ assets = [], areas = [], token, user, onReload }) 
                 </div>
 
                 <div>
-                  <label className="field-label" htmlFor="as-ip">Ubicación / IP / Hostname</label>
+                  <label className="field-label" htmlFor="as-ip">Ubicación / IP / Subred</label>
                   <input
                     id="as-ip"
                     className="field mt-1 text-xs"
-                    placeholder="Ej. 10.0.1.50 (VCN OCI)"
+                    placeholder="Ej. 10.0.1.15 (OCI VCN)"
                     value={ubicacionIp}
                     onChange={(e) => setUbicacionIp(e.target.value)}
                   />
                 </div>
               </div>
 
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="field-label" htmlFor="as-ports">Puertos Expuestos</label>
+                  <input
+                    id="as-ports"
+                    className="field mt-1 text-xs font-mono"
+                    placeholder="Ej. 443/tcp, 22/tcp, 5432/tcp"
+                    value={puertosExpuestos}
+                    onChange={(e) => setPuertosExpuestos(e.target.value)}
+                  />
+                </div>
+
+                <div>
+                  <label className="field-label" htmlFor="as-so">Sistema Operativo / Versión</label>
+                  <input
+                    id="as-so"
+                    className="field mt-1 text-xs"
+                    placeholder="Ej. Ubuntu 24.04 LTS / PostgreSQL 16"
+                    value={versionSo}
+                    onChange={(e) => setVersionSo(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="field-label" htmlFor="as-impact">Impacto Operacional ante Caída (BIA)</label>
+                <input
+                  id="as-impact"
+                  className="field mt-1 text-xs"
+                  placeholder="Ej. Paralización de trámites ciudadanos e imposibilidad de pagos en línea"
+                  value={impactoCaida}
+                  onChange={(e) => setImpactoCaida(e.target.value)}
+                />
+              </div>
+
               {/* Technical controls toggles */}
               <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg space-y-2.5 text-xs">
-                <span className="font-bold text-slate-700 block">Controles Técnicos Obligatorios:</span>
+                <span className="font-bold text-slate-700 block">Controles Técnicos Mínimos Obligatorios:</span>
                 
                 <label className="flex items-center gap-2 cursor-pointer font-semibold text-slate-600">
                   <input
@@ -388,7 +559,7 @@ export function CyberAssets({ assets = [], areas = [], token, user, onReload }) 
                   disabled={submitting}
                   className="rounded bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700 shadow-sm"
                 >
-                  {submitting ? "Registrando..." : "Guardar Activo"}
+                  {submitting ? "Registrando..." : "Guardar Activo Multicapa"}
                 </button>
               </div>
             </form>

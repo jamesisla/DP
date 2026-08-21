@@ -319,9 +319,14 @@ class CyberAsset(Base, TimestampMixin):
     codigo_activo: Mapped[str] = mapped_column(String(50), unique=True, index=True, nullable=False)
     nombre: Mapped[str] = mapped_column(String(180), nullable=False)
     tipo: Mapped[str] = mapped_column(String(80), nullable=False)  # Servidor Central, Base de Datos, Red / Firewall, Portal Ciudadano, Nube OCI / AWS, Endpoint Crítico, Sistema SCADA / IoT
+    capa_tecnologica: Mapped[str] = mapped_column(String(60), default="Servidor")  # Perímetro / Red, Servidor Central, Base de Datos, Aplicación Web / API, Nube, Endpoint
     criticidad: Mapped[str] = mapped_column(String(40), default="Alto")  # Crítico OIV, Alto PSE, Medio, Bajo
     servicio_esencial: Mapped[str] = mapped_column(String(180), default="")  # ej. Plataforma de Pagos, Registro Único, Mesa de Ayuda
     ubicacion_o_ip: Mapped[str] = mapped_column(String(120), default="")
+    puertos_expuestos: Mapped[str] = mapped_column(String(160), default="443/tcp, 22/tcp")
+    version_so: Mapped[str] = mapped_column(String(120), default="Ubuntu 24.04 LTS")
+    impacto_caida_servicio: Mapped[str] = mapped_column(String(200), default="Interrupción de trámite en línea y atención ciudadana")
+    dependencias_ids: Mapped[list] = mapped_column(JSON, default=list)
     area_responsable_id: Mapped[int | None] = mapped_column(ForeignKey("areas.id"), nullable=True)
     cifrado_activo: Mapped[bool] = mapped_column(Boolean, default=True)
     mfa_activo: Mapped[bool] = mapped_column(Boolean, default=True)
@@ -346,6 +351,9 @@ class CyberIncidentANCI(Base, TimestampMixin):
     descripcion: Mapped[str] = mapped_column(Text, nullable=False)
     sistemas_comprometidos: Mapped[str] = mapped_column(Text, default="")
     medidas_contencion_aplicadas: Mapped[str] = mapped_column(Text, default="")
+    iocs_json: Mapped[dict] = mapped_column(JSON, default=dict)  # {"ips_atacantes": [], "hashes_malware": [], "urls_c2": []}
+    checklist_forense_json: Mapped[dict] = mapped_column(JSON, default=dict)  # {"volcado_ram": false, "congelamiento_logs": false, "aislamiento_red": false, "hash_sha256": ""}
+    tiempo_deteccion_minutos: Mapped[int] = mapped_column(Integer, default=15)
     alerta_3h_enviada_anci: Mapped[bool] = mapped_column(Boolean, default=False)
     fecha_alerta_3h_anci: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     informe_72h_enviado_anci: Mapped[bool] = mapped_column(Boolean, default=False)

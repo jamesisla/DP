@@ -483,9 +483,14 @@ class CyberAssetRead(BaseModel):
     codigo_activo: str
     nombre: str
     tipo: str
+    capa_tecnologica: str = "Servidor"
     criticidad: str
     servicio_esencial: str
     ubicacion_o_ip: str
+    puertos_expuestos: str = "443/tcp, 22/tcp"
+    version_so: str = "Ubuntu 24.04 LTS"
+    impacto_caida_servicio: str = "Interrupción de trámite en línea"
+    dependencias_ids: list = []
     area_responsable_id: int | None = None
     area_responsable: AreaRead | None = None
     cifrado_activo: bool
@@ -500,9 +505,14 @@ class CyberAssetCreate(BaseModel):
     codigo_activo: str | None = None
     nombre: str
     tipo: str = "Servidor Central"
+    capa_tecnologica: str = "Servidor"
     criticidad: str = "Alto"
     servicio_esencial: str = ""
     ubicacion_o_ip: str = ""
+    puertos_expuestos: str = "443/tcp, 22/tcp"
+    version_so: str = "Ubuntu 24.04 LTS"
+    impacto_caida_servicio: str = "Interrupción de trámite en línea"
+    dependencias_ids: list = []
     area_responsable_id: int | None = None
     cifrado_activo: bool = True
     mfa_activo: bool = True
@@ -522,6 +532,9 @@ class CyberIncidentANCIRead(BaseModel):
     descripcion: str
     sistemas_comprometidos: str
     medidas_contencion_aplicadas: str
+    iocs_json: dict = {}
+    checklist_forense_json: dict = {}
+    tiempo_deteccion_minutos: int = 15
     alerta_3h_enviada_anci: bool
     fecha_alerta_3h_anci: datetime | None = None
     informe_72h_enviado_anci: bool
@@ -540,11 +553,16 @@ class CyberIncidentANCICreate(BaseModel):
     descripcion: str
     sistemas_comprometidos: str = ""
     medidas_contencion_aplicadas: str = ""
+    iocs_json: dict = {}
+    checklist_forense_json: dict = {}
+    tiempo_deteccion_minutos: int = 15
 
 
 class CyberIncidentANCIUpdate(BaseModel):
     estado: str
     medidas_contencion_aplicadas: str | None = None
+    iocs_json: dict | None = None
+    checklist_forense_json: dict | None = None
     alerta_3h_enviada_anci: bool = False
     informe_72h_enviado_anci: bool = False
 

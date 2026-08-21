@@ -11,6 +11,7 @@ from app.core.seed import seed_initial_data
 def auto_migrate_sqlite() -> None:
     if settings.database_url.startswith("sqlite"):
         with engine.connect() as conn:
+            # Users migrations
             try:
                 res = conn.execute(text("PRAGMA table_info(users)")).fetchall()
                 columns = [row[1] for row in res]
@@ -23,7 +24,41 @@ def auto_migrate_sqlite() -> None:
                         conn.execute(text("ALTER TABLE users ADD COLUMN clave_unica_token VARCHAR(255)"))
                     conn.commit()
             except Exception as e:
-                print(f"[auto_migrate] Notice: {e}")
+                print(f"[auto_migrate_users] Notice: {e}")
+
+            # Cyber Assets migrations
+            try:
+                res = conn.execute(text("PRAGMA table_info(cyber_assets)")).fetchall()
+                columns = [row[1] for row in res]
+                if columns:
+                    if "capa_tecnologica" not in columns:
+                        conn.execute(text("ALTER TABLE cyber_assets ADD COLUMN capa_tecnologica VARCHAR(60) DEFAULT 'Servidor'"))
+                    if "puertos_expuestos" not in columns:
+                        conn.execute(text("ALTER TABLE cyber_assets ADD COLUMN puertos_expuestos VARCHAR(160) DEFAULT '443/tcp, 22/tcp'"))
+                    if "version_so" not in columns:
+                        conn.execute(text("ALTER TABLE cyber_assets ADD COLUMN version_so VARCHAR(120) DEFAULT 'Ubuntu 24.04 LTS'"))
+                    if "impacto_caida_servicio" not in columns:
+                        conn.execute(text("ALTER TABLE cyber_assets ADD COLUMN impacto_caida_servicio VARCHAR(200) DEFAULT 'Interrupción de servicio'"))
+                    if "dependencias_ids" not in columns:
+                        conn.execute(text("ALTER TABLE cyber_assets ADD COLUMN dependencias_ids JSON DEFAULT '[]'"))
+                    conn.commit()
+            except Exception as e:
+                print(f"[auto_migrate_cyber_assets] Notice: {e}")
+
+            # Cyber Incidents migrations
+            try:
+                res = conn.execute(text("PRAGMA table_info(cyber_incidents_anci)")).fetchall()
+                columns = [row[1] for row in res]
+                if columns:
+                    if "iocs_json" not in columns:
+                        conn.execute(text("ALTER TABLE cyber_incidents_anci ADD COLUMN iocs_json JSON DEFAULT '{}'"))
+                    if "checklist_forense_json" not in columns:
+                        conn.execute(text("ALTER TABLE cyber_incidents_anci ADD COLUMN checklist_forense_json JSON DEFAULT '{}'"))
+                    if "tiempo_deteccion_minutos" not in columns:
+                        conn.execute(text("ALTER TABLE cyber_incidents_anci ADD COLUMN tiempo_deteccion_minutos INTEGER DEFAULT 15"))
+                    conn.commit()
+            except Exception as e:
+                print(f"[auto_migrate_cyber_incidents] Notice: {e}")
 
 
 def create_app() -> FastAPI:
