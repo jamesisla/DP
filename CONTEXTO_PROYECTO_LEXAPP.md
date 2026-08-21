@@ -42,16 +42,17 @@ El asistente leerá este documento y tendrá inmediatamente el 100% del conocimi
 ├────────────────────────────────────────────────────┬─────────────────────────────────────────────────────┤
 │ 🛡️ SUITE DE PROTECCIÓN DE DATOS (LEY N° 21.719)    │ 🔒 SUITE DE CIBERSEGURIDAD & ANCI (LEY N° 21.663)    │
 ├────────────────────────────────────────────────────┼─────────────────────────────────────────────────────┤
-│ 1. Dashboard Ejecutivo + One-Pager Directorio      │ 1. Dashboard CISO + One-Pager Directorio            │
+│ 1. Dashboard Ejecutivo + One-Pager Directorio + GRC│ 1. Dashboard CISO + One-Pager Directorio + GRC      │
 │ 2. Hoja de Ruta & Fases de Adecuación (1 a 5)      │ 2. Fases de Ciberdefensa ANCI (I a V)                │
-│ 3. Matriz RAT + Pipeline Ciclo de Vida del Dato    │ 3. Inventario RSIC + Topología de Red & BIA         │
+│ 3. Matriz RAT + Pipeline Ciclo de Vida del Dato    │ 3. Inventario RSIC + Topología BIA + Vínculo RAT    │
 │ 4. Matriz de Riesgos & Evaluaciones EIPD           │ 4. Matriz de Riesgos Técnicos 5x5 + CIS Benchmarks  │
 │ 5. Gestión Terceros + Pliego ChileCompra DPA (MD)  │ 5. Proveedores + Pliego ChileCompra Ciberdefensa    │
 │ 6. Derechos ARCO+ con Sandbox ClaveÚnica           │ 6. Incidentes ANCI (3h) con Canal CVD Ético (Art.12)│
 │ 7. Brechas (72h) + Comunicado Oficial Prensa/MD    │ 7. War Games / Crisis + Protocolo Desconexión Red   │
-│ 8. Auditoría + Expediente ZIP + Verificador SHA256 │ 8. Expediente ANCI ZIP + Verificador Forense SHA256 │
-│ 9. Entrenador de Entrevistas Fiscalización DPO     │ 9. Entrenador de Entrevistas Fiscalización CISO     │
-│ 10. Stack Open Source (Presidio NLP Scan en Vivo)  │ 10. Stack Open Source (Wazuh SIEM Alerta 3h en Vivo)│
+│ 8. Capacitación & Cultura (Acta Certificada)       │ 8. Simulador de Phishing ANCI (CyberTraining.jsx)   │
+│ 9. Auditoría + Expediente ZIP + Verificador SHA256 │ 9. Expediente ANCI ZIP + Verificador Forense SHA256 │
+│ 10. Entrenador de Entrevistas Fiscalización DPO    │ 10. Entrenador de Entrevistas Fiscalización CISO    │
+│ 11. Stack Open Source (Presidio NLP Scan en Vivo)  │ 11. Stack Open Source (Wazuh SIEM Alerta 3h en Vivo)│
 └────────────────────────────────────────────────────┴─────────────────────────────────────────────────────┘
 ```
 
