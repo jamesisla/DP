@@ -27,6 +27,7 @@ import { CyberMaturity } from "../pages/cyber/CyberMaturity";
 import { CyberIncidents } from "../pages/cyber/CyberIncidents";
 import { CyberSimulations } from "../pages/cyber/CyberSimulations";
 import { CyberPolicies } from "../pages/cyber/CyberPolicies";
+import { CyberTraining } from "../pages/cyber/CyberTraining";
 import { CyberAudit } from "../pages/cyber/CyberAudit";
 import { OpenSourceCyber } from "../pages/cyber/OpenSourceCyber";
 
@@ -427,7 +428,7 @@ export function Shell({ session, onLogout }) {
         );
       case "cyber_training":
         return (
-          <TrainingCampaigns
+          <CyberTraining
             campaigns={data.trainingCampaigns}
             areas={data.areas}
             token={session.access_token}

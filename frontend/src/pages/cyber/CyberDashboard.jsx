@@ -59,6 +59,16 @@ export function CyberDashboard({ data, onReload, onNavigate, token }) {
 
         <div className="flex items-center gap-2 flex-wrap">
           <a
+            href={`${API_URL.replace("/api", "")}/api/cyber/grc-consolidated-onepager?token=${token}`}
+            download
+            className="inline-flex items-center gap-1.5 rounded border border-slate-300 bg-slate-900 text-white px-3 py-2 text-xs font-bold hover:bg-slate-800 shadow-sm transition-colors shrink-0"
+            title="Descargar Informe Ejecutivo Consolidado GRC (One-Pager Bipartito Datos + Ciberseguridad)"
+          >
+            <FileText size={14} className="text-amber-400" />
+            One-Pager Consolidado GRC
+          </a>
+
+          <a
             href={`${API_URL.replace("/api", "")}/api/cyber/executive-onepager-cyber?token=${token}`}
             download
             className="inline-flex items-center gap-1.5 rounded border border-indigo-300 bg-indigo-50 px-3 py-2 text-xs font-bold text-indigo-900 hover:bg-indigo-100 shadow-2xs transition-colors shrink-0"

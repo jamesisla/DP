@@ -1727,10 +1727,10 @@ def download_executive_onepager_cyber(_: Annotated[User, Depends(get_current_use
     now = datetime.now()
     
     total_assets = db.query(CyberAsset).count()
-    crit_assets = db.query(CyberAsset).filter(CyberAsset.criticidad == "Crítica").count()
-    mfa_assets = db.query(CyberAsset).filter(CyberAsset.mfa_habilitado == True).count()
-    worm_assets = db.query(CyberAsset).filter(CyberAsset.backup_inmutable_worm == True).count()
-    total_inc = db.query(CyberIncident).count()
+    crit_assets = db.query(CyberAsset).filter(CyberAsset.criticidad.in_(["Crítico OIV", "Crítica"])).count()
+    mfa_assets = db.query(CyberAsset).filter(CyberAsset.mfa_activo == True).count()
+    worm_assets = db.query(CyberAsset).filter(CyberAsset.respaldo_inmutable == True).count()
+    total_inc = db.query(CyberIncidentANCI).count()
     
     maturity = db.query(CyberMaturityAssessment).order_by(CyberMaturityAssessment.created_at.desc()).first()
     mat_score = maturity.madurez_global if maturity else 78
@@ -1770,6 +1770,14 @@ def download_executive_onepager_cyber(_: Annotated[User, Depends(get_current_use
 """
     headers = {"Content-Disposition": f"attachment; filename=Informe_Ejecutivo_Directorio_Ciberdefensa_1P_{now.strftime('%Y%m%d')}.md"}
     return StreamingResponse(io.BytesIO(doc.encode("utf-8")), media_type="text/markdown", headers=headers)
+
+
+@router.get("/grc-consolidated-onepager")
+def download_grc_consolidated_onepager_cyber(_: Annotated[User, Depends(get_current_user)], db: Annotated[Session, Depends(get_db)]):
+    """Genera el Informe Ejecutivo Consolidado GRC (One-Pager Bipartito) desde la Suite de Ciberseguridad."""
+    from app.routers.documents import download_grc_consolidated_onepager
+    return download_grc_consolidated_onepager(_, db)
+
 
 
 # ==============================================================================

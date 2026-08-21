@@ -401,6 +401,19 @@ export function CyberAssets({ assets = [], areas = [], token, user, onReload }) 
                       </span>
                     </div>
                   </div>
+
+                  {/* Cross-Compliance GRC: Datos Personales Ley 21.719 */}
+                  {(asset.tipo.includes("Base de Datos") || asset.tipo.includes("Servidor") || asset.tipo.includes("Portal") || asset.tipo.includes("Nube")) && (
+                    <div className="p-2 bg-teal-50/60 border border-teal-200 rounded-lg flex items-center justify-between text-[10px] text-teal-900 font-medium">
+                      <div className="flex items-center gap-1.5">
+                        <ShieldCheck size={13} className="text-teal-600 shrink-0" />
+                        <span>Custodia de Datos Personales (RAT Art. 15)</span>
+                      </div>
+                      <span className="font-bold font-mono text-[9px] bg-white px-1.5 py-0.5 rounded border border-teal-200 text-teal-800">
+                        {asset.cifrado_activo ? "AES-256 Activo" : "Requiere Cifrado"}
+                      </span>
+                    </div>
+                  )}
                 </div>
 
                 <div className="flex justify-between items-center pt-3 border-t border-slate-100 text-xs flex-wrap gap-2">
