@@ -11,7 +11,9 @@ import {
   ChevronDown, 
   Users, 
   Building,
-  KeyRound
+  KeyRound,
+  ShieldCheck,
+  Sliders
 } from "lucide-react";
 import { Panel } from "../components/Panel";
 import { api } from "../lib/api";
@@ -96,6 +98,29 @@ export function ProjectTasks({ projects, token, user, users = [], areas = [], on
         return "bg-rose-50 text-rose-700 border-rose-200";
       default:
         return "bg-slate-50 text-slate-600 border-slate-200";
+    }
+  }
+
+  async function handleToggleExterno(phase, e) {
+    e.stopPropagation();
+    const nextVal = !phase.resuelto_externamente;
+    const promptMsg = nextVal 
+      ? `¿Deseas marcar la Fase ${phase.orden} (${phase.nombre}) como RESUELTA EXTERNAMENTE (ej. certificación previa o DPO externo)? Se computará al 100% de cumplimiento legal.`
+      : `¿Deseas desmarcar la resolución externa de la Fase ${phase.orden}?`;
+    if (!confirm(promptMsg)) return;
+
+    try {
+      await api(`/fases/${phase.id}/toggle-externo`, token, {
+        method: "PUT",
+        body: JSON.stringify({
+          resuelto_externamente: nextVal,
+          motivo_resuelto_externo: nextVal ? "Homologado mediante certificación o auditoría previa" : ""
+        })
+      });
+      loadPhases();
+      if (onReload) onReload();
+    } catch (err) {
+      alert("Error al actualizar homologación: " + err.message);
     }
   }
 
@@ -402,9 +427,27 @@ export function ProjectTasks({ projects, token, user, users = [], areas = [], on
                           <span className="ml-3 text-xs text-slate-400 font-medium">({phase.ponderacion}% peso legal)</span>
                         </div>
                       </div>
-                      <span className="bg-slate-200/60 border border-slate-300 text-slate-600 text-xs font-bold px-2 py-0.5 rounded-full">
-                        {phase.tareas.filter(t => t.estado === "Completada").length}/{phase.tareas.length} Tareas
-                      </span>
+
+                      <div className="flex items-center gap-2">
+                        {phase.resuelto_externamente ? (
+                          <span className="inline-flex items-center gap-1 bg-emerald-100 text-emerald-800 border border-emerald-300 text-[11px] font-bold px-2.5 py-0.5 rounded-full">
+                            <ShieldCheck size={12} /> Resuelto Externamente (100%)
+                          </span>
+                        ) : (
+                          <span className="bg-slate-200/60 border border-slate-300 text-slate-600 text-xs font-bold px-2 py-0.5 rounded-full">
+                            {phase.tareas.filter(t => t.estado === "Completada").length}/{phase.tareas.length} Tareas
+                          </span>
+                        )}
+
+                        <button
+                          type="button"
+                          onClick={(e) => handleToggleExterno(phase, e)}
+                          className={`p-1.5 rounded text-xs font-semibold border transition-colors ${phase.resuelto_externamente ? "bg-amber-50 text-amber-800 border-amber-300 hover:bg-amber-100" : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"}`}
+                          title={phase.resuelto_externamente ? "Desmarcar resolución externa" : "Marcar como resuelto externamente (ej. certificación previa)"}
+                        >
+                          <Sliders size={13} />
+                        </button>
+                      </div>
                     </button>
 
                     {expandedPhases[phase.id] && (

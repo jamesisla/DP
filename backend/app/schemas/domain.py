@@ -102,6 +102,8 @@ class FaseRead(BaseModel):
     fecha_inicio_plan: date
     fecha_fin_plan: date
     ponderacion: int
+    resuelto_externamente: bool = False
+    motivo_resuelto_externo: str = ""
     proyecto_id: int
     tareas: list[TareaRead] = []
 

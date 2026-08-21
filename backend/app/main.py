@@ -81,6 +81,19 @@ def auto_migrate_sqlite() -> None:
             except Exception as e:
                 print(f"[auto_migrate_proveedores] Notice: {e}")
 
+            # Fases Data Protection migrations
+            try:
+                res = conn.execute(text("PRAGMA table_info(fases)")).fetchall()
+                columns = [row[1] for row in res]
+                if columns:
+                    if "resuelto_externamente" not in columns:
+                        conn.execute(text("ALTER TABLE fases ADD COLUMN resuelto_externamente BOOLEAN DEFAULT 0"))
+                    if "motivo_resuelto_externo" not in columns:
+                        conn.execute(text("ALTER TABLE fases ADD COLUMN motivo_resuelto_externo VARCHAR(200) DEFAULT ''"))
+                    conn.commit()
+            except Exception as e:
+                print(f"[auto_migrate_fases] Notice: {e}")
+
 
 def create_app() -> FastAPI:
     app = FastAPI(title=settings.app_name, version="0.1.0")

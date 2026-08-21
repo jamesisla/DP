@@ -92,3 +92,70 @@ def create_impact_assessment(
     db.refresh(eipd)
     log_action(db, current_user.id, "Crear Evaluación de Impacto (EIPD)", "ImpactAssessment", {"id": eipd.id, "titulo": eipd.titulo})
     return eipd
+
+
+# ==============================================================================
+# SIMULADOR DE EXPOSICIÓN A SANCIONES Y MULTAS (ART. 50 Y 51 LEY 21.719)
+# ==============================================================================
+
+@router.get("/fines-simulator")
+def get_fines_simulator_data(_: Annotated[User, Depends(get_current_user)], db: Annotated[Session, Depends(get_db)]):
+    """Calculadora y modelo de exposición a sanciones administrativas en UTM y CLP."""
+    utm_value_clp = 66000 # Valor referencial UTM
+
+    scenarios = [
+        {
+            "id": "leve",
+            "categoria": "Infracción Leve",
+            "articulo": "Art. 49 Ley 21.719",
+            "multa_max_utm": 5000,
+            "multa_max_clp": 5000 * utm_value_clp,
+            "ejemplos": [
+                "Deficiencias formales en el Registro de Actividades de Tratamiento (RAT)",
+                "Falta de claridad en las políticas de cookies no esenciales",
+                "Retrasos leves sin dolo en la respuesta a requerimientos no vinculantes"
+            ],
+            "nivel_gravedad": "Bajo / Advertencia"
+        },
+        {
+            "id": "grave",
+            "categoria": "Infracción Grave",
+            "articulo": "Art. 50 Ley 21.719",
+            "multa_max_utm": 10000,
+            "multa_max_clp": 10000 * utm_value_clp,
+            "ejemplos": [
+                "Tratamiento de datos personales sin base de licitud acreditada (Art. 13)",
+                "No notificar una brecha de seguridad a la Agencia en el plazo de 72 horas (Art. 18)",
+                "Vencimiento sistemático del plazo de 15 días hábiles para atender derechos ARCO+",
+                "No contar con contratos DPA formalizados con encargados externos (Art. 16)"
+            ],
+            "nivel_gravedad": "Alto / Sanción Financiera Significativa"
+        },
+        {
+            "id": "gravisima",
+            "categoria": "Infracción Gravísima",
+            "articulo": "Art. 51 Ley 21.719",
+            "multa_max_utm": 20000,
+            "multa_max_clp": 20000 * utm_value_clp,
+            "ejemplos": [
+                "Tratamiento ilícito de datos sensibles (salud, biométricos, opiniones políticas)",
+                "Transferencias internacionales a paraísos sin garantías mínimas de protección",
+                "Reincidencia reiterada o desacato a medidas cautelares de la Agencia"
+            ],
+            "nivel_gravedad": "Crítico / Sanción Máxima (Hasta 20.000 UTM o 4% ingresos)"
+        }
+    ]
+
+    atenuantes = [
+        {"id": "dpo", "nombre": "Nombramiento y operación efectiva del DPO (Art. 24)", "descuento_porcentaje": 20},
+        {"id": "compliance", "nombre": "Programa de cumplimiento y RAT consolidado (LexApp GRC)", "descuento_porcentaje": 30},
+        {"id": "cooperacion", "nombre": "Cooperación proactiva y notificación inmediata ante brechas", "descuento_porcentaje": 25},
+        {"id": "hardening", "nombre": "Medidas de seguridad técnicas (MFA, Cifrado TLS 1.3/AES-256)", "descuento_porcentaje": 15}
+    ]
+
+    return {
+        "valor_utm_clp": utm_value_clp,
+        "escenarios": scenarios,
+        "atenuantes_legales": atenuantes
+    }
+

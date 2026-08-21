@@ -68,6 +68,8 @@ class Fase(Base, TimestampMixin):
     fecha_inicio_plan: Mapped[date] = mapped_column(Date, nullable=False)
     fecha_fin_plan: Mapped[date] = mapped_column(Date, nullable=False)
     ponderacion: Mapped[int] = mapped_column(Integer, default=10)
+    resuelto_externamente: Mapped[bool] = mapped_column(Boolean, default=False)
+    motivo_resuelto_externo: Mapped[str] = mapped_column(String(200), default="")
     proyecto_id: Mapped[int] = mapped_column(ForeignKey("implementation_projects.id", ondelete="CASCADE"), nullable=False)
 
     proyecto: Mapped[ImplementationProject] = relationship("ImplementationProject", back_populates="fases")

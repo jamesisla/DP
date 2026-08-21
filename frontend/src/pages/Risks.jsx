@@ -8,15 +8,30 @@ import {
   HelpCircle, 
   FileCheck, 
   Layers, 
-  CheckCircle2 
+  CheckCircle2,
+  DollarSign,
+  Scale,
+  Percent,
+  ShieldCheck
 } from "lucide-react";
 import { Panel } from "../components/Panel";
 import { api, API_URL } from "../lib/api";
 
 export function Risks({ risks = [], masterMatrix = [], token, onReload }) {
+  const [tab, setTab] = useState("matrix"); // 'matrix', 'fines'
   const [heatmap, setHeatmap] = useState([]);
   const [loadingHeatmap, setLoadingHeatmap] = useState(true);
   const [selectedRiskCell, setSelectedRiskCell] = useState(null);
+
+  // Fines simulator state
+  const [finesData, setFinesData] = useState(null);
+  const [selectedScenario, setSelectedScenario] = useState("grave");
+  const [activeAtenuantes, setActiveAtenuantes] = useState({
+    dpo: true,
+    compliance: true,
+    cooperacion: true,
+    hardening: true
+  });
 
   async function loadHeatmap() {
     setLoadingHeatmap(true);
@@ -30,8 +45,18 @@ export function Risks({ risks = [], masterMatrix = [], token, onReload }) {
     }
   }
 
+  async function loadFinesData() {
+    try {
+      const data = await api("/risks/fines-simulator", token);
+      setFinesData(data);
+    } catch (err) {
+      console.error("Error cargando simulador de multas:", err);
+    }
+  }
+
   useEffect(() => {
     loadHeatmap();
+    loadFinesData();
   }, [risks, token]);
 
   function getLevelBadge(level) {
@@ -54,7 +79,6 @@ export function Risks({ risks = [], masterMatrix = [], token, onReload }) {
     return "bg-emerald-500 text-white";
   }
 
-  // 5x5 Matrix Cell Risk Level
   function get5x5Color(prob, imp) {
     const score = prob * imp;
     if (score >= 16) return "bg-rose-600 text-white hover:bg-rose-700";
@@ -63,12 +87,28 @@ export function Risks({ risks = [], masterMatrix = [], token, onReload }) {
     return "bg-emerald-500 text-white hover:bg-emerald-600";
   }
 
-  // Count risks in 5x5 cell
   function getRisksInCell(prob, imp) {
     return risks.filter(r => (r.probabilidad || 2) === prob && (r.impacto || 2) === imp);
   }
 
   const eipdRequiredRisks = risks.filter(r => r.requiere_eipd);
+
+  // Fines calculation
+  const utmVal = finesData?.valor_utm_clp || 66000;
+  const currentScenarioObj = finesData?.escenarios?.find(s => s.id === selectedScenario) || {
+    categoria: "Infracción Grave",
+    multa_max_utm: 10000,
+    multa_max_clp: 660000000,
+    ejemplos: []
+  };
+
+  const totalDiscount = (finesData?.atenuantes_legales || []).reduce((acc, a) => {
+    return activeAtenuantes[a.id] ? acc + a.descuento_porcentaje : acc;
+  }, 0);
+
+  const cappedDiscount = Math.min(80, totalDiscount); // Legal cap on mitigating factors
+  const mitigatedUtm = Math.round(currentScenarioObj.multa_max_utm * (1 - cappedDiscount / 100));
+  const mitigatedClp = mitigatedUtm * utmVal;
 
   return (
     <div className="p-6 lg:p-8 max-w-7xl mx-auto space-y-6">
@@ -76,219 +116,258 @@ export function Risks({ risks = [], masterMatrix = [], token, onReload }) {
       {/* Executive Header */}
       <div className="rounded-xl border border-line bg-white p-5 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <span className="text-xs uppercase font-bold text-teal-600 tracking-wider">Motor de Riesgos y EIPD (Ley 21.719)</span>
-          <h2 className="text-xl font-bold text-slate-800 mt-1">Matriz de Riesgo 5×5 y Evaluaciones de Impacto</h2>
+          <div className="flex items-center gap-2">
+            <span className="text-xs uppercase font-bold text-teal-600 tracking-wider">Motor de Riesgos & Sanciones</span>
+            <span className="text-[10px] px-2 py-0.5 rounded bg-indigo-50 text-indigo-700 font-bold border border-indigo-200">
+              Ley N° 21.719
+            </span>
+          </div>
+          <h2 className="text-xl font-bold text-slate-800 mt-1">Matriz de Riesgo 5×5, EIPD y Simulador de Sanciones</h2>
           <p className="text-xs text-slate-400 mt-0.5">
-            Cálculo ponderado de <strong>Probabilidad (1-5) × Impacto (1-5)</strong> e identificación automática de tratamientos que exigen una EIPD formal.
+            Cálculo ponderado de <strong>Probabilidad × Impacto</strong>, Evaluaciones de Impacto EIPD y cuantificación económica de multas legales.
           </p>
         </div>
 
         <a
           href={`${API_URL.replace("/api", "")}/api/risks/report?token=${token}`}
           download
-          className="inline-flex items-center gap-2 rounded bg-brand px-4 py-2 text-sm font-semibold text-white hover:bg-opacity-95 shadow-sm shrink-0"
+          className="inline-flex items-center gap-2 rounded bg-teal-700 px-4 py-2 text-xs font-bold text-white hover:bg-teal-800 shadow-sm shrink-0"
         >
-          <Download size={16} />
-          Exportar Informe de Hallazgos (MD)
+          <Download size={14} />
+          Exportar Informe de Riesgos (MD)
         </a>
       </div>
 
-      {/* EIPD Banner if high risk exists */}
-      {eipdRequiredRisks.length > 0 && (
-        <div className="flex items-start gap-4 rounded-xl border border-amber-300 bg-amber-50 p-4 text-amber-900 shadow-sm">
-          <FileCheck className="mt-0.5 text-amber-700 shrink-0" size={22} />
-          <div>
-            <h4 className="font-bold text-sm">SE REQUIERE EVALUACIÓN DE IMPACTO EN PROTECCIÓN DE DATOS (EIPD)</h4>
-            <p className="mt-0.5 text-xs text-amber-800 leading-relaxed font-medium">
-              Se han detectado <strong>{eipdRequiredRisks.length}</strong> actividades de tratamiento con transferencia internacional de datos sensibles o uso masivo de Inteligencia Artificial. Conforme al Art. 25 de la Ley 21.719, estas actividades deben contar con un informe formal de mitigación antes de su puesta en producción.
-            </p>
-          </div>
-        </div>
-      )}
+      {/* Tab Selector */}
+      <div className="flex bg-slate-200/70 p-1 rounded-xl border border-slate-300 max-w-lg">
+        <button
+          onClick={() => setTab("matrix")}
+          className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-all ${tab === "matrix" ? "bg-white text-slate-900 shadow-2xs" : "text-slate-600 hover:text-slate-900"}`}
+        >
+          Matriz 5×5 & EIPD ({risks.length})
+        </button>
+        <button
+          onClick={() => setTab("fines")}
+          className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-all ${tab === "fines" ? "bg-white text-teal-800 shadow-2xs" : "text-slate-600 hover:text-slate-900"}`}
+        >
+          Simulador de Sanciones (Art. 50)
+        </button>
+      </div>
 
-      {/* 5x5 Matrix & Heatmap Grid */}
-      <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
-        
-        {/* 5x5 Matrix Board */}
-        <div className="rounded-xl border border-line bg-white p-6 shadow-sm space-y-4">
-          <div className="flex justify-between items-center border-b border-slate-100 pb-2">
-            <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2">
-              <BarChart3 className="text-brand" size={18} />
-              Matriz 5×5 de Probabilidad vs Impacto
-            </h3>
-            <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Metodología ISO 27701</span>
-          </div>
+      {tab === "matrix" ? (
+        <div className="space-y-6">
+          {/* EIPD Banner if high risk exists */}
+          {eipdRequiredRisks.length > 0 && (
+            <div className="flex items-start gap-4 rounded-xl border border-amber-300 bg-amber-50 p-4 text-amber-900 shadow-sm">
+              <FileCheck className="mt-0.5 text-amber-700 shrink-0" size={22} />
+              <div>
+                <h4 className="font-bold text-sm">Atención: Se detectaron {eipdRequiredRisks.length} actividades que exigen una EIPD</h4>
+                <p className="text-xs text-amber-800 mt-0.5 leading-relaxed">
+                  Conforme al Art. 25 de la Ley 21.719, los tratamientos de alto riesgo deben contar con una Evaluación de Impacto antes de su puesta en producción.
+                </p>
+              </div>
+            </div>
+          )}
 
-          <div className="overflow-x-auto pt-2">
-            <div className="min-w-[420px]">
-              {/* 5x5 Grid */}
-              <div className="space-y-1.5">
+          {/* 5x5 Heatmap & Department Grid */}
+          <div className="grid gap-6 lg:grid-cols-12">
+            
+            {/* 5x5 Interactive Matrix */}
+            <div className="lg:col-span-6 rounded-xl border border-line bg-white p-5 shadow-sm space-y-4">
+              <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+                <span className="text-xs uppercase font-bold text-slate-800 tracking-wider">Matriz Probabilidad × Impacto</span>
+                <span className="text-[10px] text-slate-400 font-semibold">Haz clic en una celda para filtrar</span>
+              </div>
+
+              <div className="space-y-1">
                 {[5, 4, 3, 2, 1].map((prob) => (
                   <div key={prob} className="flex items-center gap-2">
-                    <span className="w-8 text-[11px] font-bold text-slate-400 text-right">P{prob}</span>
+                    <span className="w-5 text-[10px] font-bold text-slate-400 text-right">{prob}</span>
                     <div className="grid grid-cols-5 gap-1.5 flex-1">
                       {[1, 2, 3, 4, 5].map((imp) => {
-                        const inCell = getRisksInCell(prob, imp);
+                        const cellRisks = getRisksInCell(prob, imp);
                         const isSelected = selectedRiskCell?.prob === prob && selectedRiskCell?.imp === imp;
 
                         return (
                           <button
                             key={imp}
-                            type="button"
-                            onClick={() => setSelectedRiskCell(isSelected ? null : { prob, imp, list: inCell })}
-                            className={`h-11 rounded-lg text-center font-bold text-xs flex flex-col items-center justify-center transition-all cursor-pointer shadow-2xs ${get5x5Color(prob, imp)} ${isSelected ? "ring-2 ring-slate-900 scale-105" : ""}`}
+                            onClick={() => setSelectedRiskCell(isSelected ? null : { prob, imp, risks: cellRisks })}
+                            className={`h-9 rounded font-black text-xs transition-all flex items-center justify-center relative ${get5x5Color(prob, imp)} ${isSelected ? "ring-2 ring-slate-900 ring-offset-1 scale-105" : ""}`}
                           >
-                            <span className="text-[10px] opacity-80">{prob * imp}</span>
-                            {inCell.length > 0 && (
-                              <span className="bg-white text-slate-900 rounded-full px-1.5 text-[9px] font-black -mt-0.5 shadow-2xs">
-                                {inCell.length}
-                              </span>
-                            )}
+                            {cellRisks.length > 0 ? cellRisks.length : ""}
                           </button>
                         );
                       })}
                     </div>
                   </div>
                 ))}
-              </div>
 
-              {/* Bottom Impact Labels */}
-              <div className="flex items-center gap-2 mt-2">
-                <span className="w-8"></span>
-                <div className="grid grid-cols-5 gap-1.5 flex-1 text-center text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                  <div>I1 Muy Bajo</div>
-                  <div>I2 Bajo</div>
-                  <div>I3 Medio</div>
-                  <div>I4 Alto</div>
-                  <div>I5 Crítico</div>
+                <div className="flex items-center gap-2 pt-1 pl-7">
+                  <div className="grid grid-cols-5 gap-1.5 flex-1 text-center text-[10px] font-bold text-slate-400">
+                    {[1, 2, 3, 4, 5].map(i => <div key={i}>{i}</div>)}
+                  </div>
                 </div>
+                <div className="text-center text-[10px] font-bold text-slate-400 uppercase tracking-widest pt-1">
+                  Impacto Operacional & Legal &rarr;
+                </div>
+              </div>
+            </div>
+
+            {/* Department Summary Heatmap */}
+            <div className="lg:col-span-6 rounded-xl border border-line bg-white p-5 shadow-sm space-y-4">
+              <span className="text-xs uppercase font-bold text-slate-800 tracking-wider block border-b border-slate-100 pb-2">
+                Nivel de Riesgo por Áreas Institucionales
+              </span>
+
+              {loadingHeatmap ? (
+                <div className="py-8 text-center text-xs text-slate-400">Cargando mapa de riesgos...</div>
+              ) : (
+                <div className="space-y-2.5">
+                  {heatmap.map((h, idx) => (
+                    <div key={idx} className="p-2.5 bg-slate-50 border border-slate-200 rounded-lg flex justify-between items-center text-xs">
+                      <div>
+                        <span className="font-bold text-slate-800 block">{h.area}</span>
+                        <span className="text-[10px] text-slate-400">
+                          {h.requiere_eipd > 0 ? `⚠️ ${h.requiere_eipd} tratamientos EIPD` : "Riesgo controlado"}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center gap-1.5 text-[10px] font-bold">
+                        {h.Crítico > 0 && <span className="px-1.5 py-0.5 rounded bg-rose-600 text-white">{h.Crítico} Crítico</span>}
+                        {h.Alto > 0 && <span className="px-1.5 py-0.5 rounded bg-amber-500 text-white">{h.Alto} Alto</span>}
+                        {h.Medio > 0 && <span className="px-1.5 py-0.5 rounded bg-yellow-100 text-yellow-800">{h.Medio} Medio</span>}
+                        {h.Bajo > 0 && <span className="px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800">{h.Bajo} Bajo</span>}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+          </div>
+
+          {/* Risks Breakdown Table */}
+          <div className="rounded-xl border border-line bg-white p-5 shadow-sm space-y-4">
+            <span className="text-xs uppercase font-bold text-slate-800 tracking-wider block border-b border-slate-100 pb-2">
+              Detalle de Riesgos Identificados ({risks.length})
+            </span>
+
+            <div className="space-y-3">
+              {risks.map((r) => (
+                <div key={r.id} className="p-3.5 rounded-lg border border-slate-200 bg-slate-50/70 space-y-2 text-xs">
+                  <div className="flex justify-between items-start gap-2">
+                    <div className="flex items-center gap-2">
+                      <span className={`px-2 py-0.5 rounded text-[10px] ${getLevelBadge(r.nivel)}`}>
+                        {r.nivel} ({r.puntuacion}/25)
+                      </span>
+                      {r.requiere_eipd && (
+                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-300">
+                          Exige EIPD
+                        </span>
+                      )}
+                    </div>
+                    <span className="text-[10px] text-slate-400 font-mono">Prob: {r.probabilidad} | Imp: {r.impacto}</span>
+                  </div>
+
+                  <p className="text-slate-800 font-semibold">{r.descripcion}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      ) : (
+        /* TAB 2: FINES & PENALTIES SIMULATOR (ART. 50 LEY 21.719) */
+        <div className="space-y-6">
+          
+          {/* Executive Sanction Calculator Card */}
+          <div className="rounded-xl border border-teal-200 bg-teal-50/50 p-6 shadow-sm flex flex-col md:flex-row justify-between items-center gap-6">
+            <div className="space-y-1 text-center md:text-left">
+              <span className="text-[10px] uppercase font-bold text-teal-700 tracking-wider">Simulador de Exposición Económica</span>
+              <h3 className="text-xl font-black text-slate-900">Exposición a Sanciones Administrativas (Ley 21.719)</h3>
+              <p className="text-xs text-slate-600 max-w-xl">
+                La Ley N° 21.719 faculta a la Agencia a aplicar multas de hasta <strong>20.000 UTM (~$1.320.000.000 CLP)</strong>. La adopción de atenuantes legales (DPO, RAT y LexApp GRC) reduce la exposición hasta en un {cappedDiscount}%.
+              </p>
+            </div>
+
+            <div className="flex flex-col sm:flex-row items-center gap-4 shrink-0">
+              <div className="bg-white p-3.5 rounded-xl border border-teal-200 shadow-sm text-center">
+                <span className="text-xs font-bold text-slate-400 uppercase block">Multa Mitigada Estimada</span>
+                <span className="text-2xl font-black text-teal-800 tracking-tight">{mitigatedUtm.toLocaleString()} UTM</span>
+                <span className="text-[11px] text-slate-500 font-mono block mt-0.5">~${mitigatedClp.toLocaleString("es-CL")} CLP</span>
               </div>
             </div>
           </div>
 
-          {/* Selected Cell Detail */}
-          {selectedRiskCell && (
-            <div className="mt-3 p-3 bg-slate-50 border border-slate-200 rounded-lg text-xs animate-fadeIn">
-              <span className="font-bold text-slate-700 block">
-                Riesgos en celda P{selectedRiskCell.prob} × I{selectedRiskCell.imp} (Puntuación: {selectedRiskCell.prob * selectedRiskCell.imp}):
-              </span>
-              {selectedRiskCell.list.length > 0 ? (
-                <ul className="list-disc list-inside mt-1 space-y-1 text-slate-600">
-                  {selectedRiskCell.list.map((r, i) => (
-                    <li key={i}>{r.descripcion}</li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="text-slate-400 mt-1 italic">No hay tratamientos registrados con este nivel exacto.</p>
-              )}
-            </div>
-          )}
-        </div>
-
-        {/* Division Heatmap Table */}
-        <Panel title="Mapa de Calor por División" icon={Flame}>
-          {loadingHeatmap ? (
-            <div className="text-center py-8 text-slate-500">Cargando mapa de calor...</div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full border-collapse text-xs text-left">
-                <thead>
-                  <tr className="border-b border-slate-100 bg-slate-50 font-bold text-slate-500">
-                    <th className="p-3">División</th>
-                    <th className="p-3 text-center text-rose-700 bg-rose-50/50">Crítico / Alto</th>
-                    <th className="p-3 text-center text-amber-700 bg-amber-50/50">Medio</th>
-                    <th className="p-3 text-center text-emerald-700 bg-emerald-50/50">Bajo</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {heatmap.map((h, idx) => (
-                    <tr key={idx} className="hover:bg-slate-50/50">
-                      <td className="p-3 font-semibold text-slate-700">{h.area}</td>
-                      <td className="p-3 text-center font-bold text-rose-700 bg-rose-50/20">
-                        {h.Crítico + h.Alto > 0 ? (
-                          <span className="inline-block h-5 w-5 rounded-full bg-rose-100 leading-5 text-center">
-                            {h.Crítico + h.Alto}
-                          </span>
-                        ) : "-"}
-                      </td>
-                      <td className="p-3 text-center font-bold text-amber-700 bg-amber-50/20">
-                        {h.Medio > 0 ? (
-                          <span className="inline-block h-5 w-5 rounded-full bg-amber-100 leading-5 text-center">
-                            {h.Medio}
-                          </span>
-                        ) : "-"}
-                      </td>
-                      <td className="p-3 text-center font-bold text-emerald-700 bg-emerald-50/20">
-                        {h.Bajo > 0 ? (
-                          <span className="inline-block h-5 w-5 rounded-full bg-emerald-100 leading-5 text-center">
-                            {h.Bajo}
-                          </span>
-                        ) : "-"}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </Panel>
-
-      </div>
-
-      {/* Risks Table registry */}
-      <div className="space-y-4">
-        <h3 className="text-base font-bold text-slate-800 flex items-center gap-2">
-          <ShieldAlert className="text-rose-600" size={20} />
-          Inventario de Riesgos y Brechas Identificadas
-        </h3>
-
-        {risks.length > 0 ? (
-          <div className="grid gap-4 sm:grid-cols-1 md:grid-cols-2">
-            {risks.map((risk) => (
-              <div 
-                key={risk.id}
-                className="rounded-xl border border-line bg-white p-4 shadow-sm hover:shadow-md transition-all flex items-start gap-3.5"
+          {/* Infraction Tier Selector */}
+          <div className="grid gap-4 md:grid-cols-3">
+            {(finesData?.escenarios || []).map((scen) => (
+              <div
+                key={scen.id}
+                onClick={() => setSelectedScenario(scen.id)}
+                className={`p-5 rounded-xl border transition-all cursor-pointer flex flex-col justify-between gap-3 ${selectedScenario === scen.id ? "border-teal-600 bg-white shadow-md ring-2 ring-teal-600/20" : "border-slate-200 bg-slate-50 hover:bg-white"}`}
               >
-                <span className={`h-9 w-9 rounded-full shrink-0 flex items-center justify-center font-black text-sm shadow-2xs ${getScoreBadge(risk.puntuacion)}`}>
-                  {risk.puntuacion}
-                </span>
-
-                <div className="space-y-1.5 flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap justify-between">
-                    <div className="flex items-center gap-2">
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">ID: {risk.id}</span>
-                      <span className={`text-[9px] px-2 py-0.5 rounded font-bold border ${getLevelBadge(risk.nivel)}`}>
-                        {risk.nivel}
-                      </span>
-                    </div>
-
-                    {risk.requiere_eipd && (
-                      <span className="text-[9px] bg-amber-100 text-amber-800 border border-amber-300 font-bold px-1.5 py-0.5 rounded">
-                        EIPD Requerida
-                      </span>
-                    )}
+                <div className="space-y-2">
+                  <div className="flex justify-between items-start">
+                    <span className="font-bold text-xs text-slate-800">{scen.categoria}</span>
+                    <span className="text-[10px] font-mono font-bold text-teal-700 bg-teal-50 px-1.5 py-0.5 rounded">{scen.articulo}</span>
                   </div>
 
-                  <p className="text-xs font-medium text-slate-700 leading-relaxed">
-                    {risk.descripcion}
-                  </p>
-
-                  <div className="text-[10px] text-slate-400 font-semibold flex items-center gap-3 pt-1 border-t border-slate-50">
-                    <span>Probabilidad: P{risk.probabilidad || 2}</span>
-                    <span>Impacto: I{risk.impacto || 3}</span>
+                  <div>
+                    <span className="text-lg font-black text-slate-900">{scen.multa_max_utm.toLocaleString()} UTM</span>
+                    <span className="text-[11px] text-slate-400 block font-mono">Hasta ${(scen.multa_max_clp).toLocaleString("es-CL")} CLP</span>
                   </div>
+
+                  <ul className="text-[11px] text-slate-600 space-y-1 pt-2 border-t border-slate-150">
+                    {scen.ejemplos.map((ej, i) => (
+                      <li key={i} className="flex items-start gap-1">
+                        <span className="text-teal-600 shrink-0">•</span>
+                        <span>{ej}</span>
+                      </li>
+                    ))}
+                  </ul>
                 </div>
               </div>
             ))}
           </div>
-        ) : (
-          <div className="rounded-xl border border-dashed border-slate-350 p-12 text-center text-slate-400 bg-white">
-            <Flame size={40} className="mx-auto mb-2 opacity-40" />
-            <p className="font-semibold text-sm">No se han registrado riesgos</p>
-            <p className="text-xs mt-1">Completa la Matriz de Levantamiento para disparar el motor automático de riesgos 5×5.</p>
+
+          {/* Mitigating Factors (Art. 52) */}
+          <div className="rounded-xl border border-line bg-white p-6 shadow-sm space-y-4">
+            <div className="border-b border-slate-100 pb-3">
+              <h3 className="text-base font-bold text-slate-800">Atenuantes Legales y Rebaja de Sanciones (Art. 52)</h3>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Marcar los controles implementados en la institución que acreditan la responsabilidad proactiva para reducir el monto de una eventual multa.
+              </p>
+            </div>
+
+            <div className="grid gap-3 sm:grid-cols-2">
+              {(finesData?.atenuantes_legales || []).map((at) => {
+                const isChecked = Boolean(activeAtenuantes[at.id]);
+                return (
+                  <label
+                    key={at.id}
+                    className={`p-3.5 rounded-xl border flex items-center justify-between gap-3 cursor-pointer transition-all ${isChecked ? "border-teal-300 bg-teal-50/40" : "border-slate-200 bg-slate-50"}`}
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <input
+                        type="checkbox"
+                        checked={isChecked}
+                        onChange={() => setActiveAtenuantes({ ...activeAtenuantes, [at.id]: !isChecked })}
+                        className="rounded border-slate-300 text-teal-600 focus:ring-teal-500 h-4 w-4"
+                      />
+                      <span className="text-xs font-bold text-slate-800">{at.nombre}</span>
+                    </div>
+
+                    <span className="text-[11px] font-black text-teal-800 bg-teal-100/70 px-2 py-0.5 rounded">
+                      -{at.descuento_porcentaje}%
+                    </span>
+                  </label>
+                );
+              })}
+            </div>
           </div>
-        )}
-      </div>
+
+        </div>
+      )}
 
     </div>
   );

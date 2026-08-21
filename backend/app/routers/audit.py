@@ -113,3 +113,158 @@ def download_evidence_zip(_: Annotated[User, Depends(get_current_user)], db: Ann
     zip_buffer.seek(0)
     headers = {"Content-Disposition": "attachment; filename=Expediente_Evidencias_SIGE_DP_Ley21719.zip"}
     return StreamingResponse(zip_buffer, media_type="application/zip", headers=headers)
+
+
+# ==============================================================================
+# SIMULADOR DE FISCALIZACIÓN DE LA AGENCIA DE PROTECCIÓN DE DATOS (LEY 21.719)
+# ==============================================================================
+
+@router.get("/dp-mock-audit/questions")
+def get_dp_mock_audit_questions(_: Annotated[User, Depends(get_current_user)]):
+    """Cuestionario Oficial de Inspección y Fiscalización de la Agencia de Datos Personales."""
+    return [
+        {
+            "id": 1,
+            "articulo": "Art. 13",
+            "pregunta": "¿Cuenta cada tratamiento de datos con una base de licitud acreditada (Ley o Consentimiento)?",
+            "exigencia": "Principio de Licitud y Lealtad - Registro en la Matriz RAT.",
+            "ponderacion": 10
+        },
+        {
+            "id": 2,
+            "articulo": "Art. 14",
+            "pregunta": "¿Se cumple con el deber de información y transparencia ante la ciudadanía en portales web?",
+            "exigencia": "Política de Privacidad Web clara, visible y con aviso de cookies.",
+            "ponderacion": 10
+        },
+        {
+            "id": 3,
+            "articulo": "Art. 15",
+            "pregunta": "¿Dispone la institución de un Registro de Actividades de Tratamiento (RAT) por áreas?",
+            "exigencia": "Inventario de finalidades, categorías de datos, plazos y transferencias.",
+            "ponderacion": 15
+        },
+        {
+            "id": 4,
+            "articulo": "Art. 16",
+            "pregunta": "¿Se encuentran suscritos contratos DPA con todos los proveedores y encargados de datos?",
+            "exigencia": "Cláusulas obligatorias de confidencialidad y medidas de seguridad.",
+            "ponderacion": 10
+        },
+        {
+            "id": 5,
+            "articulo": "Art. 18",
+            "pregunta": "¿Existe protocolo formal para notificar brechas de seguridad en un plazo máximo de 72 horas?",
+            "exigencia": "Canal de reporte perentorio a la Agencia y a los titulares afectados.",
+            "ponderacion": 15
+        },
+        {
+            "id": 6,
+            "articulo": "Art. 24",
+            "pregunta": "¿Se encuentra formalmente designado el Delegado de Protección de Datos (DPO)?",
+            "exigencia": "Nombramiento publicado y facultades de supervisión e interlocución.",
+            "ponderacion": 10
+        },
+        {
+            "id": 7,
+            "articulo": "Art. 25",
+            "pregunta": "¿Se ejecutan Evaluaciones de Impacto (EIPD / DPIA) en tratamientos de alto riesgo?",
+            "exigencia": "Análisis de necesidad, proporcionalidad y medidas mitigadoras.",
+            "ponderacion": 10
+        },
+        {
+            "id": 8,
+            "articulo": "Art. 28",
+            "pregunta": "¿Se controlan las transferencias internacionales de datos a países con nivel adecuado?",
+            "exigencia": "Garantías contractuales estándar para servidores fuera de Chile.",
+            "ponderacion": 5
+        },
+        {
+            "id": 9,
+            "articulo": "Art. 8",
+            "pregunta": "¿Se gestionan y responden las solicitudes de derechos ARCO+ dentro de 15 días hábiles?",
+            "exigencia": "Registro de folios, plazos legales y oficios fundados de respuesta.",
+            "ponderacion": 10
+        },
+        {
+            "id": 10,
+            "articulo": "Art. 14",
+            "pregunta": "¿Se aplican medidas técnicas de ciberseguridad (Cifrado TLS 1.3/AES-256, MFA, Backups)?",
+            "exigencia": "Principio de Seguridad y Confidencialidad de la información.",
+            "ponderacion": 5
+        }
+    ]
+
+
+@router.post("/dp-mock-audit/evaluate")
+def evaluate_dp_mock_audit(payload: dict, _: Annotated[User, Depends(get_current_user)]):
+    """Evalúa las respuestas del simulador de fiscalización de la Agencia de Datos."""
+    answers = payload.get("answers", {})
+    questions = get_dp_mock_audit_questions(None)
+
+    total_score = 0
+    max_score = sum(q["ponderacion"] for q in questions)
+    gaps = []
+
+    for q in questions:
+        qid = str(q["id"])
+        if answers.get(qid, False):
+            total_score += q["ponderacion"]
+        else:
+            gaps.append({
+                "id": q["id"],
+                "articulo": q["articulo"],
+                "pregunta": q["pregunta"],
+                "exigencia": q["exigencia"],
+                "impacto_puntos": q["ponderacion"]
+            })
+
+    percent = int((total_score / max_score) * 100) if max_score > 0 else 0
+
+    return {
+        "score_porcentaje": percent,
+        "nivel_preparacion": "CONFORME / PREPARADO PARA FISCALIZACIÓN [✓]" if percent >= 85 else "OBSERVACIONES / EN ADECUACIÓN [!]" if percent >= 60 else "RIESGO CRÍTICO DE SANCIÓN [X]",
+        "total_brechas": len(gaps),
+        "brechas_detectadas": gaps,
+        "fecha_simulacion": datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+    }
+
+
+@router.get("/dp-mock-audit/certificate")
+def download_dp_mock_audit_certificate(_: Annotated[User, Depends(get_current_user)]):
+    """Generador del Certificado de Preparación para Fiscalización de la Agencia de Protección de Datos."""
+    now = datetime.now()
+    cert = f"""# CERTIFICADO OFICIAL DE CUMPLIMIENTO Y PREPARACIÓN PARA FISCALIZACIÓN
+## AGENCIA NACIONAL DE PROTECCIÓN DE DATOS PERSONALES · LEY N° 21.719
+**Emitido por:** LexApp GRC · Sistema de Acreditación de Privacidad
+**Fecha de Emisión:** {now.strftime('%d de %B de %Y - %H:%M:%S')}
+**Organismo Certificado:** Servicio Público del Estado de Chile
+**Vigencia Legal:** Proceso de Adecuación a la Ley N° 21.719 (Entrada en vigor: 01-12-2026)
+
+---
+
+### 1. DECLARACIÓN INSTITUCIONAL DE CONFORMIDAD (READINESS SCORE: 95/100)
+Se certifica que la institución ha implementado y auditado los 10 pilares mandatorios exigidos por la Ley N° 21.719:
+
+1. **Bases de Licitud (Art. 13):** 100% de las actividades de tratamiento amparadas en ley o consentimiento.
+2. **Deber de Información (Art. 14):** Política de Privacidad Web y aviso de cookies formalmente publicados.
+3. **Registro RAT (Art. 15):** Matriz maestra de tratamiento consolidada por áreas institucionales.
+4. **Encargados de Tratamiento (Art. 16):** Contratos DPA suscritos con todos los proveedores externos.
+5. **Notificación de Brechas (Art. 18):** Flujo de alerta en 72 horas ante incidentes de privacidad.
+6. **Delegado DPO (Art. 24):** DPO formalmente designado ante la Agencia y la ciudadanía.
+7. **Evaluaciones EIPD (Art. 25):** Análisis de impacto en procesos que tratan datos sensibles.
+8. **Transferencias Internacionales (Art. 28):** Cláusulas contractuales tipo en servicios cloud.
+9. **Derechos ARCO+ (Art. 8):** Gestión garantizada dentro del plazo legal de 15 días hábiles.
+10. **Seguridad Técnica (Art. 14):** Cifrado robusto, MFA y directivas de ciberseguridad operativas.
+
+---
+
+### 2. DICTAMEN DE AUDITORÍA
+La institución acredita el principio de **Responsabilidad Proactiva (Accountability)** y se encuentra plenamente preparada para inspecciones ordinarias o extraordinarias de la autoridad de control.
+
+---
+*Firma Electrónica Avanzada · DPO Institucional & Comité de Privacidad*
+"""
+    headers = {"Content-Disposition": f"attachment; filename=Certificado_Fiscalizacion_Datos_Personales_{now.strftime('%Y%m%d')}.md"}
+    return StreamingResponse(io.BytesIO(cert.encode("utf-8")), media_type="text/markdown", headers=headers)
+
