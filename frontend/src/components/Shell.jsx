@@ -490,7 +490,7 @@ export function Shell({ session, onLogout }) {
   return (
     <main className="flex min-h-screen bg-cloud text-ink font-sans">
       {/* Sidebar Desktop */}
-      <aside className="hidden w-72 border-r border-line bg-white p-4 lg:block flex flex-col justify-between">
+      <aside className="hidden w-72 border-r border-line bg-white p-4 lg:flex flex-col justify-between h-screen sticky top-0 overflow-y-auto shrink-0">
         <div>
           {/* Logo & Suite Identifier */}
           <div className="mb-4 flex items-center gap-3 px-2">
