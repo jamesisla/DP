@@ -21,7 +21,15 @@ if ! id "$APP_USER" &>/dev/null; then
   APP_USER=$(id -un 1000 2>/dev/null || echo "root")
 fi
 
-echo "=== 1. Corrigiendo Permisos de Directorios y Archivos ==="
+echo "=== 1. Actualizando Configuración de Nginx ==="
+if [ -f "$PROJECT_DIR/scripts/nginx-sige-dp.conf" ]; then
+  cp "$PROJECT_DIR/scripts/nginx-sige-dp.conf" /etc/nginx/sites-available/sige-dp
+  rm -f /etc/nginx/sites-enabled/default
+  ln -sf /etc/nginx/sites-available/sige-dp /etc/nginx/sites-enabled/sige-dp
+  nginx -t
+fi
+
+echo "=== 2. Corrigiendo Permisos de Directorios y Archivos ==="
 # Asegurar permisos de lectura y paso para Nginx (www-data)
 chmod 755 /opt
 chmod 755 "$PROJECT_DIR"
@@ -37,7 +45,7 @@ usermod -aG "$APP_USER" www-data 2>/dev/null || true
 
 echo "[+] Permisos de lectura (Nginx) y escritura (Backend) corregidos."
 
-echo "=== 2. Verificando Reglas de Firewall e Iptables en OCI ==="
+echo "=== 3. Verificando Reglas de Firewall e Iptables en OCI ==="
 # Insertar regla al principio de la cadena INPUT para que nada la bloquee
 iptables -I INPUT 1 -p tcp --dport 80 -j ACCEPT 2>/dev/null || true
 iptables -I INPUT 1 -p tcp --dport 443 -j ACCEPT 2>/dev/null || true
@@ -53,14 +61,14 @@ if command -v netfilter-persistent &>/dev/null; then
 fi
 echo "[+] Puertos 80 y 443 asegurados en iptables."
 
-echo "=== 3. Comprobando y Reiniciando Servicios ==="
+echo "=== 4. Comprobando y Reiniciando Servicios ==="
 systemctl restart sige-dp.service
-systemctl restart nginx
+systemctl reload nginx || systemctl restart nginx
 
 sleep 2
 
 echo ""
-echo "=== 4. Test de Conexión Local ==="
+echo "=== 5. Test de Conexión Local ==="
 echo -n "Backend FastAPI (127.0.0.1:8000/api/health): "
 if curl -s http://127.0.0.1:8000/api/health | grep -q "status"; then
   echo "OK [✓]"
@@ -80,9 +88,14 @@ else
   tail -n 15 /var/log/nginx/error.log 2>/dev/null || true
 fi
 
+echo -n "API Proxy Nginx (127.0.0.1:80/api/health): "
+if curl -s http://127.0.0.1/api/health | grep -q "status"; then
+  echo "OK [✓]"
+else
+  echo "FALLÓ [X]"
+fi
+
 echo ""
 echo "========================================================="
-echo " [✓] Diagnóstico finalizado."
-echo " Si el navegador aún no responde desde el exterior, verifica"
-echo " la regla Ingress (Puerto 80) en la consola web de Oracle Cloud."
+echo " [✓] Diagnóstico y reparación completados."
 echo "========================================================="

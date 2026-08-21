@@ -32,7 +32,13 @@ cd "$PROJECT_DIR/frontend"
 npm install --production=false
 npm run build
 
-echo "=== 4. Ajustando Permisos (Nginx & SQLite) ==="
+echo "=== 4. Actualizando Configuración de Nginx ==="
+cp "$PROJECT_DIR/scripts/nginx-sige-dp.conf" /etc/nginx/sites-available/sige-dp
+rm -f /etc/nginx/sites-enabled/default
+ln -sf /etc/nginx/sites-available/sige-dp /etc/nginx/sites-enabled/sige-dp
+nginx -t
+
+echo "=== 5. Ajustando Permisos (Nginx & SQLite) ==="
 chmod 755 /opt
 chmod 755 "$PROJECT_DIR"
 chmod 755 "$PROJECT_DIR/frontend"
@@ -41,7 +47,7 @@ chown -R "$APP_USER:$APP_USER" "$PROJECT_DIR"
 chmod -R 775 "$PROJECT_DIR/backend"
 usermod -aG "$APP_USER" www-data 2>/dev/null || true
 
-echo "=== 5. Reiniciando Servicios ==="
+echo "=== 6. Reiniciando Servicios ==="
 systemctl restart sige-dp.service
 systemctl reload nginx || systemctl restart nginx
 
