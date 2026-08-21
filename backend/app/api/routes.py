@@ -5,6 +5,7 @@ from app.routers.areas import router as areas_router
 from app.routers.audit import router as audit_router
 from app.routers.auth import router as auth_router
 from app.routers.breaches import router as breaches_router
+from app.routers.cybersecurity import router as cyber_router
 from app.routers.dashboard import router as dashboard_router
 from app.routers.documents import router as documents_router
 from app.routers.legacy import router as legacy_router
@@ -19,7 +20,7 @@ router = APIRouter()
 
 @router.get("/health")
 def health() -> dict[str, str]:
-    return {"status": "ok", "app": "SIGE-DP Ley 21.719", "version": "1.0.0"}
+    return {"status": "ok", "app": "SIGE-DP & Ciberseguridad ANCI", "version": "2.0.0"}
 
 
 # Include modular routers
@@ -36,3 +37,6 @@ router.include_router(arco_router)
 router.include_router(breaches_router)
 router.include_router(audit_router)
 router.include_router(legacy_router)
+
+# Ley 21.663 - Cybersecurity & ANCI
+router.include_router(cyber_router)

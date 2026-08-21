@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from "react";
-import { LogOut, Scale, Bell } from "lucide-react";
-import { modules } from "../lib/modules";
-import { api, classNames } from "../lib/api";
+import { LogOut, Scale, ShieldAlert, ShieldCheck, Server, Radio, Activity, Lock, Layers } from "lucide-react";
+import { suites, dataProtectionModules, cybersecurityModules } from "../lib/modules";
+import { api, classNames, API_URL } from "../lib/api";
 
+// Data Protection Pages (Ley 21.719)
 import { Dashboard } from "../pages/Dashboard";
 import { ProjectTasks } from "../pages/ProjectTasks";
 import { Wizard } from "../pages/Wizard";
@@ -15,14 +16,30 @@ import { SecurityBreaches } from "../pages/SecurityBreaches";
 import { AuditLogs } from "../pages/AuditLogs";
 import { OracleMissions } from "../pages/OracleMissions";
 
+// Cybersecurity Pages (Ley 21.663 / ANCI)
+import { CyberDashboard } from "../pages/cyber/CyberDashboard";
+import { CyberPhases } from "../pages/cyber/CyberPhases";
+import { CyberAssets } from "../pages/cyber/CyberAssets";
+import { CyberMaturity } from "../pages/cyber/CyberMaturity";
+import { CyberIncidents } from "../pages/cyber/CyberIncidents";
+import { CyberPolicies } from "../pages/cyber/CyberPolicies";
+
 export function Shell({ session, onLogout }) {
-  // Read active tab from window.location.hash or default to dashboard
+  // Determine initial suite and active module from window.location.hash
   const [active, setActive] = useState(() => {
     const hash = window.location.hash.replace("#", "");
-    return modules.some(m => m.id === hash) ? hash : "dashboard";
+    if (cybersecurityModules.some(m => m.id === hash)) return hash;
+    if (dataProtectionModules.some(m => m.id === hash)) return hash;
+    return "dashboard";
+  });
+
+  const [activeSuite, setActiveSuite] = useState(() => {
+    const hash = window.location.hash.replace("#", "");
+    return hash.startsWith("cyber_") ? "cybersecurity" : "data_protection";
   });
 
   const [data, setData] = useState({
+    // Suite 1: Data Protection
     dashboard: null,
     projects: [],
     areas: [],
@@ -35,22 +52,47 @@ export function Shell({ session, onLogout }) {
     breaches: [],
     auditLogs: [],
     users: [],
+    // Suite 2: Cybersecurity
+    cyberDashboard: null,
+    cyberProjects: [],
+    cyberFases: [],
+    cyberAssets: [],
+    cyberIncidents: [],
+    cyberMaturity: [],
+    cyberPolicies: [],
   });
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Sync state with URL hash
   function handleNavigate(moduleId) {
     setActive(moduleId);
     window.location.hash = moduleId;
+    if (moduleId.startsWith("cyber_")) {
+      setActiveSuite("cybersecurity");
+    } else {
+      setActiveSuite("data_protection");
+    }
   }
 
-  // Listen to popstate / hashchange for browser back/forward buttons
+  function handleSwitchSuite(suiteId) {
+    setActiveSuite(suiteId);
+    if (suiteId === "cybersecurity") {
+      handleNavigate("cyber_dashboard");
+    } else {
+      handleNavigate("dashboard");
+    }
+  }
+
   useEffect(() => {
     function onHashChange() {
       const hash = window.location.hash.replace("#", "");
-      if (modules.some(m => m.id === hash)) {
+      if (cybersecurityModules.some(m => m.id === hash)) {
         setActive(hash);
+        setActiveSuite("cybersecurity");
+      } else if (dataProtectionModules.some(m => m.id === hash)) {
+        setActive(hash);
+        setActiveSuite("data_protection");
       }
     }
     window.addEventListener("hashchange", onHashChange);
@@ -72,6 +114,13 @@ export function Shell({ session, onLogout }) {
         breaches,
         auditLogs,
         users,
+        cyberDashboard,
+        cyberProjects,
+        cyberFases,
+        cyberAssets,
+        cyberIncidents,
+        cyberMaturity,
+        cyberPolicies,
       ] = await Promise.all([
         api("/dashboard", session.access_token).catch(() => null),
         api("/projects", session.access_token).catch(() => []),
@@ -85,6 +134,14 @@ export function Shell({ session, onLogout }) {
         api("/breaches", session.access_token).catch(() => []),
         api("/audit-logs", session.access_token).catch(() => []),
         api("/users", session.access_token).catch(() => []),
+        // Cyber suite calls
+        api("/cyber/dashboard", session.access_token).catch(() => null),
+        api("/cyber/project", session.access_token).catch(() => []),
+        api("/cyber/fases", session.access_token).catch(() => []),
+        api("/cyber/assets", session.access_token).catch(() => []),
+        api("/cyber/incidents", session.access_token).catch(() => []),
+        api("/cyber/maturity", session.access_token).catch(() => []),
+        api("/cyber/policies", session.access_token).catch(() => []),
       ]);
       
       setData({
@@ -100,6 +157,13 @@ export function Shell({ session, onLogout }) {
         breaches,
         auditLogs,
         users,
+        cyberDashboard,
+        cyberProjects,
+        cyberFases,
+        cyberAssets,
+        cyberIncidents,
+        cyberMaturity,
+        cyberPolicies,
       });
     } catch (err) {
       console.error("Error al cargar datos:", err);
@@ -116,12 +180,14 @@ export function Shell({ session, onLogout }) {
     load();
   }, [session.access_token]);
 
-  const activeModule = modules.find((item) => item.id === active);
+  const currentModules = activeSuite === "cybersecurity" ? cybersecurityModules : dataProtectionModules;
+  const activeModule = currentModules.find((item) => item.id === active) || currentModules[0];
 
   // Calculate notification badges
-  const stats = data.dashboard?.stats || {};
-  const urgentArcoCount = stats.urgent_arco || 0;
-  const unnotifiedBreachCount = stats.unnotified_breaches || 0;
+  const dpStats = data.dashboard?.stats || {};
+  const urgentArcoCount = dpStats.urgent_arco || 0;
+  const unnotifiedBreachCount = dpStats.unnotified_breaches || 0;
+  const urgent3hCyberCount = data.cyberDashboard?.urgent_3h_count || 0;
 
   function renderBadge(badgeKey) {
     if (badgeKey === "urgent_arco" && urgentArcoCount > 0) {
@@ -129,6 +195,9 @@ export function Shell({ session, onLogout }) {
     }
     if (badgeKey === "unnotified_breaches" && unnotifiedBreachCount > 0) {
       return <span className="ml-auto bg-rose-600 text-white rounded-full px-1.5 py-0.2 text-[10px] font-black animate-pulse">{unnotifiedBreachCount}</span>;
+    }
+    if (badgeKey === "urgent_3h" && urgent3hCyberCount > 0) {
+      return <span className="ml-auto bg-rose-600 text-white rounded-full px-1.5 py-0.2 text-[10px] font-black animate-bounce">{urgent3hCyberCount}</span>;
     }
     return null;
   }
@@ -153,13 +222,14 @@ export function Shell({ session, onLogout }) {
       return (
         <div className="flex h-64 items-center justify-center text-slate-500">
           <div className="text-center">
-            <div className="h-8 w-8 animate-spin rounded-full border-4 border-brand border-t-transparent mx-auto mb-3"></div>
-            <p className="text-sm font-semibold">Cargando plataforma de cumplimiento...</p>
+            <div className="h-8 w-8 animate-spin rounded-full border-4 border-indigo-600 border-t-transparent mx-auto mb-3"></div>
+            <p className="text-sm font-semibold">Cargando plataforma de cumplimiento y ciberseguridad...</p>
           </div>
         </div>
       );
     }
 
+    // Suite 1: Data Protection Pages
     switch (active) {
       case "dashboard":
         return <Dashboard data={data.dashboard} onReload={load} onNavigate={handleNavigate} />;
@@ -251,30 +321,151 @@ export function Shell({ session, onLogout }) {
         );
       case "oracle":
         return <OracleMissions />;
+
+      // Suite 2: Cybersecurity Pages (Ley 21.663)
+      case "cyber_dashboard":
+        return (
+          <CyberDashboard
+            data={data.cyberDashboard}
+            token={session.access_token}
+            onReload={load}
+            onNavigate={handleNavigate}
+          />
+        );
+      case "cyber_phases":
+        return (
+          <CyberPhases
+            fases={data.cyberFases}
+            token={session.access_token}
+            user={session.user}
+            onReload={load}
+          />
+        );
+      case "cyber_assets":
+        return (
+          <CyberAssets
+            assets={data.cyberAssets}
+            areas={data.areas}
+            token={session.access_token}
+            user={session.user}
+            onReload={load}
+          />
+        );
+      case "cyber_maturity":
+        return (
+          <CyberMaturity
+            maturityList={data.cyberMaturity}
+            token={session.access_token}
+            user={session.user}
+            onReload={load}
+          />
+        );
+      case "cyber_incidents":
+        return (
+          <CyberIncidents
+            incidents={data.cyberIncidents}
+            token={session.access_token}
+            user={session.user}
+            onReload={load}
+          />
+        );
+      case "cyber_policies":
+        return (
+          <CyberPolicies
+            policies={data.cyberPolicies}
+            token={session.access_token}
+            user={session.user}
+            onReload={load}
+          />
+        );
+      case "cyber_audit":
+        return (
+          <div className="p-8 max-w-4xl mx-auto space-y-6">
+            <div className="rounded-xl border border-line bg-white p-6 shadow-sm space-y-4">
+              <div className="flex items-center gap-3">
+                <ShieldCheck size={32} className="text-indigo-600" />
+                <div>
+                  <h3 className="text-lg font-bold text-slate-800">Expediente de Cumplimiento Ciberseguridad (ANCI)</h3>
+                  <p className="text-xs text-slate-500">Descarga el compendio completo de evidencias estructuradas conforme a la Ley 21.663.</p>
+                </div>
+              </div>
+
+              <div className="p-4 bg-indigo-50/50 border border-indigo-200 rounded-lg text-xs text-indigo-900 space-y-2">
+                <p className="font-bold">Contenido del archivo ZIP estructurado:</p>
+                <ul className="list-disc list-inside space-y-1 text-slate-700">
+                  <li>01_Gobernanza_ANCI/ (Actas de nombramiento del CISO y Comité)</li>
+                  <li>02_Activos_Criticos_RSIC/ (Inventario de Redes y Sistemas Esenciales)</li>
+                  <li>03_Gestion_Riesgos_Madurez/ (Diagnóstico de Madurez NIST CSF)</li>
+                  <li>04_Politicas_Continuidad/ (PGSI, Plan de Respuesta PRI, Plan de Continuidad BCP)</li>
+                  <li>05_Notificaciones_ANCI/ (Registro de Alertas Tempranas 3h y Reportes 72h)</li>
+                </ul>
+              </div>
+
+              <a
+                href={`${API_URL.replace("/api", "")}/api/cyber/evidence-zip?token=${session.access_token}`}
+                download
+                className="inline-flex items-center gap-2 px-5 py-2.5 bg-indigo-600 text-white rounded-lg text-xs font-bold hover:bg-indigo-700 shadow-sm"
+              >
+                <ShieldCheck size={16} />
+                Descargar Expediente ANCI (.ZIP)
+              </a>
+            </div>
+          </div>
+        );
+
       default:
         return <div className="p-8">Módulo no implementado: {active}</div>;
     }
   }
 
+  const isCyber = activeSuite === "cybersecurity";
+
   return (
-    <main className="flex min-h-screen bg-cloud text-ink">
+    <main className="flex min-h-screen bg-cloud text-ink font-sans">
       {/* Sidebar Desktop */}
       <aside className="hidden w-72 border-r border-line bg-white p-4 lg:block flex flex-col justify-between">
         <div>
-          <div className="mb-6 flex items-center gap-3 px-2">
-            <div className="grid h-10 w-10 place-items-center rounded bg-brand text-white shadow-sm">
-              <Scale size={20} />
+          {/* Logo & Suite Identifier */}
+          <div className="mb-4 flex items-center gap-3 px-2">
+            <div className={`grid h-10 w-10 place-items-center rounded shadow-sm text-white ${isCyber ? "bg-indigo-600" : "bg-brand"}`}>
+              {isCyber ? <Lock size={20} /> : <Scale size={20} />}
             </div>
             <div>
-              <p className="font-bold text-sm tracking-tight text-slate-800">SIGE-DP</p>
-              <p className="text-[10px] text-teal-700 font-bold uppercase tracking-wider">Ley 21.719 · Chile</p>
+              <p className="font-bold text-sm tracking-tight text-slate-800">
+                {isCyber ? "SIGE-CYBER" : "SIGE-DP"}
+              </p>
+              <p className={`text-[10px] font-bold uppercase tracking-wider ${isCyber ? "text-indigo-600" : "text-teal-700"}`}>
+                {isCyber ? "Ley 21.663 · Ciberseguridad" : "Ley 21.719 · Datos Personales"}
+              </p>
             </div>
           </div>
+
+          {/* Unified Suite Switcher Pill */}
+          <div className="mb-4 p-1 bg-slate-100 rounded-lg border border-slate-200 grid grid-cols-2 text-center text-xs font-bold">
+            <button
+              type="button"
+              onClick={() => handleSwitchSuite("data_protection")}
+              className={`py-1.5 px-2 rounded-md transition-all ${!isCyber ? "bg-white text-teal-800 shadow-2xs" : "text-slate-500 hover:text-slate-800"}`}
+            >
+              Datos (L21.719)
+            </button>
+            <button
+              type="button"
+              onClick={() => handleSwitchSuite("cybersecurity")}
+              className={`py-1.5 px-2 rounded-md transition-all ${isCyber ? "bg-white text-indigo-700 shadow-2xs" : "text-slate-500 hover:text-slate-800"}`}
+            >
+              Ciber (L21.663)
+            </button>
+          </div>
           
+          {/* Navigation Links */}
           <nav className="space-y-1">
-            {modules.map((item) => (
+            {currentModules.map((item) => (
               <button
-                className={classNames("nav-item text-xs font-semibold w-full flex items-center justify-between", active === item.id && "nav-item-active")}
+                className={classNames(
+                  "nav-item text-xs font-semibold w-full flex items-center justify-between",
+                  active === item.id && (isCyber ? "bg-indigo-50 text-indigo-700 border-indigo-200" : "nav-item-active")
+                )}
                 key={item.id}
                 onClick={() => handleNavigate(item.id)}
                 type="button"
@@ -289,24 +480,49 @@ export function Shell({ session, onLogout }) {
           </nav>
         </div>
 
+        {/* Footer info */}
         <div className="border-t border-slate-100 pt-3 px-2 text-[10px] text-slate-400 font-medium">
-          <p>Servicio de Protección de Datos</p>
-          <p className="text-teal-700 font-bold">Plazo Legal: 01-12-2026</p>
+          <p>{isCyber ? "Agencia Nacional de Ciberseguridad (ANCI)" : "Servicio de Protección de Datos"}</p>
+          <p className={isCyber ? "text-indigo-600 font-bold" : "text-teal-700 font-bold"}>
+            {isCyber ? "Marco Regulatorio OIV / PSE" : "Plazo Legal: 01-12-2026"}
+          </p>
         </div>
       </aside>
 
       {/* Main Content Area */}
       <section className="min-w-0 flex-1 flex flex-col">
         <header className="flex items-center justify-between border-b border-line bg-white px-6 py-4 lg:px-8 shadow-2xs">
-          <div>
-            <p className="text-[11px] text-slate-400 font-bold uppercase tracking-wider">Sistema de Cumplimiento Ley 21.719</p>
-            <h1 className="text-lg font-bold text-slate-800">{activeModule?.label}</h1>
+          <div className="flex items-center gap-4">
+            <div>
+              <p className={`text-[11px] font-bold uppercase tracking-wider ${isCyber ? "text-indigo-600" : "text-teal-700"}`}>
+                {isCyber ? "Suite de Ciberseguridad · Ley N° 21.663 (ANCI)" : "Suite de Datos Personales · Ley N° 21.719"}
+              </p>
+              <h1 className="text-lg font-bold text-slate-800">{activeModule?.label}</h1>
+            </div>
+
+            {/* Header Suite Quick Selector */}
+            <div className="hidden md:flex items-center gap-1 bg-slate-100 p-1 rounded-lg border border-slate-200 text-xs font-bold ml-4">
+              <button
+                type="button"
+                onClick={() => handleSwitchSuite("data_protection")}
+                className={`px-3 py-1 rounded transition-all ${!isCyber ? "bg-white text-teal-800 shadow-2xs" : "text-slate-500 hover:text-slate-800"}`}
+              >
+                Protección de Datos
+              </button>
+              <button
+                type="button"
+                onClick={() => handleSwitchSuite("cybersecurity")}
+                className={`px-3 py-1 rounded transition-all ${isCyber ? "bg-white text-indigo-700 shadow-2xs" : "text-slate-500 hover:text-slate-800"}`}
+              >
+                Ciberseguridad (ANCI)
+              </button>
+            </div>
           </div>
           
           <div className="flex items-center gap-4">
             <div className="hidden text-right sm:block">
               <p className="text-sm font-bold text-slate-800">{session.user.full_name}</p>
-              <p className="text-[10px] uppercase font-bold text-teal-700 tracking-wider">
+              <p className={`text-[10px] uppercase font-bold tracking-wider ${isCyber ? "text-indigo-600" : "text-teal-700"}`}>
                 {session.user.role} {session.user.cargo ? `· ${session.user.cargo}` : ""}
               </p>
             </div>
@@ -317,9 +533,23 @@ export function Shell({ session, onLogout }) {
         </header>
 
         {/* Mobile selector */}
-        <div className="border-b border-line bg-white px-5 py-3 lg:hidden">
+        <div className="border-b border-line bg-white px-5 py-3 lg:hidden flex flex-col gap-2">
+          <div className="grid grid-cols-2 text-center text-xs font-bold bg-slate-100 p-1 rounded">
+            <button
+              onClick={() => handleSwitchSuite("data_protection")}
+              className={`py-1 rounded ${!isCyber ? "bg-white text-teal-800 font-bold" : "text-slate-500"}`}
+            >
+              Datos
+            </button>
+            <button
+              onClick={() => handleSwitchSuite("cybersecurity")}
+              className={`py-1 rounded ${isCyber ? "bg-white text-indigo-700 font-bold" : "text-slate-500"}`}
+            >
+              Ciber
+            </button>
+          </div>
           <select className="field text-sm" value={active} onChange={(event) => handleNavigate(event.target.value)}>
-            {modules.map((item) => (
+            {currentModules.map((item) => (
               <option key={item.id} value={item.id}>
                 {item.label}
               </option>

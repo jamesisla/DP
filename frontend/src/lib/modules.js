@@ -9,12 +9,35 @@ import {
   UserCheck,
   ShieldAlert,
   ShieldCheck,
-  Database
+  Database,
+  Server,
+  Activity,
+  Layers,
+  FileCode,
+  Radio,
+  Sliders
 } from "lucide-react";
 
-export const modules = [
+export const suites = [
+  {
+    id: "data_protection",
+    name: "Protección de Datos",
+    law: "Ley 21.719",
+    color: "teal",
+    shortName: "Datos Personales"
+  },
+  {
+    id: "cybersecurity",
+    name: "Ciberseguridad & ANCI",
+    law: "Ley 21.663",
+    color: "indigo",
+    shortName: "Ciberseguridad"
+  }
+];
+
+export const dataProtectionModules = [
   { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { id: "project", label: "Proyecto", icon: Gauge },
+  { id: "project", label: "Proyecto (6 Fases)", icon: Gauge },
   { id: "matrix", label: "Matriz (Wizard)", icon: ClipboardList },
   { id: "risks", label: "Riesgos y EIPD", icon: AlertTriangle },
   { id: "documents", label: "Documentos", icon: FileText },
@@ -25,3 +48,16 @@ export const modules = [
   { id: "audit", label: "Auditoría & ZIP", icon: ShieldCheck },
   { id: "oracle", label: "Cumplimiento Técnico BD", icon: Database },
 ];
+
+export const cybersecurityModules = [
+  { id: "cyber_dashboard", label: "Dashboard ANCI", icon: LayoutDashboard },
+  { id: "cyber_phases", label: "Ruta Metodológica (6 Fases)", icon: Gauge },
+  { id: "cyber_assets", label: "Activos Críticos (RSIC / OIV)", icon: Server },
+  { id: "cyber_maturity", label: "Madurez NIST / ANCI", icon: Activity },
+  { id: "cyber_incidents", label: "Incidentes ANCI (3h / 72h)", icon: Radio, badgeKey: "urgent_3h" },
+  { id: "cyber_policies", label: "Políticas & Planes PRI/BCP", icon: FileCode },
+  { id: "cyber_audit", label: "Expediente ANCI (ZIP)", icon: ShieldCheck },
+];
+
+// Default export for backward compatibility
+export const modules = dataProtectionModules;

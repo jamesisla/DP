@@ -408,3 +408,188 @@ class TicketCreate(BaseModel):
     subject: str
     category: str
     status: str = "Nuevo"
+
+
+# ==============================================================================
+# SCHEMAS DE CIBERSEGURIDAD (LEY 21.663 / ANCI)
+# ==============================================================================
+
+class CyberTareaRead(BaseModel):
+    id: int
+    nombre: str
+    descripcion: str
+    fase_id: int
+    area_responsable_id: int | None = None
+    area_responsable: AreaRead | None = None
+    usuario_asignado_id: int | None = None
+    usuario_asignado: UserRead | None = None
+    fecha_inicio: date
+    fecha_fin: date
+    estado: str
+    resuelto_externamente: bool = False
+    estandar_asociado: str
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class CyberTareaCreate(BaseModel):
+    nombre: str
+    descripcion: str = ""
+    fase_id: int
+    area_responsable_id: int | None = None
+    usuario_asignado_id: int | None = None
+    fecha_inicio: date
+    fecha_fin: date
+    estado: str = "Pendiente"
+    resuelto_externamente: bool = False
+    estandar_asociado: str = "ANCI - Requisitos Mínimos"
+
+
+class CyberFaseRead(BaseModel):
+    id: int
+    nombre: str
+    orden: int
+    descripcion: str
+    fecha_inicio_plan: date
+    fecha_fin_plan: date
+    ponderacion: int
+    activo: bool
+    resuelto_externamente: bool
+    nota_resolucion_externa: str
+    proyecto_id: int
+    tareas: list[CyberTareaRead] = []
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class CyberProjectRead(BaseModel):
+    id: int
+    name: str
+    stage: str
+    progress: int
+    ciso_owner: str
+    clasificacion_institucional: str
+    resumen_ejecutivo: str
+    fecha_inicio: date
+    fecha_fin: date
+    estado: str
+    fases: list[CyberFaseRead] = []
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class CyberAssetRead(BaseModel):
+    id: int
+    codigo_activo: str
+    nombre: str
+    tipo: str
+    criticidad: str
+    servicio_esencial: str
+    ubicacion_o_ip: str
+    area_responsable_id: int | None = None
+    area_responsable: AreaRead | None = None
+    cifrado_activo: bool
+    mfa_activo: bool
+    respaldo_inmutable: bool
+    estado_cumplimiento: str
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class CyberAssetCreate(BaseModel):
+    codigo_activo: str | None = None
+    nombre: str
+    tipo: str = "Servidor Central"
+    criticidad: str = "Alto"
+    servicio_esencial: str = ""
+    ubicacion_o_ip: str = ""
+    area_responsable_id: int | None = None
+    cifrado_activo: bool = True
+    mfa_activo: bool = True
+    respaldo_inmutable: bool = True
+    estado_cumplimiento: str = "Conforme"
+
+
+class CyberIncidentANCIRead(BaseModel):
+    id: int
+    codigo_incidente: str
+    fecha_deteccion: datetime
+    fecha_limite_alerta_3h: datetime
+    fecha_limite_informe_72h: datetime
+    tipo_ataque: str
+    severidad: str
+    afecta_servicio_esencial: bool
+    descripcion: str
+    sistemas_comprometidos: str
+    medidas_contencion_aplicadas: str
+    alerta_3h_enviada_anci: bool
+    fecha_alerta_3h_anci: datetime | None = None
+    informe_72h_enviado_anci: bool
+    fecha_informe_72h_anci: datetime | None = None
+    estado: str
+    reportado_por_id: int | None = None
+    reportado_por: UserRead | None = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class CyberIncidentANCICreate(BaseModel):
+    tipo_ataque: str
+    severidad: str = "Alta"
+    afecta_servicio_esencial: bool = True
+    descripcion: str
+    sistemas_comprometidos: str = ""
+    medidas_contencion_aplicadas: str = ""
+
+
+class CyberIncidentANCIUpdate(BaseModel):
+    estado: str
+    medidas_contencion_aplicadas: str | None = None
+    alerta_3h_enviada_anci: bool = False
+    informe_72h_enviado_anci: bool = False
+
+
+class CyberMaturityAssessmentRead(BaseModel):
+    id: int
+    titulo: str
+    fecha_evaluacion: date
+    porcentaje_identificar: int
+    porcentaje_proteger: int
+    porcentaje_detectar: int
+    porcentaje_responder: int
+    porcentaje_recuperar: int
+    madurez_global: int
+    conclusiones_ciso: str
+    estado: str
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class CyberMaturityAssessmentCreate(BaseModel):
+    titulo: str
+    porcentaje_identificar: int = 60
+    porcentaje_proteger: int = 50
+    porcentaje_detectar: int = 45
+    porcentaje_responder: int = 40
+    porcentaje_recuperar: int = 55
+    conclusiones_ciso: str = ""
+
+
+class CyberPolicyRead(BaseModel):
+    id: int
+    tipo: str
+    titulo: str
+    contenido: str
+    version: str
+    estado: str
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class CyberPolicyCreate(BaseModel):
+    tipo: str
+    titulo: str
+    contenido: str
+    version: str = "1.0"
+    estado: str = "borrador"
+

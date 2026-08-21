@@ -8,6 +8,13 @@ from app.models.domain import (
     CaseTicket,
     Comentario,
     Consent,
+    CyberAsset,
+    CyberFase,
+    CyberIncidentANCI,
+    CyberMaturityAssessment,
+    CyberPolicy,
+    CyberProject,
+    CyberTarea,
     Documento,
     Fase,
     Finding,
@@ -488,4 +495,267 @@ Este documento entrará en vigor tras la firma del Jefe de Servicio.
             CaseTicket(subject="Revisión contrato proveedor", category="Encargados", status="En revisión"),
         ])
 
+    # ==============================================================================
+    # 14. SEED CIBERSEGURIDAD E INFRAESTRUCTURA CRÍTICA (LEY 21.663 / ANCI)
+    # ==============================================================================
+    cyber_project = db.query(CyberProject).first()
+    if not cyber_project:
+        cyber_project = CyberProject(
+            name="Plan de Adecuación Ley 21.663 Marco de Ciberseguridad",
+            stage="Gobernanza",
+            progress=25,
+            ciso_owner="CISO / Responsable Ciberseguridad",
+            clasificacion_institucional="Prestador de Servicios Esenciales (PSE)",
+            resumen_ejecutivo="Implementación del marco técnico y organizativo exigido por la Agencia Nacional de Ciberseguridad (ANCI) para la protección de Redes y Sistemas Informáticos Críticos (RSIC).",
+            fecha_inicio=date(2026, 1, 1),
+            fecha_fin=date(2027, 1, 1),
+            estado="Activo"
+        )
+        db.add(cyber_project)
+        db.flush()
+
+        # 6 Fases Metodológicas de Ciberseguridad
+        cyber_fases_data = [
+            {
+                "orden": 1,
+                "nombre": "Fase 1: Gobernanza y Designación de Responsables (Art. 7 y 8)",
+                "descripcion": "Designación formal del Responsable de Ciberseguridad (CISO) ante la ANCI, constitución del Comité Institucional y definición del marco de gobierno.",
+                "ponderacion": 15,
+                "inicio": date(2026, 1, 1),
+                "fin": date(2026, 2, 28),
+                "tareas": [
+                    ("Designación formal del Responsable de Seguridad / CISO ante la ANCI", "Emitir resolución o decreto de nombramiento y registrar credenciales en portal ANCI.", "Completada"),
+                    ("Constitución del Comité de Ciberseguridad y Gestión de Crisis", "Acta formal de conformación con directores de TI, Legal y Operaciones.", "Completada"),
+                    ("Definición de Alcance y Clasificación Institucional (OIV / PSE)", "Determinar si el servicio califica como Operador de Importancia Vital o Prestador de Servicios Esenciales.", "En progreso")
+                ]
+            },
+            {
+                "orden": 2,
+                "nombre": "Fase 2: Inventario de Redes y Sistemas Críticos RSIC (Art. 4 y 5)",
+                "descripcion": "Catálogo exhaustivo de activos de información, servidores, bases de datos, redes perimetrales y dependencias de proveedores externos.",
+                "ponderacion": 20,
+                "inicio": date(2026, 3, 1),
+                "fin": date(2026, 4, 30),
+                "tareas": [
+                    ("Levantamiento del Catálogo de Redes y Sistemas Críticos (RSIC)", "Registrar servidores, bases de datos, APIs y portales de atención ciudadana.", "En progreso"),
+                    ("Mapeo de Interconexiones y Topología Perimetral", "Diagramar flujos de red, túneles VPN, DMZ y accesos remotos de terceros.", "Pendiente"),
+                    ("Evaluación de Proveedores TI Críticos y Cadena de Suministro", "Exigir cláusulas de seguridad y notificación de incidentes en 24h a proveedores.", "Pendiente")
+                ]
+            },
+            {
+                "orden": 3,
+                "nombre": "Fase 3: Gestión de Riesgos y Diagnóstico de Madurez (Art. 9)",
+                "descripcion": "Evaluación de madurez bajo estándares ANCI / NIST CSF (Identificar, Proteger, Detectar, Responder, Recuperar) y análisis de vulnerabilidades.",
+                "ponderacion": 20,
+                "inicio": date(2026, 5, 1),
+                "fin": date(2026, 6, 30),
+                "tareas": [
+                    ("Evaluación de Madurez NIST CSF / Marco Nacional ANCI", "Autoevaluación de los 5 dominios de seguridad y cálculo del índice de madurez.", "Pendiente"),
+                    ("Escaneo Periódico de Vulnerabilidades y Análisis de Amenazas", "Detección de puertos expuestos, software obsoleto y configuraciones débiles.", "Pendiente"),
+                    ("Matriz de Riesgos Tecnológicos y Plan de Tratamiento", "Jerarquizar riesgos según probabilidad de ciberataque e impacto operacional.", "Pendiente")
+                ]
+            },
+            {
+                "orden": 4,
+                "nombre": "Fase 4: Políticas, Protocolos y Continuidad BCP/DRP (Art. 10)",
+                "descripcion": "Elaboración y aprobación formal de la Política de Seguridad de la Información, Plan de Respuesta a Incidentes (PRI) y Plan de Continuidad Operacional.",
+                "ponderacion": 20,
+                "inicio": date(2026, 7, 1),
+                "fin": date(2026, 8, 31),
+                "tareas": [
+                    ("Aprobación de Política General de Seguridad de la Información", "Documento normativo de uso de activos, contraseñas, teletrabajo y accesos.", "Pendiente"),
+                    ("Elaboración del Plan de Respuesta a Incidentes (PRI)", "Definición de roles de contención, protocolos de comunicación y cadena de mando.", "Pendiente"),
+                    ("Plan de Continuidad Operacional y Respaldo Inmutable (BCP/DRP)", "Garantizar copias de respaldo aisladas (air-gapped) ante ataques de ransomware.", "Pendiente")
+                ]
+            },
+            {
+                "orden": 5,
+                "nombre": "Fase 5: Notificación y Gestión de Incidentes ANCI (Art. 12 y 13)",
+                "descripcion": "Implementación del canal de Alerta Temprana de 3 horas e Informe Técnico de 72 horas ante incidentes que comprometan la continuidad.",
+                "ponderacion": 15,
+                "inicio": date(2026, 9, 1),
+                "fin": date(2026, 10, 31),
+                "tareas": [
+                    ("Activación del Flujo de Notificación Temprana (3 Horas)", "Procedimiento express para informar al CSIRT Nacional / ANCI ante ciberataques.", "Pendiente"),
+                    ("Protocolo de Preservación de Evidencia Forense Digital", "Reglas para congelar logs, memoria y discos sin alterar la cadena de custodia.", "Pendiente")
+                ]
+            },
+            {
+                "orden": 6,
+                "nombre": "Fase 6: Auditoría Técnica y Certificación de Controles (Art. 14)",
+                "descripcion": "Verificación de cumplimiento de controles mínimos: Autenticación Multifactor (MFA), Cifrado de datos en reposo/tránsito y pruebas de penetración.",
+                "ponderacion": 10,
+                "inicio": date(2026, 11, 1),
+                "fin": date(2026, 12, 31),
+                "tareas": [
+                    ("Auditoría de Cumplimiento de Controles Técnicos Mínimos", "Verificar 100% de cobertura en MFA para administradores y cifrado TLS 1.3.", "Pendiente"),
+                    ("Pruebas de Penetración (Pentesting) y Ejercicios de Simulación", "Simulacro anual de ransomware o phishing para probar tiempos de respuesta.", "Pendiente")
+                ]
+            }
+        ]
+
+        for fd in cyber_fases_data:
+            fase = CyberFase(
+                proyecto_id=cyber_project.id,
+                orden=fd["orden"],
+                nombre=fd["nombre"],
+                descripcion=fd["descripcion"],
+                ponderacion=fd["ponderacion"],
+                fecha_inicio_plan=fd["inicio"],
+                fecha_fin_plan=fd["fin"],
+                activo=True,
+                resuelto_externamente=False
+            )
+            db.add(fase)
+            db.flush()
+
+            for t_nom, t_desc, t_est in fd["tareas"]:
+                tarea = CyberTarea(
+                    fase_id=fase.id,
+                    nombre=t_nom,
+                    descripcion=t_desc,
+                    area_responsable_id=db_areas["Tecnología de la Información"].id,
+                    usuario_asignado_id=db_users["ti@protecciondatos.cl"].id,
+                    fecha_inicio=fd["inicio"],
+                    fecha_fin=fd["fin"],
+                    estado=t_est,
+                    estandar_asociado="ANCI - Requisitos Mínimos"
+                )
+                db.add(tarea)
+                db.flush()
+
+    # 15. Seed Activos Críticos RSIC
+    if not db.query(CyberAsset).first():
+        db.add_all([
+            CyberAsset(
+                codigo_activo="RSIC-0001",
+                nombre="Servidor Central de Trámites y Postulaciones",
+                tipo="Servidor Central",
+                criticidad="Crítico OIV",
+                servicio_esencial="Portal Ciudadano y Ventanilla Única",
+                ubicacion_o_ip="10.0.1.15 (OCI Virtual Cloud Network)",
+                area_responsable_id=db_areas["Tecnología de la Información"].id,
+                cifrado_activo=True,
+                mfa_activo=True,
+                respaldo_inmutable=True,
+                estado_cumplimiento="Conforme"
+            ),
+            CyberAsset(
+                codigo_activo="RSIC-0002",
+                nombre="Base de Datos Institucional PostgreSQL",
+                tipo="Base de Datos",
+                criticidad="Alto PSE",
+                servicio_esencial="Almacenamiento de Registros de Usuarios",
+                ubicacion_o_ip="10.0.2.20 (Subred Privada OCI)",
+                area_responsable_id=db_areas["Tecnología de la Información"].id,
+                cifrado_activo=True,
+                mfa_activo=True,
+                respaldo_inmutable=True,
+                estado_cumplimiento="Conforme"
+            ),
+            CyberAsset(
+                codigo_activo="RSIC-0003",
+                nombre="Firewall Perimetral y Concentrador VPN",
+                tipo="Red / Firewall",
+                criticidad="Crítico OIV",
+                servicio_esencial="Control de Accesos Perimetrales y DMZ",
+                ubicacion_o_ip="192.168.1.1",
+                area_responsable_id=db_areas["Tecnología de la Información"].id,
+                cifrado_activo=True,
+                mfa_activo=True,
+                respaldo_inmutable=False,
+                estado_cumplimiento="En Adecuación"
+            )
+        ])
+        db.flush()
+
+    # 16. Seed Incidente ANCI (3h)
+    if not db.query(CyberIncidentANCI).first():
+        now = datetime.now()
+        db.add(CyberIncidentANCI(
+            codigo_incidente="INC-ANCI-2026-0001",
+            fecha_deteccion=now,
+            fecha_limite_alerta_3h=now + timedelta(hours=3),
+            fecha_limite_informe_72h=now + timedelta(hours=72),
+            tipo_ataque="Intrusión no autorizada / Fuerza Bruta",
+            severidad="Alta",
+            afecta_servicio_esencial=True,
+            descripcion="Detección de múltiples intentos fallidos de autenticación SSH dirigidos al servidor de base de datos desde IPs externas bloqueadas.",
+            sistemas_comprometidos="Servidor Central de Postulaciones (RSIC-0001)",
+            medidas_contencion_aplicadas="Bloqueo a nivel de Security List en OCI, rotación de claves RSA y forzado de túnel VPN exclusivo.",
+            alerta_3h_enviada_anci=False,
+            informe_72h_enviado_anci=False,
+            estado="Alerta Inicial (3h)",
+            reportado_por_id=db_users["ti@protecciondatos.cl"].id
+        ))
+        db.flush()
+
+    # 17. Seed Madurez NIST / ANCI
+    if not db.query(CyberMaturityAssessment).first():
+        db.add(CyberMaturityAssessment(
+            titulo="Diagnóstico Inicial de Madurez Ciberseguridad 2026",
+            fecha_evaluacion=date.today(),
+            porcentaje_identificar=65,
+            porcentaje_proteger=60,
+            porcentaje_detectar=50,
+            porcentaje_responder=45,
+            porcentaje_recuperar=55,
+            madurez_global=55,
+            conclusiones_ciso="La institución cuenta con buen nivel en identificación y cifrado de activos. Se requiere fortalecer el monitoreo 24/7 (SIEM) y ejercitar el Plan de Respuesta a Incidentes (PRI) con la ANCI.",
+            estado="Vigente"
+        ))
+        db.flush()
+
+    # 18. Seed Políticas de Ciberseguridad
+    if not db.query(CyberPolicy).first():
+        db.add_all([
+            CyberPolicy(
+                tipo="politica_seguridad",
+                titulo="Política General de Seguridad de la Información (PGSI)",
+                version="1.0",
+                estado="revision",
+                contenido="""# Política General de Seguridad de la Información y Ciberseguridad
+**Marco Jurídico:** Ley N° 21.663 de Ciberseguridad de Chile
+**Ámbito de Aplicación:** Todos los funcionarios, colaboradores y proveedores del Servicio.
+
+## 1. Principios Rectores
+1. **Confidencialidad, Integridad y Disponibilidad** de la información institucional.
+2. **Defensa en Profundidad:** Aplicación de controles múltiples (Firewall, EDR, MFA, Cifrado).
+3. **Mínimo Privilegio:** Acceso concedido únicamente según el rol y funciones estrictas.
+
+## 2. Controles Técnicos Obligatorios
+- **Autenticación Multifactor (MFA):** Requisito obligatorio para todos los accesos administrativos y remotos.
+- **Cifrado de Datos:** Todos los datos en tránsito deben usar TLS 1.3 y los datos en reposo cifrado AES-256.
+- **Respaldos:** Copias de seguridad diarias con al menos una copia desconectada e inmutable (Anti-Ransomware).
+
+## 3. Notificación a la ANCI
+Todo incidente con impacto potencial en servicios esenciales debe ser comunicado al Responsable de Seguridad dentro de los primeros 60 minutos de detección.
+"""
+            ),
+            CyberPolicy(
+                tipo="plan_respuesta_pri",
+                titulo="Plan de Respuesta a Incidentes de Ciberseguridad (PRI)",
+                version="1.0",
+                estado="borrador",
+                contenido="""# Plan Institucional de Respuesta a Incidentes de Ciberseguridad (PRI)
+**Conforme a las directrices de la Agencia Nacional de Ciberseguridad (ANCI)**
+
+## 1. Equipo de Respuesta (CSIRT Institucional)
+- **Líder de Incidentes:** CISO / Responsable de Seguridad
+- **Comandante Técnico:** Jefe de Infraestructura TI
+- **Asesor Legal:** Responsable de Legal y Cumplimiento
+- **Comunicaciones:** Encargado de Prensa y Comunicaciones Institucionales
+
+## 2. Fases de Atención
+1. **Detección y Triaje:** Clasificación de severidad (Crítica, Alta, Media, Baja).
+2. **Alerta Temprana ANCI (0 a 3 Horas):** Notificación oficial a la plataforma nacional de la ANCI.
+3. **Contención Inmediata:** Aislamiento de segmentos de red, revocación de credenciales.
+4. **Erradicación y Recuperación:** Restauración desde copias limpias y parches.
+5. **Informe Técnico (72 Horas):** Entrega de informe final de causa raíz a la ANCI.
+"""
+            )
+        ])
+        db.flush()
+
     db.commit()
+
