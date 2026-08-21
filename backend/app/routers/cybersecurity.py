@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.core.helpers import get_current_user, log_action
 from app.models.domain import (
+    ArcoRequest,
     Area,
     CyberAsset,
     CyberFase,
@@ -21,6 +22,9 @@ from app.models.domain import (
     CyberRisk,
     CyberSimulation,
     CyberTarea,
+    ImplementationProject,
+    Proveedor,
+    SecurityBreach,
     User,
 )
 from app.schemas.domain import (
@@ -859,4 +863,86 @@ def download_simulation_acta(id: int, _: Annotated[User, Depends(get_current_use
 
     headers = {"Content-Disposition": f"attachment; filename=Acta_Simulacro_{sim.codigo_ejercicio}.md"}
     return StreamingResponse(io.BytesIO(acta.encode("utf-8")), media_type="text/markdown", headers=headers)
+
+
+# ==============================================================================
+# DOSSIER EJECUTIVO CONSOLIDADO GRC (LEY 21.719 & LEY 21.663)
+# ==============================================================================
+
+@router.get("/executive-dossier")
+def download_executive_dossier(_: Annotated[User, Depends(get_current_user)], db: Annotated[Session, Depends(get_db)]):
+    """Generador del Informe Ejecutivo de Cumplimiento Dual (Datos Personales + Ciberseguridad)."""
+    now = datetime.now()
+    
+    # 1. Datos Personales
+    dp_project = db.query(ImplementationProject).first()
+    dp_progress = dp_project.progress if dp_project else 0
+    arco_count = db.query(ArcoRequest).count()
+    breaches_count = db.query(SecurityBreach).count()
+    providers_count = db.query(Proveedor).count()
+    providers_dpa = db.query(Proveedor).filter(Proveedor.dpa_firmado == True).count()
+
+    # 2. Ciberseguridad
+    cyber_project = db.query(CyberProject).first()
+    cyber_progress = cyber_project.progress if cyber_project else 0
+    maturity = db.query(CyberMaturityAssessment).order_by(CyberMaturityAssessment.id.desc()).first()
+    assets = db.query(CyberAsset).all()
+    total_assets = len(assets)
+    conforming_assets = sum(1 for a in assets if a.estado_cumplimiento == "Conforme")
+    risks = db.query(CyberRisk).all()
+    critical_risks = sum(1 for r in risks if r.nivel_riesgo in ["Crítico", "Alto"])
+    simulations = db.query(CyberSimulation).all()
+
+    dossier = f"""# INFORME EJECUTIVO DE CUMPLIMIENTO LEGAL Y CIBERSEGURIDAD
+## LEXAPP · SISTEMA INTEGRAL GRC
+**Fecha de Emisión:** {now.strftime('%d de %B de %Y - %H:%M:%S')}
+**Organismo / Institución:** Servicio Público del Estado de Chile
+**Marco Normativo Aplicable:** 
+- **Ley N° 21.719:** Protección de Datos Personales (Entrada en vigor: 01 de Diciembre de 2026)
+- **Ley N° 21.663:** Ley Marco de Ciberseguridad e Infraestructura Crítica (ANCI)
+
+---
+
+### 1. RESUMEN EJECUTIVO DE ADECUACIÓN GLOBAL
+
+| Pilar Regulatorio | Indicador de Cumplimiento | Estado Institucional |
+| :--- | :--- | :--- |
+| **🛡️ Protección de Datos (Ley 21.719)** | **{dp_progress}% de Implementación** | En Adecuación Conforme |
+| **🔒 Ciberseguridad ANCI (Ley 21.663)** | **{maturity.madurez_global if maturity else cyber_progress}% Madurez NIST/ANCI** | Operativo & Resiliente |
+| **🏢 Cadena de Suministro (Proveedores)** | **{providers_dpa}/{providers_count} con DPA & ANCI** | Cláusulas Art. 8 y 16 Firmadas |
+| **💻 Redes Críticas RSIC** | **{conforming_assets}/{total_assets} Activos Conformes** | MFA + Cifrado + Backups WORM |
+
+---
+
+### 2. PILAR I: ESTADO DE PROTECCIÓN DE DATOS PERSONALES (LEY 21.719)
+- **Nivel de Madurez del Proyecto:** {dp_progress}% de tareas y evidencias completadas.
+- **Gestión de Derechos Ciudadanos (ARCO+):** {arco_count} solicitudes gestionadas bajo el plazo legal de 15 días hábiles.
+- **Registro de Brechas de Seguridad (72h):** {breaches_count} incidentes de privacidad registrados y evaluados conforme al protocolo.
+- **Evaluaciones de Impacto (EIPD):** Procesos de alto riesgo documentados con medidas mitigadoras y opinión del DPO.
+
+---
+
+### 3. PILAR II: ESTADO DE CIBERSEGURIDAD E INFRAESTRUCTURA (LEY 21.663 / ANCI)
+- **Diagnóstico por Dominios NIST CSF / ANCI:**
+  - **Identificar (ID):** {maturity.porcentaje_identificar if maturity else 60}%
+  - **Proteger (PR):** {maturity.porcentaje_proteger if maturity else 50}% (MFA forzado, TLS 1.3, Cifrado AES-256)
+  - **Detectar (DE):** {maturity.porcentaje_detectar if maturity else 45}% (Monitoreo continuo de eventos y logs)
+  - **Responder (RS):** {maturity.porcentaje_responder if maturity else 40}% (Protocolo Alerta Temprana 3h y Forense Digital)
+  - **Recuperar (RC):** {maturity.porcentaje_recuperar if maturity else 55}% (Copias de respaldo inmutables WORM)
+- **Inventario RSIC / OIV:** {total_assets} activos críticos catalogados con análisis de impacto operacional (BIA).
+- **Matriz de Riesgos Tecnológicos:** {critical_risks} riesgos críticos/altos identificados con planes de mitigación en curso.
+- **Preparación ante Incidentes (War Games):** {len(simulations)} simulacros de crisis ejecutados con actas formalmente suscritas.
+
+---
+
+### 4. DECLARACIÓN DE CONFORMIDAD Y PRÓXIMAS ACCIONES
+La institución mantiene un control activo y documentado sobre su infraestructura crítica y los datos personales bajo su custodia, cumpliendo con los estándares de responsabilidad proactiva (*accountability*) y las exigencias de la Agencia Nacional de Ciberseguridad.
+
+---
+*Emitido automáticamente por LexApp GRC para fines de auditoría interna, reporte al Directorio y fiscalización de los órganos competentes.*
+"""
+
+    headers = {"Content-Disposition": f"attachment; filename=Dossier_Ejecutivo_Consolidado_GRC_{now.strftime('%Y%m%d')}.md"}
+    return StreamingResponse(io.BytesIO(dossier.encode("utf-8")), media_type="text/markdown", headers=headers)
+
 

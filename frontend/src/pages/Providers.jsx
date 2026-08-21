@@ -1,9 +1,24 @@
 import React, { useState } from "react";
-import { BookOpenCheck, Plus, Trash2, Download, AlertTriangle, Calendar, Building } from "lucide-react";
-import { Panel } from "../components/Panel";
-import { api, API_URL } from "../lib/api";
+import { 
+  BookOpenCheck, 
+  Plus, 
+  Trash2, 
+  Download, 
+  AlertTriangle, 
+  Calendar, 
+  Building,
+  ShieldCheck,
+  ShieldAlert,
+  Globe,
+  Clock,
+  FileCheck2,
+  Lock
+} from "lucide-react";
+import { API_URL, api } from "../lib/api";
 
-export function Providers({ providers, areas, token, onReload }) {
+const CRITICIDADES = ["Crítico OIV", "Alto PSE", "Medio", "Bajo"];
+
+export function Providers({ providers = [], areas = [], token, onReload }) {
   const [modalOpen, setModalOpen] = useState(false);
   const [nombre, setNombre] = useState("");
   const [rut, setRut] = useState("");
@@ -11,6 +26,12 @@ export function Providers({ providers, areas, token, onReload }) {
   const [fechaInicio, setFechaInicio] = useState("");
   const [fechaFin, setFechaFin] = useState("");
   const [areaId, setAreaId] = useState(areas[0] ? String(areas[0].id) : "");
+  const [criticidadCiber, setCriticidadCiber] = useState("Medio");
+  const [paisAlojamiento, setPaisAlojamiento] = useState("Chile");
+  const [slaNotificacion, setSlaNotificacion] = useState(24);
+  const [dpaFirmado, setDpaFirmado] = useState(true);
+  const [clausulaAnci, setClausulaAnci] = useState(true);
+  const [evaluacionSeguridad, setEvaluacionSeguridad] = useState("Conforme ISO 27001 / SOC 2");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
 
@@ -21,6 +42,12 @@ export function Providers({ providers, areas, token, onReload }) {
     setFechaInicio("");
     setFechaFin("");
     setAreaId(areas[0] ? String(areas[0].id) : "");
+    setCriticidadCiber("Medio");
+    setPaisAlojamiento("Chile");
+    setSlaNotificacion(24);
+    setDpaFirmado(true);
+    setClausulaAnci(true);
+    setEvaluacionSeguridad("Conforme ISO 27001 / SOC 2");
     setError("");
     setModalOpen(true);
   }
@@ -36,7 +63,13 @@ export function Providers({ providers, areas, token, onReload }) {
         servicio,
         fecha_contrato_inicio: fechaInicio,
         fecha_contrato_fin: fechaFin,
-        area_id: areaId ? parseInt(areaId) : null
+        area_id: areaId ? parseInt(areaId) : null,
+        criticidad_ciber: criticidadCiber,
+        pais_alojamiento: paisAlojamiento,
+        sla_notificacion_horas: parseInt(slaNotificacion),
+        dpa_firmado: dpaFirmado,
+        clausula_anci_firmada: clausulaAnci,
+        evaluacion_seguridad: evaluacionSeguridad
       };
 
       await api("/proveedores", token, {
@@ -63,14 +96,11 @@ export function Providers({ providers, areas, token, onReload }) {
     }
   }
 
-  // Calculate if contract expires in less than 6 months (180 days)
   function checkExpirationAlert(endDateStr) {
     const end = new Date(endDateStr);
     const today = new Date();
     const diffTime = end.getTime() - today.getTime();
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    
-    // Expires in less than 180 days
     return diffDays <= 180;
   }
 
@@ -87,16 +117,21 @@ export function Providers({ providers, areas, token, onReload }) {
       {/* Page Header */}
       <div className="rounded-xl border border-line bg-white p-5 shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <span className="text-xs uppercase font-bold text-teal-600 tracking-wider">Gestión de Encargados Externos</span>
-          <h2 className="text-xl font-bold text-slate-800 mt-1">Registro de Terceros y Proveedores</h2>
-          <p className="text-xs text-slate-400 mt-0.5">Controla y audita a empresas y contratistas externos que traten datos personales institucionales.</p>
+          <div className="flex items-center gap-2">
+            <span className="text-xs uppercase font-bold text-teal-600 tracking-wider">Gestión de Encargados Externos</span>
+            <span className="text-[10px] px-2 py-0.5 rounded bg-indigo-50 text-indigo-700 font-bold border border-indigo-200">
+              Supply Chain Security & DPA
+            </span>
+          </div>
+          <h2 className="text-xl font-bold text-slate-800 mt-1">Registro de Terceros, Proveedores & Cadena de Suministro</h2>
+          <p className="text-xs text-slate-400 mt-0.5">Control y debida diligencia de encargados de tratamiento (Art. 16 Ley 21.719) y cláusulas de ciberseguridad ANCI (Art. 8 Ley 21.663).</p>
         </div>
 
         <button
           onClick={openCreate}
-          className="flex items-center gap-1.5 rounded bg-brand px-4 py-2 text-sm font-semibold text-white hover:bg-opacity-95 shadow-sm"
+          className="flex items-center gap-1.5 rounded bg-teal-700 px-4 py-2 text-xs font-bold text-white hover:bg-teal-800 shadow-sm"
         >
-          <Plus size={16} />
+          <Plus size={15} />
           Registrar Proveedor
         </button>
       </div>
@@ -118,29 +153,47 @@ export function Providers({ providers, areas, token, onReload }) {
                   <div className="flex justify-between items-start gap-4">
                     <div>
                       <h4 className="font-bold text-slate-800 text-sm">{prov.nombre}</h4>
-                      <p className="text-[10px] text-slate-400 font-semibold mt-0.5">RUT: {prov.rut}</p>
+                      <p className="text-[11px] text-slate-400 font-semibold mt-0.5">RUT: {prov.rut}</p>
                     </div>
                     
-                    {isAlertActive && (
-                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
-                        <AlertTriangle size={10} />
-                        Renovación Cláusulas (Vence en {daysLeft} días)
-                      </span>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-slate-100 border border-slate-200 text-slate-700">
+                      Criticidad: {prov.criticidad_ciber || "Medio"}
+                    </span>
+                  </div>
+
+                  <div className="text-xs text-slate-600 space-y-1.5 font-medium">
+                    <p><span className="font-bold text-slate-700">Servicio prestado:</span> {prov.servicio}</p>
+                    
+                    <div className="flex items-center gap-3 text-slate-500 text-[11px] flex-wrap">
+                      <div className="flex items-center gap-1">
+                        <Calendar size={12} className="text-slate-400" />
+                        <span>Vigencia: {new Date(prov.fecha_contrato_inicio).toLocaleDateString()} al {new Date(prov.fecha_contrato_fin).toLocaleDateString()}</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <Globe size={12} className="text-indigo-600" />
+                        <span>Alojamiento: {prov.pais_alojamiento || "Chile"}</span>
+                      </div>
+                    </div>
+
+                    {areaObj && (
+                      <div className="flex items-center gap-1.5 text-[11px] text-slate-500">
+                        <Building size={12} className="text-slate-400" />
+                        <span>División Responsable: {areaObj.nombre}</span>
+                      </div>
                     )}
                   </div>
 
-                  <div className="text-xs text-slate-500 space-y-1.5 font-medium">
-                    <p><span className="font-bold text-slate-700">Servicio prestado:</span> {prov.servicio}</p>
-                    <div className="flex items-center gap-1.5">
-                      <Calendar size={13} className="text-slate-400" />
-                      <span>Contrato: {new Date(prov.fecha_contrato_inicio).toLocaleDateString()} al {new Date(prov.fecha_contrato_fin).toLocaleDateString()}</span>
+                  {/* Dual Compliance Badges (DPA + ANCI) */}
+                  <div className="p-2.5 bg-slate-50 border border-slate-200 rounded-lg space-y-1.5 text-xs">
+                    <span className="text-[10px] font-bold text-slate-500 uppercase block">Cláusulas Regulatorias Suscritas:</span>
+                    <div className="flex flex-wrap gap-2 text-[11px]">
+                      <span className={`inline-flex items-center gap-1 font-bold ${prov.dpa_firmado !== false ? "text-teal-700" : "text-slate-400"}`}>
+                        <ShieldCheck size={13} /> DPA Ley 21.719 {prov.dpa_firmado !== false ? "[✓]" : "[✗]"}
+                      </span>
+                      <span className={`inline-flex items-center gap-1 font-bold ${prov.clausula_anci_firmada !== false ? "text-indigo-700" : "text-slate-400"}`}>
+                        <Clock size={13} /> Alerta ANCI &lt;{prov.sla_notificacion_horas || 24}h {prov.clausula_anci_firmada !== false ? "[✓]" : "[✗]"}
+                      </span>
                     </div>
-                    {areaObj && (
-                      <div className="flex items-center gap-1.5">
-                        <Building size={13} className="text-slate-400" />
-                        <span>División Vinculada: {areaObj.nombre}</span>
-                      </div>
-                    )}
                   </div>
                 </div>
 
@@ -148,18 +201,18 @@ export function Providers({ providers, areas, token, onReload }) {
                   <a
                     href={`${API_URL.replace("/api", "")}/api/proveedores/${prov.id}/annex?token=${token}`}
                     download
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 border border-slate-200 rounded text-xs font-semibold text-slate-600 bg-white hover:bg-slate-50 hover:text-slate-800 shadow-sm"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 border border-teal-200 bg-teal-50 rounded text-xs font-bold text-teal-800 hover:bg-teal-100 shadow-2xs transition-colors"
                   >
                     <Download size={13} />
-                    Generar Anexo Legal (Bidding)
+                    Contrato DPA + ANCI (MD)
                   </a>
 
                   <button
                     onClick={() => handleDelete(prov.id)}
-                    className="p-1.5 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded"
+                    className="p-1.5 text-slate-400 hover:text-rose-600 rounded"
                     title="Eliminar Proveedor"
                   >
-                    <Trash2 size={15} />
+                    <Trash2 size={14} />
                   </button>
                 </div>
 
@@ -171,15 +224,16 @@ export function Providers({ providers, areas, token, onReload }) {
         <div className="rounded-xl border border-dashed border-slate-350 p-12 text-center text-slate-400 bg-white shadow-sm">
           <BookOpenCheck size={40} className="mx-auto mb-2 opacity-45" />
           <p className="font-semibold text-sm">No hay proveedores registrados</p>
-          <p className="text-xs mt-1">Haz clic en "Registrar Proveedor" para incorporar contratos externos.</p>
+          <p className="text-xs mt-1">Haz clic en "Registrar Proveedor" para incorporar contratos externos con cláusulas DPA y ANCI.</p>
         </div>
       )}
 
       {/* Create Modal */}
       {modalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40 p-4">
-          <div className="w-full max-w-md rounded-lg border border-line bg-white p-6 shadow-soft">
-            <h3 className="text-lg font-bold mb-4 text-slate-800">Registrar Proveedor Externo</h3>
+          <div className="w-full max-w-lg rounded-xl border border-line bg-white p-6 shadow-soft max-h-[90vh] overflow-y-auto">
+            <h3 className="text-lg font-bold text-slate-800 mb-1">Registrar Proveedor & Cadena de Suministro</h3>
+            <p className="text-xs text-slate-400 mb-4">Incorporación de cláusulas Art. 16 (Ley 21.719) y Art. 8 (Ley 21.663).</p>
             
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
@@ -188,7 +242,7 @@ export function Providers({ providers, areas, token, onReload }) {
                   id="prov-name"
                   className="field mt-1 text-sm"
                   required
-                  placeholder="Ej. Servicios Informáticos SpA"
+                  placeholder="Ej. Cloud & Data Services Chile SpA"
                   value={nombre}
                   onChange={(e) => setNombre(e.target.value)}
                 />
@@ -199,7 +253,7 @@ export function Providers({ providers, areas, token, onReload }) {
                   <label className="field-label" htmlFor="prov-rut">RUT Proveedor</label>
                   <input
                     id="prov-rut"
-                    className="field mt-1 text-sm"
+                    className="field mt-1 text-xs"
                     required
                     placeholder="76.123.456-K"
                     value={rut}
@@ -207,10 +261,10 @@ export function Providers({ providers, areas, token, onReload }) {
                   />
                 </div>
                 <div>
-                  <label className="field-label" htmlFor="prov-area">Área Vinculada</label>
+                  <label className="field-label" htmlFor="prov-area">Área Institucional</label>
                   <select
                     id="prov-area"
-                    className="field mt-1 text-sm"
+                    className="field mt-1 text-xs"
                     value={areaId}
                     onChange={(e) => setAreaId(e.target.value)}
                   >
@@ -222,15 +276,41 @@ export function Providers({ providers, areas, token, onReload }) {
               </div>
 
               <div>
-                <label className="field-label" htmlFor="prov-serv">Servicio y Datos que Trata</label>
+                <label className="field-label" htmlFor="prov-serv">Servicio Prestado y Datos Tratados</label>
                 <input
                   id="prov-serv"
-                  className="field mt-1 text-sm"
+                  className="field mt-1 text-xs"
                   required
-                  placeholder="Ej. Soporte TI, Tratamiento de correos electrónicos"
+                  placeholder="Ej. Hosting Cloud, Soporte TI y gestión de base de datos"
                   value={servicio}
                   onChange={(e) => setServicio(e.target.value)}
                 />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="field-label" htmlFor="prov-pais">País de Servidores / Alojamiento</label>
+                  <input
+                    id="prov-pais"
+                    className="field mt-1 text-xs"
+                    placeholder="Ej. Chile / EE.UU."
+                    value={paisAlojamiento}
+                    onChange={(e) => setPaisAlojamiento(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <label className="field-label" htmlFor="prov-crit">Criticidad Ciberseguridad</label>
+                  <select
+                    id="prov-crit"
+                    className="field mt-1 text-xs"
+                    value={criticidadCiber}
+                    onChange={(e) => setCriticidadCiber(e.target.value)}
+                  >
+                    {CRITICIDADES.map(c => (
+                      <option key={c} value={c}>{c}</option>
+                    ))}
+                  </select>
+                </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
@@ -239,7 +319,7 @@ export function Providers({ providers, areas, token, onReload }) {
                   <input
                     id="prov-start"
                     type="date"
-                    className="field mt-1 text-sm"
+                    className="field mt-1 text-xs"
                     required
                     value={fechaInicio}
                     onChange={(e) => setFechaInicio(e.target.value)}
@@ -250,7 +330,7 @@ export function Providers({ providers, areas, token, onReload }) {
                   <input
                     id="prov-end"
                     type="date"
-                    className="field mt-1 text-sm"
+                    className="field mt-1 text-xs"
                     required
                     value={fechaFin}
                     onChange={(e) => setFechaFin(e.target.value)}
@@ -258,9 +338,34 @@ export function Providers({ providers, areas, token, onReload }) {
                 </div>
               </div>
 
+              {/* Dual Compliance Checkboxes */}
+              <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg space-y-2 text-xs">
+                <span className="font-bold text-slate-700 block">Cláusulas de Cumplimiento Mandatorias:</span>
+                
+                <label className="flex items-center gap-2 cursor-pointer font-semibold text-teal-800">
+                  <input
+                    type="checkbox"
+                    className="rounded border-slate-300 text-teal-600 focus:ring-teal-500 h-4 w-4"
+                    checked={dpaFirmado}
+                    onChange={(e) => setDpaFirmado(e.target.checked)}
+                  />
+                  <span>Contrato de Encargado de Tratamiento (DPA Ley 21.719)</span>
+                </label>
+
+                <label className="flex items-center gap-2 cursor-pointer font-semibold text-indigo-900">
+                  <input
+                    type="checkbox"
+                    className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 h-4 w-4"
+                    checked={clausulaAnci}
+                    onChange={(e) => setClausulaAnci(e.target.checked)}
+                  />
+                  <span>Obligación de Notificación de Incidentes en &lt;24h (Ley 21.663)</span>
+                </label>
+              </div>
+
               {error && <p className="text-xs text-red-600 bg-red-50 p-2 rounded">{error}</p>}
 
-              <div className="flex justify-end gap-3 pt-2">
+              <div className="flex justify-end gap-3 pt-2 border-t border-slate-100">
                 <button
                   type="button"
                   onClick={() => setModalOpen(false)}
@@ -271,9 +376,9 @@ export function Providers({ providers, areas, token, onReload }) {
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="rounded bg-brand px-4 py-2 text-sm font-semibold text-white hover:bg-opacity-95 shadow-sm"
+                  className="rounded bg-teal-700 px-4 py-2 text-sm font-semibold text-white hover:bg-teal-800 shadow-sm"
                 >
-                  {submitting ? "Registrando..." : "Registrar"}
+                  {submitting ? "Registrando..." : "Registrar Proveedor"}
                 </button>
               </div>
             </form>

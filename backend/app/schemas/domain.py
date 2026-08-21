@@ -207,6 +207,13 @@ class ProveedorRead(BaseModel):
     fecha_contrato_inicio: date
     fecha_contrato_fin: date
     area_id: int | None = None
+    area: AreaRead | None = None
+    criticidad_ciber: str = "Medio"
+    clausula_anci_firmada: bool = True
+    dpa_firmado: bool = True
+    pais_alojamiento: str = "Chile"
+    sla_notificacion_horas: int = 24
+    evaluacion_seguridad: str = "Conforme ISO 27001 / SOC 2"
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -218,6 +225,12 @@ class ProveedorCreate(BaseModel):
     fecha_contrato_inicio: date
     fecha_contrato_fin: date
     area_id: int | None = None
+    criticidad_ciber: str = "Medio"
+    clausula_anci_firmada: bool = True
+    dpa_firmado: bool = True
+    pais_alojamiento: str = "Chile"
+    sla_notificacion_horas: int = 24
+    evaluacion_seguridad: str = "Conforme ISO 27001 / SOC 2"
 
 
 # Audit Log Schemas

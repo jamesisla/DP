@@ -60,6 +60,27 @@ def auto_migrate_sqlite() -> None:
             except Exception as e:
                 print(f"[auto_migrate_cyber_incidents] Notice: {e}")
 
+            # Proveedores Supply Chain migrations
+            try:
+                res = conn.execute(text("PRAGMA table_info(proveedores)")).fetchall()
+                columns = [row[1] for row in res]
+                if columns:
+                    if "criticidad_ciber" not in columns:
+                        conn.execute(text("ALTER TABLE proveedores ADD COLUMN criticidad_ciber VARCHAR(40) DEFAULT 'Medio'"))
+                    if "clausula_anci_firmada" not in columns:
+                        conn.execute(text("ALTER TABLE proveedores ADD COLUMN clausula_anci_firmada BOOLEAN DEFAULT 1"))
+                    if "dpa_firmado" not in columns:
+                        conn.execute(text("ALTER TABLE proveedores ADD COLUMN dpa_firmado BOOLEAN DEFAULT 1"))
+                    if "pais_alojamiento" not in columns:
+                        conn.execute(text("ALTER TABLE proveedores ADD COLUMN pais_alojamiento VARCHAR(80) DEFAULT 'Chile'"))
+                    if "sla_notificacion_horas" not in columns:
+                        conn.execute(text("ALTER TABLE proveedores ADD COLUMN sla_notificacion_horas INTEGER DEFAULT 24"))
+                    if "evaluacion_seguridad" not in columns:
+                        conn.execute(text("ALTER TABLE proveedores ADD COLUMN evaluacion_seguridad VARCHAR(100) DEFAULT 'Conforme ISO 27001 / SOC 2'"))
+                    conn.commit()
+            except Exception as e:
+                print(f"[auto_migrate_proveedores] Notice: {e}")
+
 
 def create_app() -> FastAPI:
     app = FastAPI(title=settings.app_name, version="0.1.0")

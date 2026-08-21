@@ -172,6 +172,12 @@ class Proveedor(Base, TimestampMixin):
     fecha_contrato_inicio: Mapped[date] = mapped_column(Date, nullable=False)
     fecha_contrato_fin: Mapped[date] = mapped_column(Date, nullable=False)
     area_id: Mapped[int] = mapped_column(ForeignKey("areas.id"), nullable=False)
+    criticidad_ciber: Mapped[str] = mapped_column(String(40), default="Medio")  # Crítico OIV, Alto PSE, Medio, Bajo
+    clausula_anci_firmada: Mapped[bool] = mapped_column(Boolean, default=True)  # Obligación de reporte incidentes <24h
+    dpa_firmado: Mapped[bool] = mapped_column(Boolean, default=True)  # Data Processing Agreement Ley 21.719
+    pais_alojamiento: Mapped[str] = mapped_column(String(80), default="Chile")
+    sla_notificacion_horas: Mapped[int] = mapped_column(Integer, default=24)
+    evaluacion_seguridad: Mapped[str] = mapped_column(String(100), default="Conforme ISO 27001 / SOC 2")
 
     area: Mapped[Area] = relationship("Area")
 

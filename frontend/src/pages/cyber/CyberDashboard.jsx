@@ -159,14 +159,24 @@ export function CyberDashboard({ data, onReload, onNavigate, token }) {
             </div>
           </div>
 
-          <div className="pt-4 border-t border-slate-100 flex items-center justify-between gap-3">
+          <div className="pt-4 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-2.5">
+            <a
+              href={`${API_URL.replace("/api", "")}/api/cyber/executive-dossier?token=${token}`}
+              download
+              className="w-full sm:flex-1 flex items-center justify-center gap-1.5 px-3 py-2 border border-indigo-200 bg-indigo-50 text-indigo-900 rounded-lg text-xs font-bold hover:bg-indigo-100 shadow-2xs transition-colors"
+              title="Descargar Informe Ejecutivo Dual de Protección de Datos y Ciberseguridad"
+            >
+              <FileCode size={14} className="text-indigo-600" />
+              Dossier Ejecutivo GRC (MD)
+            </a>
+
             <a
               href={`${API_URL.replace("/api", "")}/api/cyber/evidence-zip?token=${token}`}
               download
-              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-900 text-white rounded-lg text-xs font-bold hover:bg-slate-800 shadow-sm transition-colors"
+              className="w-full sm:flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-slate-900 text-white rounded-lg text-xs font-bold hover:bg-slate-800 shadow-2xs transition-colors"
             >
               <Download size={14} />
-              Descargar Expediente Fiscalizable ANCI (ZIP)
+              Expediente ANCI (ZIP)
             </a>
           </div>
         </div>
