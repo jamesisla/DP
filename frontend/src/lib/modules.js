@@ -49,9 +49,8 @@ export const dataProtectionModules = [
   { id: "providers", label: "Terceros/Proveedores", icon: BookOpenCheck },
   { id: "arco", label: "Derechos ARCO+ (15d)", icon: UserCheck, badgeKey: "urgent_arco" },
   { id: "breaches", label: "Brechas (72h)", icon: ShieldAlert, badgeKey: "unnotified_breaches" },
-  { id: "opensource_privacy", label: "Stack Open Source (GDPR)", icon: Cpu },
   { id: "audit", label: "Auditoría & ZIP", icon: ShieldCheck },
-  { id: "oracle", label: "Cumplimiento Técnico BD", icon: Database },
+  { id: "opensource_privacy", label: "Stack Open Source (GDPR)", icon: Cpu },
 ];
 
 export const cybersecurityModules = [
@@ -63,9 +62,9 @@ export const cybersecurityModules = [
   { id: "cyber_incidents", label: "Incidentes ANCI (3h / 72h)", icon: Radio, badgeKey: "urgent_3h" },
   { id: "cyber_simulations", label: "Simulador de Crisis / War Games", icon: Flame },
   { id: "cyber_training", label: "Phishing & Capacitación", icon: GraduationCap },
-  { id: "cyber_opensource", label: "Stack Open Source (NIS2)", icon: Cpu },
   { id: "cyber_policies", label: "Políticas & Planes PRI/BCP", icon: FileCode },
   { id: "cyber_audit", label: "Expediente ANCI (ZIP)", icon: ShieldCheck },
+  { id: "cyber_opensource", label: "Stack Open Source (NIS2)", icon: Cpu },
 ];
 
 // Default export for backward compatibility
