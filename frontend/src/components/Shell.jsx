@@ -254,7 +254,7 @@ export function Shell({ session, onLogout }) {
     // Suite 1: Data Protection Pages
     switch (active) {
       case "dashboard":
-        return <Dashboard data={data.dashboard} onReload={load} onNavigate={handleNavigate} />;
+        return <Dashboard data={data.dashboard} token={session.access_token} onReload={load} onNavigate={handleNavigate} />;
       case "project":
         return (
           <ProjectTasks

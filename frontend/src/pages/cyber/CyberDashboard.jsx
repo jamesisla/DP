@@ -11,9 +11,12 @@ import {
   Download, 
   FileCode, 
   Lock, 
-  Flame 
+  Flame,
+  FileText,
+  Calendar
 } from "lucide-react";
 import { API_URL } from "../../lib/api";
+import { ComplianceTimeline } from "../../components/ComplianceTimeline";
 
 export function CyberDashboard({ data, onReload, onNavigate, token }) {
   if (!data) return <div className="p-8 text-slate-500">Cargando Dashboard de Ciberseguridad...</div>;
@@ -47,6 +50,24 @@ export function CyberDashboard({ data, onReload, onNavigate, token }) {
   return (
     <div className="space-y-6 p-6 lg:p-8 max-w-7xl mx-auto">
       
+      {/* Top Action Bar */}
+      <div className="rounded-xl border border-line bg-white p-4 shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <span className="text-xs uppercase font-bold text-indigo-600 tracking-wider">Centro de Ciberdefensa & ANCI</span>
+          <h2 className="text-lg font-bold text-slate-800">Panel Ejecutivo de Ciberseguridad (Ley N° 21.663)</h2>
+        </div>
+
+        <a
+          href={`${API_URL.replace("/api", "")}/api/cyber/annual-cybersecurity-plan?token=${token}`}
+          download
+          className="inline-flex items-center gap-2 rounded bg-indigo-700 px-3.5 py-2 text-xs font-bold text-white hover:bg-indigo-800 shadow-sm transition-colors shrink-0"
+          title="Descargar Plan Anual Institucional de Ciberseguridad y Resiliencia (2026-2027)"
+        >
+          <FileText size={14} />
+          Plan Anual de Ciberseguridad (MD)
+        </a>
+      </div>
+
       {/* 3h Alert Warning Banner if active */}
       {urgent3h > 0 && (
         <div 
@@ -228,6 +249,9 @@ export function CyberDashboard({ data, onReload, onNavigate, token }) {
           ))}
         </div>
       </div>
+
+      {/* Unified Regulatory Timeline */}
+      <ComplianceTimeline token={token} />
 
     </div>
   );

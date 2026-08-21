@@ -132,3 +132,110 @@ def get_dashboard_data(
             "unnotified_breaches": unnotified_breaches
         }
     }
+
+
+# ==============================================================================
+# CRONOGRAMA Y CALENDARIO REGULATORIO GRC UNIFICADO (2026 - 2027)
+# ==============================================================================
+
+@router.get("/compliance-timeline")
+def get_compliance_timeline(_: Annotated[User, Depends(get_current_user)], db: Annotated[Session, Depends(get_db)]):
+    """Cronograma integrado de vencimientos legales, plazos operativos e hitos regulatorios."""
+    today = date.today()
+    now = datetime.now()
+
+    # 1. Hitos Legales Estatutarios
+    milestones = [
+        {
+            "id": "l21719_enactment",
+            "ley": "Ley 21.719",
+            "titulo": "Entrada en Vigor Plena Ley N° 21.719",
+            "descripcion": "Exigibilidad total de la Agencia de Protección de Datos Personales, sanciones (hasta 20.000 UTM) y derechos ARCO+.",
+            "fecha": "2026-12-01",
+            "tipo": "Hito Legal Mandatorio",
+            "urgencia": "Alta",
+            "estado": "En Cuenta Regresiva",
+            "dias_restantes": max(0, (date(2026, 12, 1) - today).days)
+        },
+        {
+            "id": "l21663_anci_enforcement",
+            "ley": "Ley 21.663",
+            "titulo": "Exigibilidad Plena Régimen Sancionatorio ANCI",
+            "descripcion": "Fiscalización de operadores RSIC/OIV y aplicación de multas de hasta 40.000 UTM por incumplimiento de notificación en 3h.",
+            "fecha": "2026-09-01",
+            "tipo": "Hito Legal Mandatorio",
+            "urgencia": "Alta",
+            "estado": "En Cuenta Regresiva",
+            "dias_restantes": max(0, (date(2026, 9, 1) - today).days)
+        },
+        {
+            "id": "wargame_annual",
+            "ley": "Ley 21.663",
+            "titulo": "Simulacro Anual Obligatorio de Crisis ANCI (War Game)",
+            "descripcion": "Ejercitación de mesa (Tabletop) de respuesta a Ransomware con acta suscrita por el Comité de Crisis.",
+            "fecha": "2026-08-25",
+            "tipo": "Simulacro & Resiliencia",
+            "urgencia": "Media",
+            "estado": "Programado",
+            "dias_restantes": max(0, (date(2026, 8, 25) - today).days)
+        },
+        {
+            "id": "pgsi_review",
+            "ley": "Ley 21.663",
+            "titulo": "Revisión Semestral de la Política PGSI y Planes BCP/PRI",
+            "descripcion": "Auditoría de políticas de seguridad de la información y planes de continuidad operacional.",
+            "fecha": "2026-10-15",
+            "tipo": "Gobernanza & Auditoría",
+            "urgencia": "Media",
+            "estado": "Programado",
+            "dias_restantes": max(0, (date(2026, 10, 15) - today).days)
+        },
+        {
+            "id": "training_annual",
+            "ley": "Ley 21.719",
+            "titulo": "Cierre Campaña Anual de Concientización & Phishing",
+            "descripcion": "Emisión de certificados y acreditación de cobertura del personal ante la Contraloría y la ANCI.",
+            "fecha": "2026-11-15",
+            "tipo": "Capacitación & Cultura",
+            "urgencia": "Media",
+            "estado": "En Ejecución",
+            "dias_restantes": max(0, (date(2026, 11, 15) - today).days)
+        }
+    ]
+
+    # 2. Vencimientos Operacionales ARCO+
+    arcos = db.query(ArcoRequest).filter(ArcoRequest.estado.in_(["Ingresada", "En análisis"])).all()
+    for a in arcos:
+        rem_days = calculate_business_days_remaining(a.fecha_limite_legal)
+        milestones.append({
+            "id": f"arco_{a.id}",
+            "ley": "Ley 21.719",
+            "titulo": f"Solicitud ARCO+ Folio {a.folio} ({a.tipo_derecho})",
+            "descripcion": f"Titular: {a.titular_nombre}. Plazo legal de respuesta: 15 días hábiles administrativos.",
+            "fecha": a.fecha_limite_legal.isoformat(),
+            "tipo": "Plazo Operacional ARCO+",
+            "urgencia": "Crítica" if rem_days <= 5 else "Alta" if rem_days <= 10 else "Media",
+            "estado": f"{rem_days} días hábiles restantes",
+            "dias_restantes": rem_days
+        })
+
+    # 3. Brechas de Seguridad (72h)
+    breaches = db.query(SecurityBreach).filter(SecurityBreach.estado.in_(["En contención", "En investigación"])).all()
+    for b in breaches:
+        milestones.append({
+            "id": f"breach_{b.id}",
+            "ley": "Ley 21.719",
+            "titulo": f"Brecha de Seguridad [{b.codigo_incidente}]",
+            "descripcion": f"Notificación perentoria en 72h. Titulares afectados: {b.titulares_afectados_aprox}.",
+            "fecha": b.fecha_deteccion.strftime("%Y-%m-%d"),
+            "tipo": "Plazo Brecha 72h",
+            "urgencia": "Crítica",
+            "estado": "En Investigación",
+            "dias_restantes": 3
+        })
+
+    # Sort by dias_restantes ascending
+    milestones.sort(key=lambda x: x["dias_restantes"])
+
+    return milestones
+

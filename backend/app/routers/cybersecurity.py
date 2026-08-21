@@ -1449,6 +1449,69 @@ El presente libro de incidentes constituye registro fidedigno de los eventos de 
     return StreamingResponse(io.BytesIO(doc.encode("utf-8")), media_type="text/markdown", headers=headers)
 
 
+# ==============================================================================
+# PLAN ANUAL DE CIBERSEGURIDAD Y RESILIENCIA OPERACIONAL (CISO 2026 - 2027)
+# ==============================================================================
+
+@router.get("/annual-cybersecurity-plan")
+def download_annual_cybersecurity_plan(_: Annotated[User, Depends(get_current_user)], db: Annotated[Session, Depends(get_db)]):
+    """Generador del Plan Anual Institucional de Ciberseguridad (CISO - Ley N° 21.663)."""
+    now = datetime.now()
+    assets = db.query(CyberAsset).all()
+    incidents = db.query(CyberIncidentANCI).all()
+
+    doc = f"""# PLAN ANUAL INSTITUCIONAL DE CIBERSEGURIDAD Y RESILIENCIA (2026 - 2027)
+## PROGRAMA DE CIBERDEFENSA Y PROTECCIÓN DE INFRAESTRUCTURA CRÍTICA (LEY N° 21.663)
+**Organismo Responsable:** Servicio Público del Estado de Chile
+**Oficina:** Responsable de Ciberseguridad (CISO) & Comité de Crisis
+**Fecha de Aprobación:** {now.strftime('%d de %B de %Y')}
+**Marco Normativo:** Ley N° 21.663 (ANCI), Estándares NIST CSF 2.0 e ISO/IEC 27001:2022
+
+---
+
+### 1. DECLARACIÓN ESTRATÉGICA Y OBJETIVOS ANUALES
+El presente Plan Anual tiene por objeto blindar los Servicios Esenciales (PSE) y Operadores de Importancia Vital (OIV) de la institución, minimizando el impacto de incidentes tecnológicos y asegurando la continuidad del servicio público.
+
+#### Metas Operacionales 2026-2027:
+1. **Disponibilidad de Servicios Críticos:** Mantener un SLA de disponibilidad superior al 99.8% en los {len(assets)} activos RSIC inventariados.
+2. **Alerta Temprana 3 Horas:** Garantizar que el 100% de los incidentes de impacto significativo sean notificados a la ANCI dentro del plazo legal de 3 horas.
+3. **Hardening y CIS Benchmarks:** Elevar la puntuación promedio de robustecimiento técnico a >85% en todos los servidores de producción.
+4. **Respaldo Inmutable WORM:** Desconectar y proteger copias de seguridad de bases de datos contra ataques de Ransomware.
+5. **Ejercitación de Crisis (War Games):** Ejecutar al menos 2 simulacros de crisis al año con actas formalmente suscritas.
+
+---
+
+### 2. CALENDARIO DE OPERACIONES DE CIBERDEFENSA 2026 - 2027
+| Actividad / Hito | Frecuencia | Responsable | Plazo Límite |
+| :--- | :--- | :--- | :--- |
+| **Escaneo de Vulnerabilidades CIS** | Mensual | Equipo SOC / Sysadmin | Mensual |
+| **Pruebas de Penetración (Pentesting Externo)** | Semestral | Empresa Certificada | 30 de Julio de 2026 |
+| **Simulacro Anual de Ransomware (War Game)** | Semestral | Comité de Crisis & CISO | 25 de Agosto de 2026 |
+| **Revisión de la Política PGSI y BCP** | Semestral | CISO & Comité Ciberseguridad | 15 de Octubre de 2026 |
+| **Prueba de Recuperación de Backups WORM** | Trimestral | Administrador de BD (DBA) | Trimestral |
+| **Auditoría de Cumplimiento ANCI (Mock Audit)** | Anual | CISO & Auditoría Externa | 20 de Noviembre de 2026 |
+
+---
+
+### 3. GOBERNANZA DE CIBERDEFENSA
+- **Oficial de Seguridad de la Información (CISO):** Liderazgo técnico y estratégico, enlace oficial ante el CSIRT Nacional y fiscalizadores de la ANCI.
+- **Comité de Ciberseguridad y Manejo de Crisis:** Órgano decisor facultado para declarar emergencias y autorizar desconexiones de red.
+- **Centro de Operaciones de Seguridad (SOC):** Monitoreo continuo de telemetría, eventos e indicadores de compromiso (IoCs).
+- **Plataforma de Control:** Automatización de alertas y expedientes mediante **LexApp GRC**.
+
+---
+
+### 4. COMPROMISO DIRECTIVO
+El presente Plan Anual de Ciberseguridad cuenta con el respaldo irrestricto de la Dirección y se encuentra debidamente financiado para su ejecución operativa.
+
+---
+*Firma Digital del Responsable de Ciberseguridad (CISO) y Jefe Superior del Servicio*
+"""
+    headers = {"Content-Disposition": f"attachment; filename=Plan_Anual_Ciberseguridad_2026_2027_{now.strftime('%Y%m%d')}.md"}
+    return StreamingResponse(io.BytesIO(doc.encode("utf-8")), media_type="text/markdown", headers=headers)
+
+
+
 
 
 

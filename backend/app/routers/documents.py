@@ -262,3 +262,65 @@ Para consultas o requerimientos relativos a esta política:
     headers = {"Content-Disposition": f"attachment; filename=Politica_Privacidad_Web_Ley21719_{now.strftime('%Y%m%d')}.md"}
     return StreamingResponse(io.BytesIO(doc.encode("utf-8")), media_type="text/markdown", headers=headers)
 
+
+# ==============================================================================
+# PLAN ANUAL DE PROTECCIÓN DE DATOS PERSONALES (DPO 2026 - 2027)
+# ==============================================================================
+
+@router.get("/annual-privacy-plan")
+def download_annual_privacy_plan(_: Annotated[User, Depends(get_current_user)], db: Annotated[Session, Depends(get_db)]):
+    """Generador del Plan Anual Institucional de Protección de Datos Personales (DPO)."""
+    now = datetime.now()
+    matrices = db.query(MatrizLevantamiento).all()
+    total_tratamientos = sum(len(m.datos_json) for m in matrices if isinstance(m.datos_json, list))
+
+    doc = f"""# PLAN ANUAL INSTITUCIONAL DE PROTECCIÓN DE DATOS PERSONALES (2026 - 2027)
+## PROGRAMA INTEGRAL DE ADECUACIÓN Y RESPONSABILIDAD PROACTIVA (LEY N° 21.719)
+**Organismo Responsable:** Servicio Público del Estado de Chile
+**Oficina:** Delegado de Protección de Datos (DPO) & Comité de Privacidad
+**Fecha de Aprobación:** {now.strftime('%d de %B de %Y')}
+**Período de Ejecución:** Diciembre 2025 - Diciembre 2026 (Entrada en vigor plena: 01-12-2026)
+
+---
+
+### 1. INTRODUCCIÓN Y OBJETIVOS ESTRATÉGICOS
+El presente Plan Anual establece la hoja de ruta institucional para dar estricto cumplimiento a la **Ley N° 21.719**, garantizando la tutela efectiva de los derechos fundamentales de los titulares de datos, la transparencia activa y la seguridad de la información tratada por el organismo.
+
+#### Objetivos Clave 2026:
+1. **Consolidación del Registro RAT:** Mantener actualizado al 100% el inventario de actividades de tratamiento ({total_tratamientos} tratamientos mapeados actualmente).
+2. **Atención Oportuna ARCO+:** Cero incumplimientos en el plazo perentorio de 15 días hábiles para solicitudes ciudadanas.
+3. **Formalización DPA con Proveedores:** 100% de los encargados externos con contratos DPA (Art. 16) suscritos antes de agosto 2026.
+4. **Capacitación Continua:** Cobertura de al menos el 90% de la dotación institucional en talleres de concientización y privacidad.
+5. **Acreditación ante la Agencia:** Disponer del expediente completo de evidencias para la fiscalización del 01/12/2026.
+
+---
+
+### 2. CALENDARIO ESTRATÉGICO DE AUDITORÍAS Y CONTROL
+| Hito / Actividad | Frecuencia | Responsable | Plazo Límite |
+| :--- | :--- | :--- | :--- |
+| **Revisión y Actualización del RAT** | Semestral | Responsables de Área / DPO | 30 de Junio de 2026 |
+| **Evaluaciones de Impacto (EIPD)** | Previa a nuevos proyectos | DPO & Jefatura TIC | Permanente |
+| **Auditoría de Contratos DPA y Terceros** | Trimestral | Unidad Jurídica & DPO | 30 de Septiembre de 2026 |
+| **Simulacro de Brechas de Seguridad (72h)** | Semestral | DPO & CISO Institucional | 15 de Octubre de 2026 |
+| **Reuniones Ordinarias Comité Privacidad** | Bimensual | Comité Ejecutivo | Bimensual |
+| **Auditoría Final de Preparación (Mock)** | Anual | DPO & Auditoría Interna | 15 de Noviembre de 2026 |
+
+---
+
+### 3. GOBERNANZA Y RECURSOS
+- **Delegado de Protección de Datos (DPO):** Encargado institucional de supervisar la ejecución del plan, atender requerimientos ciudadanos y servir de enlace con la Agencia Nacional de Protección de Datos.
+- **Comité de Privacidad:** Instancia colegiada para resolver controversias, aprobar políticas y dictaminar Evaluaciones de Impacto (EIPD).
+- **Plataforma Tecnológica:** Gestión automatizada y trazable mediante **LexApp GRC**.
+
+---
+
+### 4. COMPROMISO INSTITUCIONAL
+El presente plan ha sido aprobado por la máxima autoridad del Servicio y constituye el instrumento rector de privacidad para el período 2026-2027.
+
+---
+*Firma y V°B° del Delegado de Protección de Datos (DPO) y Jefe de Servicio*
+"""
+    headers = {"Content-Disposition": f"attachment; filename=Plan_Anual_Proteccion_Datos_2026_2027_{now.strftime('%Y%m%d')}.md"}
+    return StreamingResponse(io.BytesIO(doc.encode("utf-8")), media_type="text/markdown", headers=headers)
+
+

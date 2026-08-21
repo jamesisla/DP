@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from "react";
-import { AlertTriangle, Clock, ListTodo, Briefcase, Activity, UserCheck, ShieldAlert, ChevronRight } from "lucide-react";
+import { AlertTriangle, Clock, ListTodo, Briefcase, Activity, UserCheck, ShieldAlert, ChevronRight, Download, FileText, Calendar } from "lucide-react";
+import { ComplianceTimeline } from "../components/ComplianceTimeline";
+import { API_URL } from "../lib/api";
 
-export function Dashboard({ data, onReload, onNavigate }) {
+export function Dashboard({ data, token, onReload, onNavigate }) {
   const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
 
   useEffect(() => {
@@ -51,6 +53,24 @@ export function Dashboard({ data, onReload, onNavigate }) {
   return (
     <div className="space-y-6 p-6 lg:p-8 max-w-7xl mx-auto">
       
+      {/* Top Action Bar */}
+      <div className="rounded-xl border border-line bg-white p-4 shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <span className="text-xs uppercase font-bold text-teal-600 tracking-wider">Centro de Mando Integral</span>
+          <h2 className="text-lg font-bold text-slate-800">Panel Ejecutivo de Protección de Datos (Ley N° 21.719)</h2>
+        </div>
+
+        <a
+          href={`${API_URL.replace("/api", "")}/api/documents/annual-privacy-plan?token=${token}`}
+          download
+          className="inline-flex items-center gap-2 rounded bg-teal-700 px-3.5 py-2 text-xs font-bold text-white hover:bg-teal-800 shadow-sm transition-colors shrink-0"
+          title="Descargar Plan Anual Institucional de Protección de Datos Personales (2026-2027)"
+        >
+          <FileText size={14} />
+          Plan Anual de Privacidad (MD)
+        </a>
+      </div>
+
       {/* Critical Path Delayed Task Banner */}
       {data.critical_path_alert && (
         <div 
@@ -305,6 +325,9 @@ export function Dashboard({ data, onReload, onNavigate }) {
         </div>
 
       </div>
+
+      {/* Unified Regulatory Timeline */}
+      <ComplianceTimeline token={token} />
 
     </div>
   );
