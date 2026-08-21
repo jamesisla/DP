@@ -343,7 +343,7 @@ class CyberIncidentANCI(Base, TimestampMixin):
     tipo_ataque: Mapped[str] = mapped_column(String(100), nullable=False)  # Ransomware, Phishing masivo, DDoS, Intrusión APT, Defacement, Fuga de credenciales
     severidad: Mapped[str] = mapped_column(String(40), default="Alta")  # Crítica (Interrupción Servicio Esencial), Alta, Media, Baja
     afecta_servicio_esencial: Mapped[bool] = mapped_column(Boolean, default=False)
-    descripcion: Mapped[Text] = mapped_column(Text, nullable=False)
+    descripcion: Mapped[str] = mapped_column(Text, nullable=False)
     sistemas_comprometidos: Mapped[str] = mapped_column(Text, default="")
     medidas_contencion_aplicadas: Mapped[str] = mapped_column(Text, default="")
     alerta_3h_enviada_anci: Mapped[bool] = mapped_column(Boolean, default=False)
