@@ -1361,6 +1361,95 @@ La institución se encuentra **PLENAMENTE PREPARADA** para afrontar inspecciones
     return StreamingResponse(io.BytesIO(cert.encode("utf-8")), media_type="text/markdown", headers=headers)
 
 
+# ==============================================================================
+# LIBRO OFICIAL DE REGISTRO DE INCIDENTES DE CIBERSEGURIDAD (ART. 10 LEY 21.663)
+# ==============================================================================
+
+@router.get("/incidents-book")
+def download_incidents_book(_: Annotated[User, Depends(get_current_user)], db: Annotated[Session, Depends(get_db)]):
+    """Generador del Libro de Bitácora Oficial de Incidentes de Ciberseguridad (Art. 10 Ley 21.663)."""
+    now = datetime.now()
+    incidents = db.query(CyberIncidentANCI).order_by(CyberIncidentANCI.fecha_deteccion.desc()).all()
+
+    doc = f"""# LIBRO OFICIAL DE REGISTRO Y BITÁCORA DE INCIDENTES DE CIBERSEGURIDAD
+## REGISTRO INMUTABLE CONFORME AL ARTÍCULO 10 DE LA LEY N° 21.663 (ANCI)
+**Fecha de Emisión del Libro:** {now.strftime('%d de %B de %Y - %H:%M:%S')}
+**Organismo / Institución:** Servicio Público del Estado de Chile
+**Custodia Obligatoria:** 3 Años a disposición de la Agencia Nacional de Ciberseguridad
+
+---
+
+### 1. RESUMEN ESTADÍSTICO DE OPERACIONES DE CIBERDEFENSA
+- **Total de Incidentes Registrados:** {len(incidents)}
+- **Incidentes con Notificación Oportuna (<3h ANCI):** {sum(1 for i in incidents if i.alerta_3h_enviada_anci)}
+- **Incidentes en Proceso de Mitigación / Forense:** {sum(1 for i in incidents if i.estado != 'Mitigado y Notificado')}
+
+---
+
+### 2. RELACIÓN CRONOLÓGICA DE EVENTOS E INCIDENTES
+"""
+
+    if not incidents:
+        doc += "\n*No se registran incidentes de ciberseguridad a la fecha.*\n"
+    else:
+        for idx, inc in enumerate(incidents, 1):
+            doc += f"""
+#### Registro #{idx}: [{inc.codigo_incidente}] {inc.titulo}
+- **Fecha y Hora de Detección:** {inc.fecha_deteccion.strftime('%d/%m/%Y %H:%M:%S')}
+- **Nivel de Severidad:** {inc.severidad.upper()}
+- **Tipo de Amenaza / Vector:** {inc.tipo_amenaza}
+- **Tiempo de Detección:** {inc.tiempo_deteccion_minutos} minutos
+- **Estado Actual:** {inc.estado}
+- **Alerta Temprana ANCI (Plazo 3h):** {'SÍ, DESPACHADA [✓]' if inc.alerta_3h_enviada_anci else 'NO / PENDIENTE [!]'}
+
+**Descripción del Evento:**
+> {inc.descripcion}
+
+**Indicadores de Compromiso (IoCs Registrados):**
+"""
+            iocs = inc.iocs_json if isinstance(inc.iocs_json, dict) else {}
+            ips = iocs.get("ips_atacantes", [])
+            hashes = iocs.get("hashes_malware", [])
+            urls = iocs.get("urls_c2", [])
+
+            if ips:
+                doc += f"- **IPs Atacantes:** {', '.join(ips)}\n"
+            if hashes:
+                doc += f"- **Hashes de Malware (SHA-256):** {', '.join(hashes)}\n"
+            if urls:
+                doc += f"- **Dominios / C2:** {', '.join(urls)}\n"
+            if not ips and not hashes and not urls:
+                doc += "- *Sin IoCs externos registrados.*\n"
+
+            doc += f"""
+**Protocolo Forense Digital y Cadena de Custodia:**
+"""
+            forense = inc.checklist_forense_json if isinstance(inc.checklist_forense_json, dict) else {}
+            doc += f"- Volcado de Memoria RAM: {'[✓] Realizado' if forense.get('volcado_ram') else '[✗] No aplicable'}\n"
+            doc += f"- Congelamiento de Logs: {'[✓] Asegurado' if forense.get('congelamiento_logs') else '[✗] Pendiente'}\n"
+            doc += f"- Aislamiento de Red: {'[✓] Ejecutado' if forense.get('aislamiento_red') else '[✗] No ejecutado'}\n"
+            doc += f"- Hash SHA-256 de Evidencias: `{forense.get('hash_sha256') or 'Sin hash firmado'}`\n"
+
+            doc += f"""
+**Medidas de Contención Aplicadas:**
+{inc.medidas_contencion or 'Medidas estándar de contención y monitoreo de logs.'}
+
+---
+"""
+
+    doc += """
+### 3. DECLARACIÓN DE AUTENTICIDAD Y CADENA DE CUSTODIA
+El presente libro de incidentes constituye registro fidedigno de los eventos de seguridad digital experimentados por la institución, custodiado bajo directrices del CISO institucional y disponible para requerimientos del CSIRT Nacional y fiscalizadores de la ANCI.
+
+---
+*Firma Digital del Responsable de Ciberseguridad (CISO) · Certificación LexApp GRC*
+"""
+
+    headers = {"Content-Disposition": f"attachment; filename=Libro_Registro_Incidentes_ANCI_{now.strftime('%Y%m%d')}.md"}
+    return StreamingResponse(io.BytesIO(doc.encode("utf-8")), media_type="text/markdown", headers=headers)
+
+
+
 
 
 

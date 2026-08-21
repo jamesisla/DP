@@ -238,7 +238,18 @@ export function CyberIncidents({ incidents = [], token, user, onReload }) {
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2.5 flex-wrap">
+          {/* Libro Oficial de Registro de Incidentes (Art. 10) */}
+          <a
+            href={`${API_URL.replace("/api", "")}/api/cyber/incidents-book?token=${token}`}
+            download
+            className="flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 shadow-2xs transition-colors shrink-0"
+            title="Descargar Libro Oficial de Registro y Bitácora de Incidentes (Art. 10 Ley 21.663)"
+          >
+            <Download size={14} className="text-indigo-600" />
+            Libro de Incidentes (MD)
+          </a>
+
           {/* Botón de Pánico / Alerta Inmediata 3h */}
           <button
             onClick={() => openCreate(true)}
