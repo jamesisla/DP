@@ -1117,4 +1117,94 @@ echo "========================================================="
     return Response(content=script, media_type="text/x-sh", headers=headers)
 
 
+# ==============================================================================
+# MATRIZ DE CORRESPONDENCIA CRUZADA (CROSSWALK L21.719 vs L21.663 vs ISO/NIST)
+# ==============================================================================
+
+@router.get("/crosswalk-matrix")
+def get_crosswalk_matrix(_: Annotated[User, Depends(get_current_user)]):
+    """Matriz de Correspondencia Regulatoria Unificada (Datos, Ciber, ISO 27001, NIST)."""
+    matrix = [
+        {
+            "id": "CR-01",
+            "dominio": "Gobernanza & Roles",
+            "control": "Nombramiento de Responsable / CISO / DPO",
+            "ley_21719": "Art. 24 (Delegado de Protección de Datos)",
+            "ley_21663": "Art. 6 (Responsable de Ciberseguridad ante ANCI)",
+            "iso_27001": "A.5.2 (Funciones y responsabilidades de seguridad)",
+            "nist_csf": "GV.OC (Gobernanza y Contexto)",
+            "estado": "Conforme [✓]"
+        },
+        {
+            "id": "CR-02",
+            "dominio": "Gestión de Activos",
+            "control": "Inventario de Redes Críticas y Actividades de Tratamiento",
+            "ley_21719": "Art. 15 (Registro de Actividades de Tratamiento)",
+            "ley_21663": "Art. 4 y 5 (Catálogo de Redes y Sistemas RSIC / OIV)",
+            "iso_27001": "A.5.9 (Inventario de información y activos asociados)",
+            "nist_csf": "ID.AM (Gestión de Activos)",
+            "estado": "Conforme [✓]"
+        },
+        {
+            "id": "CR-03",
+            "dominio": "Control de Accesos",
+            "control": "Autenticación Multifactor (MFA) & Mínimo Privilegio",
+            "ley_21719": "Art. 14 (Principio de Seguridad y Confidencialidad)",
+            "ley_21663": "Art. 8 letra c (Medidas técnicas mínimas de control)",
+            "iso_27001": "A.8.5 (Autenticación segura MFA)",
+            "nist_csf": "PR.AC (Gestión de Identidades y Accesos)",
+            "estado": "Conforme [✓]"
+        },
+        {
+            "id": "CR-04",
+            "dominio": "Gestión de Incidentes",
+            "control": "Alerta Temprana & Notificación Perentoria a la Autoridad",
+            "ley_21719": "Art. 18 (Notificación de Brechas en 72 Horas)",
+            "ley_21663": "Art. 12 (Alerta Temprana en 3 Horas a la ANCI)",
+            "iso_27001": "A.5.24 (Gestión de incidentes de seguridad)",
+            "nist_csf": "RS.MA (Respuesta y Mitigación)",
+            "estado": "Conforme [✓]"
+        },
+        {
+            "id": "CR-05",
+            "dominio": "Cadena de Suministro",
+            "control": "Contratos de Encargados (DPA) & Cláusula de Ciberseguridad",
+            "ley_21719": "Art. 16 (Relación Responsable-Encargado)",
+            "ley_21663": "Art. 8 letra e (Obligaciones exigibles a proveedores TI)",
+            "iso_27001": "A.5.19 (Seguridad de la información en supply chain)",
+            "nist_csf": "ID.SC (Gestión de Riesgos de Proveedores)",
+            "estado": "Conforme [✓]"
+        },
+        {
+            "id": "CR-06",
+            "dominio": "Continuidad Operacional",
+            "control": "Copias de Respaldo Inmutables WORM & Plan DRP",
+            "ley_21719": "Art. 14 (Disponibilidad y Resiliencia de Datos)",
+            "ley_21663": "Art. 8 letra d (Continuidad de Servicios Esenciales)",
+            "iso_27001": "A.8.13 (Copia de seguridad de la información)",
+            "nist_csf": "RC.RP (Plan de Recuperación y Continuidad)",
+            "estado": "Conforme [✓]"
+        }
+    ]
+    return matrix
+
+
+@router.get("/crosswalk-matrix/download")
+def download_crosswalk_matrix(_: Annotated[User, Depends(get_current_user)]):
+    """Descarga de la Matriz de Correspondencia Regulatoria en formato Markdown."""
+    matrix = get_crosswalk_matrix(None)
+    
+    doc = "# MATRIZ DE CORRESPONDENCIA REGULATORIA CRUZADA (CROSSWALK GRC)\n"
+    doc += "### Armonización Legal: Ley N° 21.719 · Ley N° 21.663 · ISO/IEC 27001 · NIST CSF 2.0\n\n"
+    doc += "| ID | Dominio | Control Técnico / Legal | Ley N° 21.719 (Datos) | Ley N° 21.663 (ANCI) | ISO 27001:2022 | NIST CSF 2.0 | Estado |\n"
+    doc += "| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |\n"
+    for row in matrix:
+        doc += f"| {row['id']} | {row['dominio']} | {row['control']} | {row['ley_21719']} | {row['ley_21663']} | {row['iso_27001']} | {row['nist_csf']} | {row['estado']} |\n"
+
+    doc += "\n---\n*Generado por LexApp GRC para fines de acreditación y auditoría integral.*"
+    headers = {"Content-Disposition": "attachment; filename=Matriz_Correspondencia_Cruzada_GRC.md"}
+    return StreamingResponse(io.BytesIO(doc.encode("utf-8")), media_type="text/markdown", headers=headers)
+
+
+
 
