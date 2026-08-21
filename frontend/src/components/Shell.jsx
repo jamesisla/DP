@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { LogOut, Scale, ShieldAlert, ShieldCheck, Server, Radio, Activity, Lock, Layers } from "lucide-react";
+import { LogOut, Scale, ShieldAlert, ShieldCheck, Server, Radio, Activity, Lock, Layers, Bell, AlertTriangle, Clock, CheckCircle } from "lucide-react";
 import { suites, dataProtectionModules, cybersecurityModules } from "../lib/modules";
 import { api, classNames, API_URL } from "../lib/api";
 
@@ -193,11 +193,18 @@ export function Shell({ session, onLogout }) {
   const currentModules = activeSuite === "cybersecurity" ? cybersecurityModules : dataProtectionModules;
   const activeModule = currentModules.find((item) => item.id === active) || currentModules[0];
 
-  // Calculate notification badges
+  // Calculate notification badges and real-time hub
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
   const dpStats = data.dashboard?.stats || {};
-  const urgentArcoCount = dpStats.urgent_arco || 0;
-  const unnotifiedBreachCount = dpStats.unnotified_breaches || 0;
-  const urgent3hCyberCount = data.cyberDashboard?.urgent_3h_count || 0;
+  const urgentArco = (data.arcoRequests || []).filter(a => !["Respondida favorable", "Rechazada fundada"].includes(a.estado));
+  const unnotifiedBreaches = (data.breaches || []).filter(b => !b.notificado_agencia && b.estado !== "Mitigado y Cerrado");
+  const urgent3h = (data.cyberIncidents || []).filter(i => !i.alerta_3h_enviada_anci && i.estado !== "Mitigado y Notificado");
+  const unprotectedAssets = (data.cyberAssets || []).filter(a => !a.mfa_activo || !a.respaldo_inmutable);
+  const totalAlerts = urgent3h.length + urgentArco.length + unnotifiedBreaches.length + (unprotectedAssets.length > 0 ? 1 : 0);
+
+  const urgentArcoCount = urgentArco.length || dpStats.urgent_arco || 0;
+  const unnotifiedBreachCount = unnotifiedBreaches.length || dpStats.unnotified_breaches || 0;
+  const urgent3hCyberCount = urgent3h.length || data.cyberDashboard?.urgent_3h_count || 0;
 
   function renderBadge(badgeKey) {
     if (badgeKey === "urgent_arco" && urgentArcoCount > 0) {
@@ -548,13 +555,106 @@ export function Shell({ session, onLogout }) {
             </div>
           </div>
           
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
+            
+            {/* Notification Bell */}
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setNotificationsOpen(!notificationsOpen)}
+                className="relative p-2 rounded-lg border border-slate-200 hover:bg-slate-50 transition-colors text-slate-600"
+                title="Centro de Alertas GRC"
+              >
+                <Bell size={17} />
+                {totalAlerts > 0 && (
+                  <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-rose-600 text-white font-black text-[9px] flex items-center justify-center animate-pulse">
+                    {totalAlerts}
+                  </span>
+                )}
+              </button>
+
+              {/* Notification Popover Drawer */}
+              {notificationsOpen && (
+                <div className="absolute right-0 mt-2 w-80 sm:w-96 rounded-xl border border-slate-200 bg-white shadow-xl z-50 p-4 space-y-3">
+                  <div className="flex justify-between items-center border-b border-slate-100 pb-2">
+                    <span className="text-xs uppercase font-bold text-slate-800 tracking-wider">Centro de Alertas GRC</span>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-slate-100 text-slate-600">
+                      {totalAlerts} pendientes
+                    </span>
+                  </div>
+
+                  <div className="space-y-2 max-h-72 overflow-y-auto text-xs">
+                    {urgent3h.length > 0 && (
+                      <div 
+                        onClick={() => { handleNavigate("cyber_incidents"); setNotificationsOpen(false); }}
+                        className="p-2.5 rounded-lg bg-rose-50 border border-rose-200 cursor-pointer hover:bg-rose-100/70 transition-colors space-y-1"
+                      >
+                        <div className="flex items-center gap-1.5 text-rose-800 font-bold">
+                          <Radio size={13} className="animate-bounce text-rose-600" />
+                          <span>Alerta ANCI &lt;3 Horas ({urgent3h.length})</span>
+                        </div>
+                        <p className="text-[11px] text-rose-900">Incidentes críticos pendientes de notificación perentoria a la ANCI.</p>
+                      </div>
+                    )}
+
+                    {urgentArco.length > 0 && (
+                      <div 
+                        onClick={() => { handleNavigate("arco"); setNotificationsOpen(false); }}
+                        className="p-2.5 rounded-lg bg-amber-50 border border-amber-200 cursor-pointer hover:bg-amber-100/70 transition-colors space-y-1"
+                      >
+                        <div className="flex items-center gap-1.5 text-amber-800 font-bold">
+                          <Clock size={13} className="text-amber-600" />
+                          <span>Derechos ARCO+ Pendientes ({urgentArco.length})</span>
+                        </div>
+                        <p className="text-[11px] text-amber-900">Solicitudes ciudadanas bajo el plazo legal de 15 días hábiles.</p>
+                      </div>
+                    )}
+
+                    {unnotifiedBreaches.length > 0 && (
+                      <div 
+                        onClick={() => { handleNavigate("breaches"); setNotificationsOpen(false); }}
+                        className="p-2.5 rounded-lg bg-rose-50 border border-rose-200 cursor-pointer hover:bg-rose-100/70 transition-colors space-y-1"
+                      >
+                        <div className="flex items-center gap-1.5 text-rose-800 font-bold">
+                          <ShieldAlert size={13} className="text-rose-600" />
+                          <span>Brechas de Privacidad (72h)</span>
+                        </div>
+                        <p className="text-[11px] text-rose-900">Incidentes de datos personales que requieren aviso a la autoridad.</p>
+                      </div>
+                    )}
+
+                    {unprotectedAssets.length > 0 && (
+                      <div 
+                        onClick={() => { handleNavigate("cyber_assets"); setNotificationsOpen(false); }}
+                        className="p-2.5 rounded-lg bg-indigo-50 border border-indigo-200 cursor-pointer hover:bg-indigo-100/70 transition-colors space-y-1"
+                      >
+                        <div className="flex items-center gap-1.5 text-indigo-800 font-bold">
+                          <Server size={13} className="text-indigo-600" />
+                          <span>{unprotectedAssets.length} Activos RSIC Incompletos</span>
+                        </div>
+                        <p className="text-[11px] text-indigo-900">Sistemas críticos sin MFA forzado o respaldo inmutable WORM.</p>
+                      </div>
+                    )}
+
+                    {totalAlerts === 0 && (
+                      <div className="py-6 text-center text-slate-400">
+                        <CheckCircle size={24} className="mx-auto text-emerald-500 mb-1" />
+                        <p className="font-semibold text-xs text-slate-700">Sin alertas urgentes pendientes</p>
+                        <p className="text-[10px]">Todos los plazos y controles están conformes.</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
             <div className="hidden text-right sm:block">
               <p className="text-sm font-bold text-slate-800">{session.user.full_name}</p>
               <p className={`text-[10px] uppercase font-bold tracking-wider ${isCyber ? "text-indigo-600" : "text-teal-700"}`}>
                 {session.user.role} {session.user.cargo ? `· ${session.user.cargo}` : ""}
               </p>
             </div>
+
             <button className="icon-button hover:bg-slate-50 transition-colors p-2 rounded-lg border border-slate-200" onClick={onLogout} title="Cerrar sesión" type="button">
               <LogOut size={17} />
             </button>
