@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 
 from app.core.security import get_password_hash
 from app.models.domain import (
+    ArcoRequest,
     Area,
     CaseTicket,
     Comentario,
@@ -11,11 +12,13 @@ from app.models.domain import (
     Fase,
     Finding,
     FlujoAprobacion,
+    ImpactAssessment,
     ImplementationProject,
     LogAuditoria,
     MatrizLevantamiento,
     Proveedor,
     Riesgo,
+    SecurityBreach,
     Tarea,
     TreatmentActivity,
     User,
