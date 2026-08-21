@@ -199,3 +199,66 @@ def download_acta(id: int, current_user: Annotated[User, Depends(get_current_use
     acta += "\n---\n*Constancia de validez jurídica conforme a la Ley 21.719.*"
     headers = {"Content-Disposition": f"attachment; filename=Acta_Aprobacion_{doc.tipo}.md"}
     return StreamingResponse(io.BytesIO(acta.encode("utf-8")), media_type="text/markdown", headers=headers)
+
+
+@router.get("/web-privacy-policy")
+def download_web_privacy_policy(_: Annotated[User, Depends(get_current_user)]):
+    """Generador de la Política de Privacidad Web y Aviso de Cookies para Portales Ciudadanos (Ley 21.719)."""
+    now = datetime.now()
+    doc = f"""# POLÍTICA DE PRIVACIDAD Y TRATAMIENTO DE DATOS PERSONALES
+## PORTAL INSTITUCIONAL Y PLATAFORMAS DE ATENCIÓN DIGITAL
+**Última actualización:** {now.strftime('%d de %B de %Y')}
+**Marco Normativo:** Ley N° 21.719 (Protección de Datos Personales) & Ley N° 21.663 (Ciberseguridad)
+
+---
+
+### 1. IDENTIFICACIÓN DEL RESPONSABLE DEL TRATAMIENTO
+El presente portal web y sus servicios en línea son administrados por el **Servicio Público del Estado de Chile** (en adelante, "la Institución"), con domicilio legal en Santiago de Chile, en calidad de Responsable del Tratamiento de Datos Personales conforme al Art. 2 de la Ley N° 21.719.
+
+### 2. FINALIDADES DEL TRATAMIENTO DE DATOS
+Los datos personales proporcionados a través de formularios web, ClaveÚnica o trámites digitales serán tratados exclusivamente para:
+- **Gestión de Trámites y Servicios:** Tramitación de solicitudes, emisión de certificados y atención a requerimientos ciudadanos.
+- **Autenticación e Identificación:** Verificación fehaciente de identidad mediante ClaveÚnica del Estado.
+- **Comunicación y Notificaciones:** Envío de estados de avance, respuestas formales y oficios administrativos.
+- **Seguridad Informática:** Prevención de fraudes, mitigación de ciberataques y auditoría técnica de accesos.
+
+### 3. BASE DE LICITUD DEL TRATAMIENTO
+El tratamiento de datos personales se fundamenta en:
+- El cumplimiento de las funciones legales y competencias públicas conferidas a este organismo por el ordenamiento jurídico (Art. 13 letra b de la Ley N° 21.719).
+- El consentimiento expreso del titular cuando resulte legalmente aplicable.
+
+### 4. POLÍTICA DE COOKIES Y TECNOLOGÍAS SIMILARES
+Este portal utiliza cookies para garantizar su correcto funcionamiento y seguridad:
+- **Cookies Técnicas y Esenciales:** Indispensables para mantener la sesión segura del usuario y balancear la carga de servidores.
+- **Cookies de Seguridad:** Detección de patrones anómalos o intentos de denegación de servicio.
+- *Nota:* No se emplean cookies con fines de publicidad comportamental ni cesión comercial a terceros.
+
+### 5. EJERCICIO DE DERECHOS ARCO+ (15 DÍAS HÁBILES)
+Conforme a la Ley N° 21.719, todo titular de datos tiene derecho a solicitar:
+- **Acceso:** Conocer qué datos personales suyos están siendo tratados.
+- **Rectificación:** Modificar datos inexactos, desactualizados o incompletos.
+- **Cancelación / Supresión:** Eliminar datos cuando no exista base legal para su conservación.
+- **Oposición:** Oponerse al tratamiento por razones fundadas.
+- **Portabilidad:** Solicitar copia de sus datos en formato estructurado e interoperable.
+- **Bloqueo:** Suspender temporalmente el tratamiento durante la resolución de un requerimiento.
+
+**Plazo Legal de Respuesta:** 15 días hábiles administrativos a través de nuestro módulo formal ARCO+.
+
+### 6. SEGURIDAD Y PROTECCIÓN DE LA INFORMACIÓN
+La Institución implementa medidas de seguridad técnicas y organizativas robustas:
+- Cifrado en tránsito mediante protocolo seguro **TLS 1.3 (HTTPS)** con certificados HSTS.
+- Cifrado en reposo bajo estándar **AES-256**.
+- Autenticación Multifactor (MFA) para operadores del sistema y copias de seguridad inmutables WORM.
+- Cumplimiento de las directivas de la Agencia Nacional de Ciberseguridad (ANCI / Ley N° 21.663).
+
+### 7. CANAL DE CONTACTO DEL DELEGADO DE PROTECCIÓN DE DATOS (DPO)
+Para consultas o requerimientos relativos a esta política:
+- **Correo Electrónico:** `dpo@institucion.gob.cl`
+- **Atención de Derechos:** Plataforma Digital de Derechos ARCO+ de LexApp GRC.
+
+---
+*Documento aprobado y emitido automáticamente conforme a los estándares de Transparencia y Protección de Datos Personales.*
+"""
+    headers = {"Content-Disposition": f"attachment; filename=Politica_Privacidad_Web_Ley21719_{now.strftime('%Y%m%d')}.md"}
+    return StreamingResponse(io.BytesIO(doc.encode("utf-8")), media_type="text/markdown", headers=headers)
+

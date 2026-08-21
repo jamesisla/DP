@@ -238,6 +238,20 @@ export function Documents({ documents = [], token, user, onReload }) {
               ))}
             </div>
           </div>
+
+          {/* Web Privacy Policy Quick Download */}
+          <div className="bg-slate-50 border border-slate-200 rounded-lg p-3 text-[11px] space-y-2">
+            <span className="font-bold text-slate-700 block">Portal Ciudadano (Ley 21.719):</span>
+            <p className="text-[10px] text-slate-500">Política de Privacidad y Aviso de Cookies para sitios web institucionales.</p>
+            <a
+              href={`${API_URL.replace("/api", "")}/api/documents/web-privacy-policy?token=${token}`}
+              download
+              className="flex items-center justify-center gap-1.5 w-full bg-teal-800 hover:bg-teal-900 text-white font-bold text-[11px] py-1.5 rounded shadow-2xs transition-colors"
+            >
+              <Download size={12} />
+              Descargar Política Web (MD)
+            </a>
+          </div>
         </div>
 
         {/* Center column: Editor & Preview */}
