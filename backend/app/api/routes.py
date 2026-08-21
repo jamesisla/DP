@@ -15,6 +15,7 @@ from app.routers.providers import router as providers_router
 from app.routers.risks import router as risks_router
 from app.routers.training import router as training_router
 from app.routers.users import router as users_router
+from app.routers.gateways import router as gateways_router
 
 router = APIRouter()
 
@@ -42,4 +43,8 @@ router.include_router(training_router)
 
 # Ley 21.663 - Cybersecurity & ANCI
 router.include_router(cyber_router)
+
+# Gateways & Telemetry Webhooks
+router.include_router(gateways_router)
+
 

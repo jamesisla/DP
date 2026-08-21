@@ -143,11 +143,26 @@ vault write transit/encrypt/datos-sensibles-key plaintext=$(echo "DatosMedicosSe
 export function OpenSourcePrivacy({ token }) {
   const [copiedId, setCopiedId] = useState(null);
   const [selectedSolution, setSelectedSolution] = useState(PRIVACY_SOLUTIONS[0]);
+  const [simulating, setSimulating] = useState(false);
+  const [telemetryResult, setTelemetryResult] = useState(null);
 
   function copyToClipboard(text, id) {
     navigator.clipboard.writeText(text);
     setCopiedId(id);
     setTimeout(() => setCopiedId(null), 2000);
+  }
+
+  async function handleSimulatePresidio() {
+    setSimulating(true);
+    setTelemetryResult(null);
+    try {
+      const res = await api("/gateways/simulate-presidio-scan", token, { method: "POST" });
+      setTelemetryResult(res);
+    } catch (err) {
+      alert("Error al simular telemetría: " + err.message);
+    } finally {
+      setSimulating(false);
+    }
   }
 
   return (
@@ -173,15 +188,41 @@ export function OpenSourcePrivacy({ token }) {
           </div>
         </div>
 
-        <a
-          href={`${API_URL.replace("/api", "")}/api/documents/opensource-privacy-blueprint?token=${token}`}
-          download
-          className="flex items-center gap-2 rounded bg-teal-700 px-4 py-2.5 text-xs font-bold text-white hover:bg-teal-800 shadow-sm shrink-0 transition-colors"
-        >
-          <Download size={14} />
-          Descargar Blueprint Completo (MD)
-        </a>
+        <div className="flex items-center gap-2.5 flex-wrap">
+          <button
+            onClick={handleSimulatePresidio}
+            disabled={simulating}
+            className="flex items-center gap-1.5 rounded-lg bg-teal-50 border border-teal-300 px-3.5 py-2 text-xs font-bold text-teal-900 hover:bg-teal-100 shadow-2xs transition-colors shrink-0"
+            title="Simular escaneo de PII en vivo con Microsoft Presidio Engine"
+          >
+            <span>⚡ Simular Ingesta Presidio PII</span>
+          </button>
+
+          <a
+            href={`${API_URL.replace("/api", "")}/api/documents/opensource-privacy-blueprint?token=${token}`}
+            download
+            className="flex items-center gap-2 rounded bg-teal-700 px-4 py-2.5 text-xs font-bold text-white hover:bg-teal-800 shadow-sm shrink-0 transition-colors"
+          >
+            <Download size={14} />
+            Descargar Blueprint Completo (MD)
+          </a>
+        </div>
       </div>
+
+      {/* Telemetry Live Banner if triggered */}
+      {telemetryResult && (
+        <div className="rounded-xl border border-teal-300 bg-teal-50/80 p-4 text-teal-900 shadow-sm flex items-start justify-between gap-4 animate-fadeIn">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <span className="h-2 w-2 rounded-full bg-teal-600 animate-ping"></span>
+              <h4 className="font-bold text-xs">TELEMETRÍA OPEN SOURCE RECIBIDA EN VIVO</h4>
+              <span className="text-[10px] font-mono bg-white px-2 py-0.5 rounded border border-teal-200">{telemetryResult.fuente}</span>
+            </div>
+            <p className="text-xs font-medium">{telemetryResult.resultado} · {telemetryResult.accion}</p>
+          </div>
+          <button onClick={() => setTelemetryResult(null)} className="text-teal-700 hover:text-teal-900 text-sm font-bold">&times;</button>
+        </div>
+      )}
 
       {/* Grid: Master Directory & Technical Detail */}
       <div className="grid gap-6 lg:grid-cols-12">

@@ -150,11 +150,26 @@ rm -f /tmp/db_dump.sql.gz`
 export function OpenSourceCyber({ token }) {
   const [copiedId, setCopiedId] = useState(null);
   const [selectedSolution, setSelectedSolution] = useState(CYBER_SOLUTIONS[0]);
+  const [simulating, setSimulating] = useState(false);
+  const [wazuhResult, setWazuhResult] = useState(null);
 
   function copyToClipboard(text, id) {
     navigator.clipboard.writeText(text);
     setCopiedId(id);
     setTimeout(() => setCopiedId(null), 2000);
+  }
+
+  async function handleSimulateWazuh() {
+    setSimulating(true);
+    setWazuhResult(null);
+    try {
+      const res = await api("/gateways/simulate-wazuh-alert", token, { method: "POST" });
+      setWazuhResult(res);
+    } catch (err) {
+      alert("Error al simular alerta Wazuh: " + err.message);
+    } finally {
+      setSimulating(false);
+    }
   }
 
   return (
@@ -180,15 +195,41 @@ export function OpenSourceCyber({ token }) {
           </div>
         </div>
 
-        <a
-          href={`${API_URL.replace("/api", "")}/api/cyber/opensource-cyber-blueprint?token=${token}`}
-          download
-          className="flex items-center gap-2 rounded bg-indigo-700 px-4 py-2.5 text-xs font-bold text-white hover:bg-indigo-800 shadow-sm shrink-0 transition-colors"
-        >
-          <Download size={14} />
-          Descargar Blueprint Completo (MD)
-        </a>
+        <div className="flex items-center gap-2.5 flex-wrap">
+          <button
+            onClick={handleSimulateWazuh}
+            disabled={simulating}
+            className="flex items-center gap-1.5 rounded-lg bg-rose-50 border border-rose-300 px-3.5 py-2 text-xs font-bold text-rose-900 hover:bg-rose-100 shadow-2xs transition-colors shrink-0"
+            title="Simular llegada de alerta crítica Nivel 12 de Wazuh SIEM activando Alerta 3h"
+          >
+            <span>⚡ Simular Alerta Wazuh (3h)</span>
+          </button>
+
+          <a
+            href={`${API_URL.replace("/api", "")}/api/cyber/opensource-cyber-blueprint?token=${token}`}
+            download
+            className="flex items-center gap-2 rounded bg-indigo-700 px-4 py-2.5 text-xs font-bold text-white hover:bg-indigo-800 shadow-sm shrink-0 transition-colors"
+          >
+            <Download size={14} />
+            Descargar Blueprint (MD)
+          </a>
+        </div>
       </div>
+
+      {/* Telemetry Live Banner if triggered */}
+      {wazuhResult && (
+        <div className="rounded-xl border border-rose-300 bg-rose-50/90 p-4 text-rose-900 shadow-sm flex items-start justify-between gap-4 animate-fadeIn">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <span className="h-2 w-2 rounded-full bg-rose-600 animate-ping"></span>
+              <h4 className="font-bold text-xs text-rose-800">TELEMETRÍA WAZUH SIEM RECIBIDA · ALERTA 3 HORAS INICIADA</h4>
+              <span className="text-[10px] font-mono bg-white px-2 py-0.5 rounded border border-rose-200">{wazuhResult.codigo_incidente}</span>
+            </div>
+            <p className="text-xs font-medium">{wazuhResult.mensaje} · Límite legal ANCI: <span className="font-mono font-bold">{new Date(wazuhResult.limite_3h).toLocaleTimeString()}</span></p>
+          </div>
+          <button onClick={() => setWazuhResult(null)} className="text-rose-700 hover:text-rose-900 text-sm font-bold">&times;</button>
+        </div>
+      )}
 
       {/* Grid: Master Directory & Technical Detail */}
       <div className="grid gap-6 lg:grid-cols-12">

@@ -720,4 +720,59 @@ class TrainingCampaignCreate(BaseModel):
     area_responsable_id: int | None = None
 
 
+# CVD & Telemetry Schemas
+class CvdReportRead(BaseModel):
+    id: int
+    folio: str
+    titulo: str
+    investigador_alias: str
+    investigador_email: str
+    activo_afectado: str
+    severidad: str
+    cvss_score: float
+    descripcion_tecnica: str
+    poa_remediacion: str
+    estado: str
+    hash_evidencia: str
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class CvdReportCreate(BaseModel):
+    titulo: str
+    investigador_alias: str = "Investigador Ético Anónimo"
+    investigador_email: str = ""
+    activo_afectado: str
+    severidad: str = "Alta"
+    cvss_score: float = 7.5
+    descripcion_tecnica: str
+    poa_remediacion: str = ""
+
+
+class TelemetryEventRead(BaseModel):
+    id: int
+    fuente: str
+    suite: str
+    tipo_evento: str
+    severidad: str
+    mensaje: str
+    payload_json: str
+    accion_automatica: str
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class CitizenArcoSimulationRequest(BaseModel):
+    titular_nombre: str
+    titular_rut: str
+    titular_email: str
+    tipo_derecho: str # Acceso, Rectificación, Supresión / Cancelación, Oposición, Portabilidad, Bloqueo
+    tratamiento_id: int | None = None
+    detalle_solicitud: str
+    clave_unica_verificada: bool = True
+
+
+
 

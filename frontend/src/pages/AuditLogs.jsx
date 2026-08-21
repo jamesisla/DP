@@ -10,13 +10,17 @@ import {
   CheckCircle2,
   AlertTriangle,
   FileCheck2,
-  Scale
+  Scale,
+  KeyRound,
+  Fingerprint,
+  FileCode2,
+  Check
 } from "lucide-react";
 import { Panel } from "../components/Panel";
 import { api, API_URL } from "../lib/api";
 
 export function AuditLogs({ auditLogs = [], token, onReload }) {
-  const [activeTab, setActiveTab] = useState("audit"); // 'audit', 'mock_audit'
+  const [activeTab, setActiveTab] = useState("audit"); // 'audit', 'mock_audit', 'ledger'
   const [filterQuery, setFilterQuery] = useState("");
 
   // Mock audit state
@@ -25,9 +29,44 @@ export function AuditLogs({ auditLogs = [], token, onReload }) {
   const [auditResult, setAuditResult] = useState(null);
   const [evaluating, setEvaluating] = useState(false);
 
+  // Ledger state
+  const [ledger, setLedger] = useState({ total_evidencias_selladas: 0, ledger: [] });
+  const [hashInput, setHashInput] = useState("");
+  const [verificationResult, setVerificationResult] = useState(null);
+  const [verifying, setVerifying] = useState(false);
+
   useEffect(() => {
     loadMockAuditQuestions();
+    loadLedger();
   }, [token]);
+
+  async function loadLedger() {
+    try {
+      const data = await api("/dp-integrity-ledger", token);
+      setLedger(data);
+    } catch (err) {
+      console.error("Error cargando ledger:", err);
+    }
+  }
+
+  async function handleVerifyHash(e) {
+    e.preventDefault();
+    if (!hashInput.trim()) return;
+    setVerifying(true);
+    try {
+      const isHash = hashInput.trim().length === 64;
+      const payload = isHash ? { hash: hashInput.trim() } : { texto: hashInput.trim() };
+      const res = await api("/dp-verify-hash", token, {
+        method: "POST",
+        body: JSON.stringify(payload)
+      });
+      setVerificationResult(res);
+    } catch (err) {
+      alert("Error al verificar: " + err.message);
+    } finally {
+      setVerifying(false);
+    }
+  }
 
   async function loadMockAuditQuestions() {
     try {
@@ -133,18 +172,24 @@ export function AuditLogs({ auditLogs = [], token, onReload }) {
       </div>
 
       {/* Tab Selector */}
-      <div className="flex bg-slate-200/70 p-1 rounded-xl border border-slate-300 max-w-lg">
+      <div className="flex bg-slate-200/70 p-1 rounded-xl border border-slate-300 max-w-xl">
         <button
           onClick={() => setActiveTab("audit")}
           className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-all ${activeTab === "audit" ? "bg-white text-slate-900 shadow-2xs" : "text-slate-600 hover:text-slate-900"}`}
         >
-          Bitácora de Auditoría ({auditLogs.length})
+          Bitácora ({auditLogs.length})
         </button>
         <button
           onClick={() => setActiveTab("mock_audit")}
           className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-all ${activeTab === "mock_audit" ? "bg-white text-teal-800 shadow-2xs" : "text-slate-600 hover:text-slate-900"}`}
         >
-          Simulador de Fiscalización
+          Simulador Fiscalización
+        </button>
+        <button
+          onClick={() => setActiveTab("ledger")}
+          className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-all ${activeTab === "ledger" ? "bg-white text-indigo-700 shadow-2xs" : "text-slate-600 hover:text-slate-900"}`}
+        >
+          Verificador SHA-256 ({ledger.total_evidencias_selladas})
         </button>
       </div>
 
@@ -310,6 +355,99 @@ export function AuditLogs({ auditLogs = [], token, onReload }) {
                   </div>
                 );
               })}
+            </div>
+          </div>
+
+        </div>
+      ) : (
+        /* TAB 3: SHA-256 CRYPTOGRAPHIC LEDGER & VERIFIER */
+        <div className="space-y-6">
+          
+          {/* Interactive Hash Verifier Tool */}
+          <div className="rounded-xl border border-line bg-white p-6 shadow-sm space-y-4">
+            <div className="flex items-center gap-3 border-b border-slate-100 pb-3">
+              <div className="grid h-10 w-10 place-items-center rounded-xl bg-indigo-50 text-indigo-700 border border-indigo-100">
+                <Fingerprint size={20} />
+              </div>
+              <div>
+                <h3 className="font-bold text-slate-800 text-sm">Verificador Criptográfico de No-Repudio (SHA-256)</h3>
+                <p className="text-xs text-slate-400">Ingresa un hash SHA-256 o pega el texto de un acta/documento para verificar su autenticidad contra el ledger.</p>
+              </div>
+            </div>
+
+            <form onSubmit={handleVerifyHash} className="space-y-3">
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  className="field text-xs font-mono"
+                  placeholder="Pega un hash SHA-256 (64 caracteres) o texto de evidencia..."
+                  value={hashInput}
+                  onChange={(e) => setHashInput(e.target.value)}
+                />
+                <button
+                  type="submit"
+                  disabled={verifying}
+                  className="btn bg-indigo-700 hover:bg-indigo-800 text-white text-xs font-bold px-4 shrink-0"
+                >
+                  {verifying ? "Verificando..." : "Verificar Autenticidad"}
+                </button>
+              </div>
+            </form>
+
+            {verificationResult && (
+              <div className={`p-4 rounded-xl border text-xs flex items-start gap-3 ${verificationResult.verified ? "bg-emerald-50 border-emerald-300 text-emerald-900" : "bg-rose-50 border-rose-300 text-rose-900"}`}>
+                {verificationResult.verified ? <CheckCircle2 size={20} className="text-emerald-600 shrink-0 mt-0.5" /> : <AlertTriangle size={20} className="text-rose-600 shrink-0 mt-0.5" />}
+                <div className="space-y-1">
+                  <p className="font-bold">{verificationResult.verified ? "EVIDENCIA CRIPTOGRÁFICAMENTE VÁLIDA" : "HASH NO REGISTRADO O ALTERADO"}</p>
+                  <p className="text-[11px]">{verificationResult.detalle}</p>
+                  <p className="font-mono text-[10px] text-slate-500">Hash evaluado: {verificationResult.hash_analizado}</p>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Ledger Table */}
+          <div className="rounded-xl border border-line bg-white p-6 shadow-sm space-y-4">
+            <div className="flex justify-between items-center border-b border-slate-100 pb-3">
+              <div>
+                <span className="text-[10px] uppercase font-bold text-indigo-600 tracking-wider">Libro Mayor Inmutable</span>
+                <h3 className="font-bold text-slate-800 text-sm">Registro Sellado de Evidencias Institucionales</h3>
+              </div>
+              <span className="text-xs font-bold px-2.5 py-1 rounded bg-indigo-50 text-indigo-800 border border-indigo-200">
+                {ledger.algoritmo || "SHA-256"}
+              </span>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead>
+                  <tr className="border-b border-slate-200 text-slate-400 font-bold uppercase text-[10px]">
+                    <th className="py-2.5 px-3">Tipo de Evidencia</th>
+                    <th className="py-2.5 px-3">Identificador / Título</th>
+                    <th className="py-2.5 px-3">Fecha Sellado</th>
+                    <th className="py-2.5 px-3 font-mono">Hash SHA-256</th>
+                    <th className="py-2.5 px-3 text-right">Estado Sello</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 text-slate-700 font-medium">
+                  {ledger.ledger && ledger.ledger.map((item) => (
+                    <tr key={item.id} className="hover:bg-slate-50">
+                      <td className="py-3 px-3 font-bold text-slate-800">{item.tipo_entidad}</td>
+                      <td className="py-3 px-3">{item.identificador}</td>
+                      <td className="py-3 px-3 text-slate-400 font-mono text-[11px]">{item.fecha}</td>
+                      <td className="py-3 px-3 font-mono text-[10px] text-slate-500 truncate max-w-[200px]" title={item.hash_sha256}>
+                        {item.hash_sha256}
+                      </td>
+                      <td className="py-3 px-3 text-right">
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                          <Check size={10} />
+                          {item.estado_sello}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </div>
 

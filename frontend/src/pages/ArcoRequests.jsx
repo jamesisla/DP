@@ -57,6 +57,15 @@ export function ArcoRequests({ arcoRequests = [], areas = [], users = [], token,
   const [resolveEstado, setResolveEstado] = useState("Respondida favorable");
   const [fundamentoRespuesta, setFundamentoRespuesta] = useState("");
 
+  // Citizen Portal Sandbox Modal state
+  const [citizenModalOpen, setCitizenModalOpen] = useState(false);
+  const [citizenName, setCitizenName] = useState("Camila Andrea Rojas Morales");
+  const [citizenRut, setCitizenRut] = useState("16.892.415-K");
+  const [citizenEmail, setCitizenEmail] = useState("camila.rojas@gmail.com");
+  const [citizenRight, setCitizenRight] = useState("Acceso");
+  const [citizenDetails, setCitizenDetails] = useState("Solicito copia en formato interoperable de mi historial de atenciones médicas y datos de contacto registrados en el sistema institucional.");
+  const [citizenResult, setCitizenResult] = useState(null);
+
   // Business day calculation helper
   function getBusinessDaysRemaining(limitDateStr) {
     const limit = new Date(limitDateStr);
@@ -202,6 +211,34 @@ export function ArcoRequests({ arcoRequests = [], areas = [], users = [], token,
     }
   }
 
+  async function handleSimulateCitizenSubmit(e) {
+    e.preventDefault();
+    setSubmitting(true);
+    setError("");
+    try {
+      const payload = {
+        titular_nombre: citizenName,
+        titular_rut: citizenRut,
+        titular_email: citizenEmail,
+        tipo_derecho: citizenRight,
+        detalle_solicitud: citizenDetails,
+        clave_unica_verificada: true
+      };
+
+      const res = await api("/gateways/simulate-citizen-arco", token, {
+        method: "POST",
+        body: JSON.stringify(payload)
+      });
+
+      setCitizenResult(res);
+      if (onReload) onReload();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
   return (
     <div className="p-6 lg:p-8 max-w-7xl mx-auto space-y-6">
       
@@ -220,13 +257,22 @@ export function ArcoRequests({ arcoRequests = [], areas = [], users = [], token,
           </div>
         </div>
 
-        <button
-          onClick={openCreate}
-          className="flex items-center gap-1.5 rounded bg-brand px-4 py-2 text-sm font-semibold text-white hover:bg-opacity-95 shadow-sm shrink-0"
-        >
-          <Plus size={16} />
-          Ingresar Solicitud ARCO+
-        </button>
+        <div className="flex items-center gap-2.5 flex-wrap">
+          <button
+            onClick={() => { setCitizenResult(null); setError(""); setCitizenModalOpen(true); }}
+            className="flex items-center gap-1.5 rounded bg-indigo-50 border border-indigo-200 px-3.5 py-2 text-xs font-bold text-indigo-800 hover:bg-indigo-100 shadow-2xs shrink-0 transition-colors"
+          >
+            <span>🌐 Sandbox Portal Ciudadano</span>
+          </button>
+
+          <button
+            onClick={openCreate}
+            className="flex items-center gap-1.5 rounded bg-brand px-4 py-2 text-xs font-bold text-white hover:bg-opacity-95 shadow-sm shrink-0"
+          >
+            <Plus size={15} />
+            Ingresar Solicitud ARCO+
+          </button>
+        </div>
       </div>
 
       {/* KPI Stats */}
@@ -553,6 +599,136 @@ export function ArcoRequests({ arcoRequests = [], areas = [], users = [], token,
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Citizen Portal Sandbox Modal */}
+      {citizenModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 overflow-y-auto">
+          <div className="w-full max-w-xl rounded-2xl bg-white p-6 shadow-2xl space-y-4">
+            <div className="flex justify-between items-center border-b border-slate-100 pb-3">
+              <div>
+                <span className="text-[10px] uppercase font-bold text-indigo-600 tracking-wider">Gateway Ciudadano Simulado</span>
+                <h3 className="text-base font-bold text-slate-800">Sandbox Portal Ciudadano · ClaveÚnica</h3>
+              </div>
+              <button
+                onClick={() => setCitizenModalOpen(false)}
+                className="text-slate-400 hover:text-slate-600 text-lg font-bold"
+              >
+                &times;
+              </button>
+            </div>
+
+            {citizenResult ? (
+              <div className="space-y-4 py-3">
+                <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-900 space-y-2 text-xs">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle className="text-emerald-600" size={20} />
+                    <h4 className="font-bold text-sm">¡Solicitud Radicada Exitosamente!</h4>
+                  </div>
+                  <p>{citizenResult.message}</p>
+                  <div className="p-3 bg-white rounded-lg border border-emerald-200 font-mono text-[11px] space-y-1">
+                    <p><strong>Folio Legal:</strong> {citizenResult.folio}</p>
+                    <p><strong>Fecha Límite (15d):</strong> {citizenResult.fecha_limite_legal}</p>
+                    <p><strong>Hash SHA-256:</strong> <span className="truncate block text-[10px] text-slate-500">{citizenResult.hash_sha256}</span></p>
+                  </div>
+                </div>
+
+                <div className="flex justify-end">
+                  <button
+                    onClick={() => { setCitizenModalOpen(false); setCitizenResult(null); }}
+                    className="btn bg-slate-900 text-white text-xs font-bold px-4"
+                  >
+                    Cerrar y Ver en Bandeja
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <form onSubmit={handleSimulateCitizenSubmit} className="space-y-3">
+                <div className="p-3 bg-indigo-50/50 border border-indigo-200 rounded-lg text-[11px] text-indigo-900">
+                  <p className="font-bold">Simulación de Flujo Ciudadano:</p>
+                  <p className="text-slate-600">Simula a un ciudadano autenticado con <strong>ClaveÚnica del Estado</strong> ejerciendo sus derechos de acceso o supresión de datos.</p>
+                </div>
+
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div>
+                    <label className="field-label text-xs">Nombre Completo del Titular</label>
+                    <input
+                      type="text"
+                      className="field mt-1 text-xs"
+                      value={citizenName}
+                      onChange={(e) => setCitizenName(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="field-label text-xs">RUT del Titular</label>
+                    <input
+                      type="text"
+                      className="field mt-1 text-xs"
+                      value={citizenRut}
+                      onChange={(e) => setCitizenRut(e.target.value)}
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div>
+                    <label className="field-label text-xs">Correo Electrónico de Notificación</label>
+                    <input
+                      type="email"
+                      className="field mt-1 text-xs"
+                      value={citizenEmail}
+                      onChange={(e) => setCitizenEmail(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="field-label text-xs">Derecho a Ejercer</label>
+                    <select
+                      className="field mt-1 text-xs"
+                      value={citizenRight}
+                      onChange={(e) => setCitizenRight(e.target.value)}
+                    >
+                      {TIPOS_DERECHOS.map(d => (
+                        <option key={d} value={d}>{d}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="field-label text-xs">Detalle de la Petición Ciudadana</label>
+                  <textarea
+                    className="field mt-1 text-xs h-20 py-1.5"
+                    value={citizenDetails}
+                    onChange={(e) => setCitizenDetails(e.target.value)}
+                    required
+                  />
+                </div>
+
+                {error && <p className="text-xs text-rose-600 bg-rose-50 p-2 rounded border border-rose-200">{error}</p>}
+
+                <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
+                  <button
+                    type="button"
+                    onClick={() => setCitizenModalOpen(false)}
+                    className="btn-secondary text-xs"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={submitting}
+                    className="btn bg-indigo-700 hover:bg-indigo-800 text-white text-xs font-bold"
+                  >
+                    {submitting ? "Enviando Solicitud..." : "Simular Envío Ciudadano"}
+                  </button>
+                </div>
+              </form>
+            )}
           </div>
         </div>
       )}

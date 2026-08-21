@@ -505,3 +505,38 @@ class TrainingCampaign(Base, TimestampMixin):
 
     area_responsable: Mapped[Area | None] = relationship("Area")
 
+
+# ==============================================================================
+# CANALES EXTERNOS & TELEMETRÍA (SANDBOX ARCO/CVD & WEBHOOKS HUB)
+# ==============================================================================
+
+class CvdReport(Base, TimestampMixin):
+    __tablename__ = "cvd_reports"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    folio: Mapped[str] = mapped_column(String(60), unique=True, index=True, nullable=False)
+    titulo: Mapped[str] = mapped_column(String(200), nullable=False)
+    investigador_alias: Mapped[str] = mapped_column(String(120), default="Investigador Ético Anónimo")
+    investigador_email: Mapped[str] = mapped_column(String(160), default="")
+    activo_afectado: Mapped[str] = mapped_column(String(200), nullable=False)
+    severidad: Mapped[str] = mapped_column(String(40), default="Alta") # Crítica, Alta, Media, Baja
+    cvss_score: Mapped[float] = mapped_column(Float, default=7.5)
+    descripcion_tecnica: Mapped[str] = mapped_column(Text, nullable=False)
+    poa_remediacion: Mapped[str] = mapped_column(Text, default="")
+    estado: Mapped[str] = mapped_column(String(60), default="Recibido") # Recibido, En Verificación, En Remediación, Resuelto
+    hash_evidencia: Mapped[str] = mapped_column(String(64), default="")
+
+
+class TelemetryEvent(Base, TimestampMixin):
+    __tablename__ = "telemetry_events"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    fuente: Mapped[str] = mapped_column(String(80), nullable=False) # Microsoft Presidio, Wazuh SIEM, Greenbone OpenVAS, MinIO WORM, Keycloak
+    suite: Mapped[str] = mapped_column(String(40), nullable=False) # data_protection, cybersecurity
+    tipo_evento: Mapped[str] = mapped_column(String(120), nullable=False)
+    severidad: Mapped[str] = mapped_column(String(40), default="Medio") # Crítico, Alto, Medio, Informativo
+    mensaje: Mapped[str] = mapped_column(String(255), nullable=False)
+    payload_json: Mapped[str] = mapped_column(Text, default="{}")
+    accion_automatica: Mapped[str] = mapped_column(String(200), default="")
+
+

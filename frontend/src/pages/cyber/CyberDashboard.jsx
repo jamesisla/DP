@@ -57,15 +57,27 @@ export function CyberDashboard({ data, onReload, onNavigate, token }) {
           <h2 className="text-lg font-bold text-slate-800">Panel Ejecutivo de Ciberseguridad (Ley N° 21.663)</h2>
         </div>
 
-        <a
-          href={`${API_URL.replace("/api", "")}/api/cyber/annual-cybersecurity-plan?token=${token}`}
-          download
-          className="inline-flex items-center gap-2 rounded bg-indigo-700 px-3.5 py-2 text-xs font-bold text-white hover:bg-indigo-800 shadow-sm transition-colors shrink-0"
-          title="Descargar Plan Anual Institucional de Ciberseguridad y Resiliencia (2026-2027)"
-        >
-          <FileText size={14} />
-          Plan Anual de Ciberseguridad (MD)
-        </a>
+        <div className="flex items-center gap-2 flex-wrap">
+          <a
+            href={`${API_URL.replace("/api", "")}/api/cyber/executive-onepager-cyber?token=${token}`}
+            download
+            className="inline-flex items-center gap-1.5 rounded border border-indigo-300 bg-indigo-50 px-3 py-2 text-xs font-bold text-indigo-900 hover:bg-indigo-100 shadow-2xs transition-colors shrink-0"
+            title="Descargar Informe Ejecutivo de 1 Página de Ciberdefensa para el Directorio"
+          >
+            <FileText size={14} className="text-indigo-700" />
+            Informe Directorio (1P)
+          </a>
+
+          <a
+            href={`${API_URL.replace("/api", "")}/api/cyber/annual-cybersecurity-plan?token=${token}`}
+            download
+            className="inline-flex items-center gap-2 rounded bg-indigo-700 px-3.5 py-2 text-xs font-bold text-white hover:bg-indigo-800 shadow-sm transition-colors shrink-0"
+            title="Descargar Plan Anual Institucional de Ciberseguridad y Resiliencia (2026-2027)"
+          >
+            <FileText size={14} />
+            Plan Anual de Ciberseguridad (MD)
+          </a>
+        </div>
       </div>
 
       {/* 3h Alert Warning Banner if active */}

@@ -41,6 +41,66 @@ export function CyberIncidents({ incidents = [], token, user, onReload }) {
   const [forensicModalOpen, setForensicModalOpen] = useState(false);
   const [selectedInc, setSelectedInc] = useState(null);
 
+  // Tab state
+  const [activeTab, setActiveTab] = useState("incidentes"); // 'incidentes', 'cvd'
+
+  // CVD state
+  const [cvdReports, setCvdReports] = useState([]);
+  const [cvdModalOpen, setCvdModalOpen] = useState(false);
+  const [cvdTitle, setCvdTitle] = useState("Inyección SQL / Bucle en Endpoint Público de Pagos");
+  const [cvdAlias, setCvdAlias] = useState("SecResearch_CL (Hacker Ético)");
+  const [cvdEmail, setCvdEmail] = useState("research@seclab.org");
+  const [cvdAsset, setCvdAsset] = useState("Portal de Trámites y Pagos Ciudadanos (RSIC-02)");
+  const [cvdSeverity, setCvdSeverity] = useState("Alta");
+  const [cvdScore, setCvdScore] = useState(8.2);
+  const [cvdDesc, setCvdDesc] = useState("Se identificó parámetro 'id_tramite' sin sanitizar que permite inferir esquema de BD y enumerar registros de ciudadanos.");
+  const [cvdPoa, setCvdPoa] = useState("Aplicar consultas preparadas (PreparedStatements) y validación de tipos estricta.");
+  const [cvdSubmitting, setCvdSubmitting] = useState(false);
+
+  React.useEffect(() => {
+    loadCvdReports();
+  }, [token]);
+
+  async function loadCvdReports() {
+    try {
+      const data = await api("/gateways/cvd-reports", token);
+      setCvdReports(data);
+    } catch (err) {
+      console.error("Error cargando reportes CVD:", err);
+    }
+  }
+
+  async function handleCvdSubmit(e) {
+    e.preventDefault();
+    setCvdSubmitting(true);
+    try {
+      const payload = {
+        titulo: cvdTitle,
+        investigador_alias: cvdAlias,
+        investigador_email: cvdEmail,
+        activo_afectado: cvdAsset,
+        severidad: cvdSeverity,
+        cvss_score: parseFloat(cvdScore),
+        descripcion_tecnica: cvdDesc,
+        poa_remediacion: cvdPoa
+      };
+
+      await api("/gateways/simulate-cvd-report", token, {
+        method: "POST",
+        body: JSON.stringify(payload)
+      });
+
+      setCvdModalOpen(false);
+      loadCvdReports();
+      if (onReload) onReload();
+      alert("Reporte CVD simulado y recibido con éxito.");
+    } catch (err) {
+      alert("Error al enviar reporte CVD: " + err.message);
+    } finally {
+      setCvdSubmitting(false);
+    }
+  }
+
   // Form states
   const [tipoAtaque, setTipoAtaque] = useState(TIPOS_ATAQUE[0]);
   const [severidad, setSeveridad] = useState("Alta");
@@ -270,18 +330,36 @@ export function CyberIncidents({ incidents = [], token, user, onReload }) {
         </div>
       </div>
 
-      {/* Urgent 3h banner */}
-      {urgentCount > 0 && (
-        <div className="flex items-start gap-4 rounded-xl border border-rose-300 bg-rose-50 p-4 text-rose-900 shadow-sm animate-pulse">
-          <AlertTriangle className="mt-0.5 text-rose-600 shrink-0" size={22} />
-          <div>
-            <h4 className="font-bold text-sm tracking-tight">ALERTA LEGAL: {urgentCount} INCIDENTE(S) PENDIENTE(S) DE ALERTA TEMPRANA ANCI (PLAZO 3 HORAS)</h4>
-            <p className="mt-0.5 text-xs text-rose-800 font-medium leading-relaxed">
-              El Art. 12 de la Ley N° 21.663 exige remitir la notificación preliminar antes de las 3 horas. Registra los IoCs, ejecuta la cadena forense y despacha el oficio.
-            </p>
-          </div>
-        </div>
-      )}
+      {/* Tab Selector */}
+      <div className="flex bg-slate-200/70 p-1 rounded-xl border border-slate-300 max-w-md">
+        <button
+          onClick={() => setActiveTab("incidentes")}
+          className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-all ${activeTab === "incidentes" ? "bg-white text-indigo-900 shadow-2xs" : "text-slate-600 hover:text-slate-900"}`}
+        >
+          Incidentes ANCI ({incidents.length})
+        </button>
+        <button
+          onClick={() => setActiveTab("cvd")}
+          className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-all ${activeTab === "cvd" ? "bg-white text-indigo-900 shadow-2xs" : "text-slate-600 hover:text-slate-900"}`}
+        >
+          Canal CVD Ético ({cvdReports.length})
+        </button>
+      </div>
+
+      {activeTab === "incidentes" ? (
+        <>
+          {/* Urgent 3h banner */}
+          {urgentCount > 0 && (
+            <div className="flex items-start gap-4 rounded-xl border border-rose-300 bg-rose-50 p-4 text-rose-900 shadow-sm animate-pulse">
+              <AlertTriangle className="mt-0.5 text-rose-600 shrink-0" size={22} />
+              <div>
+                <h4 className="font-bold text-sm tracking-tight">ALERTA LEGAL: {urgentCount} INCIDENTE(S) PENDIENTE(S) DE ALERTA TEMPRANA ANCI (PLAZO 3 HORAS)</h4>
+                <p className="mt-0.5 text-xs text-rose-800 font-medium leading-relaxed">
+                  El Art. 12 de la Ley N° 21.663 exige remitir la notificación preliminar antes de las 3 horas. Registra los IoCs, ejecuta la cadena forense y despacha el oficio.
+                </p>
+              </div>
+            </div>
+          )}
 
       {/* Incidents List */}
       {incidents.length > 0 ? (
@@ -741,6 +819,191 @@ export function CyberIncidents({ incidents = [], token, user, onReload }) {
                   className="rounded bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700 shadow-sm"
                 >
                   {submitting ? "Guardando..." : "Guardar Cambios"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* --- TAB 2: CVD VIEW (CANAL DE DIVULGACIÓN DE VULNERABILIDADES - ART. 12) --- */}
+      {activeTab === "cvd" && (
+        <div className="space-y-5">
+          <div className="rounded-xl border border-line bg-white p-5 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <div className="space-y-1">
+              <span className="text-xs uppercase font-bold text-indigo-600 tracking-wider">Divulgación Responsable (Coordinated Vulnerability Disclosure)</span>
+              <h3 className="text-base font-bold text-slate-800">Bandeja de Reportes de Seguridad Ética (Art. 12 Ley 21.663)</h3>
+              <p className="text-xs text-slate-400">Canal formal para recibir, verificar y mitigar vulnerabilidades técnicas reportadas por investigadores de ciberseguridad.</p>
+            </div>
+
+            <button
+              onClick={() => setCvdModalOpen(true)}
+              className="flex items-center gap-1.5 rounded-lg bg-indigo-700 px-4 py-2 text-xs font-bold text-white hover:bg-indigo-800 shadow-sm shrink-0"
+            >
+              <span>⚡ Simular Reporte Ético (CVD)</span>
+            </button>
+          </div>
+
+          {cvdReports.length > 0 ? (
+            <div className="space-y-3">
+              {cvdReports.map((r) => (
+                <div
+                  key={r.id}
+                  className="p-4 rounded-xl border border-slate-200 bg-white shadow-sm space-y-3"
+                >
+                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-mono text-xs font-bold px-2 py-0.5 rounded bg-indigo-50 text-indigo-800 border border-indigo-200">
+                        {r.folio}
+                      </span>
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${r.severidad === "Crítica" ? "bg-rose-50 text-rose-700 border-rose-200" : "bg-amber-50 text-amber-700 border-amber-200"}`}>
+                        CVSS {r.cvss_score} · {r.severidad}
+                      </span>
+                      <h4 className="font-bold text-xs text-slate-900">{r.titulo}</h4>
+                    </div>
+                    <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-200">
+                      {r.estado}
+                    </span>
+                  </div>
+
+                  <p className="text-xs text-slate-600 leading-relaxed">{r.descripcion_tecnica}</p>
+
+                  <div className="grid gap-2 sm:grid-cols-2 text-[11px] p-2.5 bg-slate-50 rounded-lg border border-slate-150">
+                    <div>
+                      <span className="text-slate-400 font-bold block">Activo Afectado:</span>
+                      <span className="font-semibold text-slate-800">{r.activo_afectado}</span>
+                    </div>
+                    <div>
+                      <span className="text-slate-400 font-bold block">Investigador:</span>
+                      <span className="font-semibold text-slate-800">{r.investigador_alias} ({r.investigador_email || "Anónimo"})</span>
+                    </div>
+                  </div>
+
+                  {r.poa_remediacion && (
+                    <div className="text-[11px] text-emerald-800 bg-emerald-50/60 p-2.5 rounded-lg border border-emerald-200">
+                      <strong>Plan de Remediación / Parche:</strong> {r.poa_remediacion}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="p-12 text-center text-slate-400 bg-white rounded-xl border border-dashed border-slate-200">
+              No hay reportes de vulnerabilidades recibidos. Usa el botón "Simular Reporte Ético" para probar el gateway.
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* --- CVD SIMULATION MODAL --- */}
+      {cvdModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 overflow-y-auto">
+          <div className="w-full max-w-xl rounded-2xl bg-white p-6 shadow-2xl space-y-4">
+            <div className="flex justify-between items-center border-b border-slate-100 pb-3">
+              <div>
+                <span className="text-[10px] uppercase font-bold text-indigo-600 tracking-wider">Gateway de Divulgación Ética</span>
+                <h3 className="text-base font-bold text-slate-800">Simulador de Reporte CVD (Art. 12 ANCI)</h3>
+              </div>
+              <button
+                onClick={() => setCvdModalOpen(false)}
+                className="text-slate-400 hover:text-slate-600 text-lg font-bold"
+              >
+                &times;
+              </button>
+            </div>
+
+            <form onSubmit={handleCvdSubmit} className="space-y-3">
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div>
+                  <label className="field-label text-xs">Título del Hallazgo / Vulnerabilidad</label>
+                  <input
+                    type="text"
+                    className="field mt-1 text-xs"
+                    value={cvdTitle}
+                    onChange={(e) => setCvdTitle(e.target.value)}
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="field-label text-xs">Activo o Endpoint RSIC Afectado</label>
+                  <input
+                    type="text"
+                    className="field mt-1 text-xs"
+                    value={cvdAsset}
+                    onChange={(e) => setCvdAsset(e.target.value)}
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="grid gap-3 sm:grid-cols-3">
+                <div>
+                  <label className="field-label text-xs">Puntaje CVSS v3.1</label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    min="1.0"
+                    max="10.0"
+                    className="field mt-1 text-xs font-bold font-mono"
+                    value={cvdScore}
+                    onChange={(e) => setCvdScore(e.target.value)}
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="field-label text-xs">Severidad</label>
+                  <select
+                    className="field mt-1 text-xs"
+                    value={cvdSeverity}
+                    onChange={(e) => setCvdSeverity(e.target.value)}
+                  >
+                    {SEVERIDADES.map(s => <option key={s} value={s}>{s}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="field-label text-xs">Alias del Investigador</label>
+                  <input
+                    type="text"
+                    className="field mt-1 text-xs"
+                    value={cvdAlias}
+                    onChange={(e) => setCvdAlias(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="field-label text-xs">Descripción Técnica del Vector de Ataque</label>
+                <textarea
+                  className="field mt-1 text-xs h-20 py-1.5"
+                  value={cvdDesc}
+                  onChange={(e) => setCvdDesc(e.target.value)}
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="field-label text-xs">Recomendación Técnica de Parche / Remediación</label>
+                <textarea
+                  className="field mt-1 text-xs h-16 py-1.5"
+                  value={cvdPoa}
+                  onChange={(e) => setCvdPoa(e.target.value)}
+                />
+              </div>
+
+              <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setCvdModalOpen(false)}
+                  className="btn-secondary text-xs"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={cvdSubmitting}
+                  className="btn bg-indigo-700 hover:bg-indigo-800 text-white text-xs font-bold"
+                >
+                  {cvdSubmitting ? "Enviando..." : "Simular Envío de Reporte"}
                 </button>
               </div>
             </form>

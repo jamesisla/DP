@@ -27,6 +27,7 @@ import { CyberMaturity } from "../pages/cyber/CyberMaturity";
 import { CyberIncidents } from "../pages/cyber/CyberIncidents";
 import { CyberSimulations } from "../pages/cyber/CyberSimulations";
 import { CyberPolicies } from "../pages/cyber/CyberPolicies";
+import { CyberAudit } from "../pages/cyber/CyberAudit";
 import { OpenSourceCyber } from "../pages/cyber/OpenSourceCyber";
 
 export function Shell({ session, onLogout }) {
@@ -446,39 +447,7 @@ export function Shell({ session, onLogout }) {
           />
         );
       case "cyber_audit":
-        return (
-          <div className="p-8 max-w-4xl mx-auto space-y-6">
-            <div className="rounded-xl border border-line bg-white p-6 shadow-sm space-y-4">
-              <div className="flex items-center gap-3">
-                <ShieldCheck size={32} className="text-indigo-600" />
-                <div>
-                  <h3 className="text-lg font-bold text-slate-800">Expediente de Cumplimiento Ciberseguridad (ANCI)</h3>
-                  <p className="text-xs text-slate-500">Descarga el compendio completo de evidencias estructuradas conforme a la Ley 21.663.</p>
-                </div>
-              </div>
-
-              <div className="p-4 bg-indigo-50/50 border border-indigo-200 rounded-lg text-xs text-indigo-900 space-y-2">
-                <p className="font-bold">Contenido del archivo ZIP estructurado:</p>
-                <ul className="list-disc list-inside space-y-1 text-slate-700">
-                  <li>01_Gobernanza_ANCI/ (Actas de nombramiento del CISO y Comité)</li>
-                  <li>02_Activos_Criticos_RSIC/ (Inventario de Redes y Sistemas Esenciales)</li>
-                  <li>03_Gestion_Riesgos_Madurez/ (Diagnóstico de Madurez NIST CSF)</li>
-                  <li>04_Politicas_Continuidad/ (PGSI, Plan de Respuesta PRI, Plan de Continuidad BCP)</li>
-                  <li>05_Notificaciones_ANCI/ (Registro de Alertas Tempranas 3h y Reportes 72h)</li>
-                </ul>
-              </div>
-
-              <a
-                href={`${API_URL.replace("/api", "")}/api/cyber/evidence-zip?token=${session.access_token}`}
-                download
-                className="inline-flex items-center gap-2 px-5 py-2.5 bg-indigo-600 text-white rounded-lg text-xs font-bold hover:bg-indigo-700 shadow-sm"
-              >
-                <ShieldCheck size={16} />
-                Descargar Expediente ANCI (.ZIP)
-              </a>
-            </div>
-          </div>
-        );
+        return <CyberAudit token={session.access_token} />;
 
       default:
         return <div className="p-8">Módulo no implementado: {active}</div>;
