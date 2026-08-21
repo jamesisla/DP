@@ -29,6 +29,7 @@ from app.models.domain import (
     Riesgo,
     SecurityBreach,
     Tarea,
+    TrainingCampaign,
     TreatmentActivity,
     User,
 )
@@ -824,5 +825,54 @@ Todo incidente con impacto potencial en servicios esenciales debe ser comunicado
         ))
         db.flush()
 
+    # 21. Seed Capacitaciones y Concientización (Art. 14 L21.719 / Art. 8 L21.663)
+    if not db.query(TrainingCampaign).first():
+        db.add_all([
+            TrainingCampaign(
+                titulo="Campaña Nacional de Phishing Simulado y Detección de Ingeniería Social",
+                tipo="Phishing Simulado ANCI",
+                descripcion="Evaluación controlada de correos simulados de suplantación bancaria y de RRHH para medir la vulnerabilidad del personal ante ataques de phishing.",
+                fecha_inicio=date(2026, 4, 1),
+                fecha_fin=date(2026, 4, 30),
+                total_convocados=150,
+                total_capacitados=138,
+                porcentaje_aprobacion=92,
+                tasa_clic_phishing=4.2,
+                estado="Finalizada",
+                instructor_o_plataforma="Plataforma de Simulación CISO / ANCI",
+                area_responsable_id=db_areas["Tecnología de la Información"].id
+            ),
+            TrainingCampaign(
+                titulo="Curso Obligatorio de Protección de Datos Personales y Deber de Secreto (Ley 21.719)",
+                tipo="Protección de Datos Ley 21.719",
+                descripcion="Taller formativo sobre bases de licitud, tratamiento de datos sensibles, confidencialidad y protocolo de escalamiento de derechos ARCO+.",
+                fecha_inicio=date(2026, 5, 10),
+                fecha_fin=date(2026, 6, 10),
+                total_convocados=150,
+                total_capacitados=145,
+                porcentaje_aprobacion=96,
+                tasa_clic_phishing=0.0,
+                estado="Finalizada",
+                instructor_o_plataforma="Delegado de Protección de Datos (DPO)",
+                area_responsable_id=db_areas["Legal y Cumplimiento"].id
+            ),
+            TrainingCampaign(
+                titulo="Taller de Higiene de Contraseñas, MFA y Uso Seguro de Dispositivos Móviles",
+                tipo="Higiene de Contraseñas & MFA",
+                descripcion="Entrenamiento práctico en autenticación multifactor FIDO2, bloqueo automático de pantallas y directivas de teletrabajo seguro.",
+                fecha_inicio=date(2026, 8, 1),
+                fecha_fin=date(2026, 8, 31),
+                total_convocados=150,
+                total_capacitados=110,
+                porcentaje_aprobacion=88,
+                tasa_clic_phishing=0.0,
+                estado="En Ejecución",
+                instructor_o_plataforma="Área de Infraestructura y Ciberseguridad",
+                area_responsable_id=db_areas["Tecnología de la Información"].id
+            )
+        ])
+        db.flush()
+
     db.commit()
+
 

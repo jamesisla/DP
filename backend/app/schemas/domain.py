@@ -684,3 +684,38 @@ class CyberSimulationCreate(BaseModel):
     estado: str = "Planificado"
 
 
+class TrainingCampaignRead(BaseModel):
+    id: int
+    titulo: str
+    tipo: str
+    descripcion: str
+    fecha_inicio: date
+    fecha_fin: date
+    total_convocados: int
+    total_capacitados: int
+    porcentaje_aprobacion: int
+    tasa_clic_phishing: float
+    estado: str
+    instructor_o_plataforma: str
+    area_responsable_id: int | None = None
+    area_responsable: AreaRead | None = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class TrainingCampaignCreate(BaseModel):
+    titulo: str
+    tipo: str = "Protección de Datos Ley 21.719"
+    descripcion: str = ""
+    fecha_inicio: date
+    fecha_fin: date
+    total_convocados: int = 100
+    total_capacitados: int = 0
+    porcentaje_aprobacion: int = 0
+    tasa_clic_phishing: float = 0.0
+    estado: str = "Planificada"
+    instructor_o_plataforma: str = "DPO / CISO Institucional"
+    area_responsable_id: int | None = None
+
+
+

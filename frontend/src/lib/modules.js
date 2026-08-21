@@ -16,7 +16,8 @@ import {
   FileCode,
   Radio,
   Sliders,
-  Flame
+  Flame,
+  GraduationCap
 } from "lucide-react";
 
 export const suites = [
@@ -42,6 +43,7 @@ export const dataProtectionModules = [
   { id: "matrix", label: "Matriz (Wizard)", icon: ClipboardList },
   { id: "risks", label: "Riesgos y EIPD", icon: AlertTriangle },
   { id: "documents", label: "Documentos", icon: FileText },
+  { id: "training", label: "Capacitación & Cultura", icon: GraduationCap },
   { id: "committee", label: "Comité Ejecutivo", icon: UsersRound },
   { id: "providers", label: "Terceros/Proveedores", icon: BookOpenCheck },
   { id: "arco", label: "Derechos ARCO+ (15d)", icon: UserCheck, badgeKey: "urgent_arco" },
@@ -58,6 +60,7 @@ export const cybersecurityModules = [
   { id: "cyber_maturity", label: "Madurez NIST / ANCI", icon: Activity },
   { id: "cyber_incidents", label: "Incidentes ANCI (3h / 72h)", icon: Radio, badgeKey: "urgent_3h" },
   { id: "cyber_simulations", label: "Simulador de Crisis / War Games", icon: Flame },
+  { id: "cyber_training", label: "Phishing & Capacitación", icon: GraduationCap },
   { id: "cyber_policies", label: "Políticas & Planes PRI/BCP", icon: FileCode },
   { id: "cyber_audit", label: "Expediente ANCI (ZIP)", icon: ShieldCheck },
 ];

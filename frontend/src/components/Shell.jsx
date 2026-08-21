@@ -15,6 +15,7 @@ import { ArcoRequests } from "../pages/ArcoRequests";
 import { SecurityBreaches } from "../pages/SecurityBreaches";
 import { AuditLogs } from "../pages/AuditLogs";
 import { OracleMissions } from "../pages/OracleMissions";
+import { TrainingCampaigns } from "../pages/TrainingCampaigns";
 
 // Cybersecurity Pages (Ley 21.663 / ANCI)
 import { CyberDashboard } from "../pages/cyber/CyberDashboard";
@@ -54,6 +55,7 @@ export function Shell({ session, onLogout }) {
     breaches: [],
     auditLogs: [],
     users: [],
+    trainingCampaigns: [],
     // Suite 2: Cybersecurity
     cyberDashboard: null,
     cyberProjects: [],
@@ -118,6 +120,7 @@ export function Shell({ session, onLogout }) {
         breaches,
         auditLogs,
         users,
+        trainingCampaigns,
         cyberDashboard,
         cyberProjects,
         cyberFases,
@@ -140,6 +143,7 @@ export function Shell({ session, onLogout }) {
         api("/breaches", session.access_token).catch(() => []),
         api("/audit-logs", session.access_token).catch(() => []),
         api("/users", session.access_token).catch(() => []),
+        api("/training/campaigns", session.access_token).catch(() => []),
         // Cyber suite calls
         api("/cyber/dashboard", session.access_token).catch(() => null),
         api("/cyber/project", session.access_token).catch(() => []),
@@ -165,6 +169,7 @@ export function Shell({ session, onLogout }) {
         breaches,
         auditLogs,
         users,
+        trainingCampaigns,
         cyberDashboard,
         cyberProjects,
         cyberFases,
@@ -290,6 +295,16 @@ export function Shell({ session, onLogout }) {
             onReload={load}
           />
         );
+      case "training":
+        return (
+          <TrainingCampaigns
+            campaigns={data.trainingCampaigns}
+            areas={data.areas}
+            token={session.access_token}
+            user={session.user}
+            onReload={load}
+          />
+        );
       case "committee":
         return (
           <Committee
@@ -400,6 +415,16 @@ export function Shell({ session, onLogout }) {
         return (
           <CyberSimulations
             simulations={data.cyberSimulations}
+            token={session.access_token}
+            user={session.user}
+            onReload={load}
+          />
+        );
+      case "cyber_training":
+        return (
+          <TrainingCampaigns
+            campaigns={data.trainingCampaigns}
+            areas={data.areas}
             token={session.access_token}
             user={session.user}
             onReload={load}

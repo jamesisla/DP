@@ -478,3 +478,28 @@ class CaseTicket(Base, TimestampMixin):
     status: Mapped[str] = mapped_column(String(80), default="Nuevo")
     assigned_to_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True)
     assigned_to: Mapped[User | None] = relationship("User", foreign_keys=[assigned_to_id])
+
+
+# ==============================================================================
+# CAPACITACIÓN & CONCIENTIZACIÓN (ART. 14 LEY 21.719 & ART. 8 LEY 21.663)
+# ==============================================================================
+
+class TrainingCampaign(Base, TimestampMixin):
+    __tablename__ = "training_campaigns"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    titulo: Mapped[str] = mapped_column(String(200), nullable=False)
+    tipo: Mapped[str] = mapped_column(String(100), default="Protección de Datos Ley 21.719") # "Protección de Datos Ley 21.719", "Phishing Simulado ANCI", "Higiene de Contraseñas & MFA", "Respuesta a Incidentes"
+    descripcion: Mapped[str] = mapped_column(Text, default="")
+    fecha_inicio: Mapped[date] = mapped_column(Date, nullable=False)
+    fecha_fin: Mapped[date] = mapped_column(Date, nullable=False)
+    total_convocados: Mapped[int] = mapped_column(Integer, default=100)
+    total_capacitados: Mapped[int] = mapped_column(Integer, default=0)
+    porcentaje_aprobacion: Mapped[int] = mapped_column(Integer, default=0)
+    tasa_clic_phishing: Mapped[float] = mapped_column(Float, default=0.0)
+    estado: Mapped[str] = mapped_column(String(60), default="Planificada") # "Planificada", "En Ejecución", "Finalizada"
+    instructor_o_plataforma: Mapped[str] = mapped_column(String(160), default="DPO / CISO Institucional")
+    area_responsable_id: Mapped[int | None] = mapped_column(ForeignKey("areas.id"), nullable=True)
+
+    area_responsable: Mapped[Area | None] = relationship("Area")
+

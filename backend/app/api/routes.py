@@ -13,6 +13,7 @@ from app.routers.matrix import router as matrix_router
 from app.routers.projects import router as projects_router
 from app.routers.providers import router as providers_router
 from app.routers.risks import router as risks_router
+from app.routers.training import router as training_router
 from app.routers.users import router as users_router
 
 router = APIRouter()
@@ -37,6 +38,8 @@ router.include_router(arco_router)
 router.include_router(breaches_router)
 router.include_router(audit_router)
 router.include_router(legacy_router)
+router.include_router(training_router)
 
 # Ley 21.663 - Cybersecurity & ANCI
 router.include_router(cyber_router)
+
