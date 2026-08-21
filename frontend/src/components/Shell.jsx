@@ -16,6 +16,7 @@ import { SecurityBreaches } from "../pages/SecurityBreaches";
 import { AuditLogs } from "../pages/AuditLogs";
 import { OracleMissions } from "../pages/OracleMissions";
 import { TrainingCampaigns } from "../pages/TrainingCampaigns";
+import { OpenSourcePrivacy } from "../pages/OpenSourcePrivacy";
 
 // Cybersecurity Pages (Ley 21.663 / ANCI)
 import { CyberDashboard } from "../pages/cyber/CyberDashboard";
@@ -26,6 +27,7 @@ import { CyberMaturity } from "../pages/cyber/CyberMaturity";
 import { CyberIncidents } from "../pages/cyber/CyberIncidents";
 import { CyberSimulations } from "../pages/cyber/CyberSimulations";
 import { CyberPolicies } from "../pages/cyber/CyberPolicies";
+import { OpenSourceCyber } from "../pages/cyber/OpenSourceCyber";
 
 export function Shell({ session, onLogout }) {
   // Determine initial suite and active module from window.location.hash
@@ -351,6 +353,8 @@ export function Shell({ session, onLogout }) {
             onReload={load}
           />
         );
+      case "opensource_privacy":
+        return <OpenSourcePrivacy token={session.access_token} />;
       case "oracle":
         return <OracleMissions />;
 
@@ -430,6 +434,8 @@ export function Shell({ session, onLogout }) {
             onReload={load}
           />
         );
+      case "cyber_opensource":
+        return <OpenSourceCyber token={session.access_token} />;
       case "cyber_policies":
         return (
           <CyberPolicies

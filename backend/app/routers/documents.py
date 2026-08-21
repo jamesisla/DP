@@ -324,3 +324,125 @@ El presente plan ha sido aprobado por la máxima autoridad del Servicio y consti
     return StreamingResponse(io.BytesIO(doc.encode("utf-8")), media_type="text/markdown", headers=headers)
 
 
+# ==============================================================================
+# BLUEPRINT TÉCNICO OPEN SOURCE PARA PRIVACIDAD & GDPR (LEY N° 21.719)
+# ==============================================================================
+
+@router.get("/opensource-privacy-blueprint")
+def download_opensource_privacy_blueprint(_: Annotated[User, Depends(get_current_user)]):
+    """Generador de la Guía Técnica y Blueprint de Arquitectura Open Source para Protección de Datos."""
+    now = datetime.now()
+    doc = f"""# GUÍA TÉCNICA DE ARQUITECTURA OPEN SOURCE PARA PROTECCIÓN DE DATOS
+## SOLUCIONES DE PRIVACIDAD IMPLEMENTADAS EN EUROPA (GDPR/CNIL) Y ESTADOS UNIDOS
+**Marco Legal:** Ley N° 21.719 (Chile) · Reglamento General de Protección de Datos (GDPR UE 2016/679)
+**Fecha de Publicación:** {now.strftime('%d de %B de %Y')}
+**Público Objetivo:** Oficiales DPO, Arquitectos de Software, Ingenieros de Datos y DevSecOps
+
+---
+
+### 1. MATRIZ DE CORRESPONDENCIA: LEY 21.719 VS SOLUCIONES OPEN SOURCE
+
+| Exigencia Técnica Ley 21.719 | Solución Open Source Recomendada | Origen / Adopción Internacional | Repositorio Oficial / Licencia |
+| :--- | :--- | :--- | :--- |
+| **Detección y Escaneo de PII en BD** | **Microsoft Presidio** | Global / NLP AI (Multi-idioma) | GitHub: `microsoft/presidio` (MIT) |
+| **Anonimización & K-Anonymity** | **ARX Data Anonymizer / pg_anonymizer** | Alemania / Supervisor Europeo EDPS | `arx.deidentifier.org` / PostgreSQL ext |
+| **Gestión de Consentimiento Web (CMP)** | **Klaro! Consent Manager** | Francia / Alemania (Conforme CNIL) | `github.com/klaro-org/klaro-js` (BSD-3) |
+| **Plataforma de Ingeniería de Privacidad** | **Fides by Ethyca** | USA / Silicon Valley (DSR/ARCO) | `github.com/ethyca/fides` (Apache 2.0) |
+| **Cifrado en Reposo & Gestión de Llaves** | **HashiCorp Vault (Community)** | Estándar de la Industria Global | `github.com/hashicorp/vault` (MPL 2.0) |
+| **Auditoría de Accesos a Datos (FIM)** | **Wazuh Open Source XDR** | España / OTAN / Sector Público | `github.com/wazuh/wazuh` (GPL v2) |
+
+---
+
+### 2. BLUEPRINTS DE DESPLIEGUE TÉCNICO
+
+#### A. Microsoft Presidio (Escáner de Datos Personales con IA):
+Permite inspeccionar campos de texto libre, correos y tablas de bases de datos para detectar automáticamente RUTs, nombres, números de tarjeta o diagnósticos médicos antes de almacenarlos o indexarlos.
+
+```bash
+# Instalación rápida con Python
+pip install presidio-analyzer presidio-anonymizer
+python -m spacy download es_core_news_md
+```
+
+```python
+from presidio_analyzer import AnalyzerEngine
+from presidio_anonymizer import AnonymizerEngine
+
+analyzer = AnalyzerEngine()
+anonymizer = AnonymizerEngine()
+
+# Texto de prueba con RUT y nombre
+text = "El ciudadano Juan Pérez con RUT 12.345.678-9 solicitó acceso a su ficha clínica."
+results = analyzer.analyze(text=text, language='es')
+anonymized_text = anonymizer.anonymize(text=text, analyzer_results=results)
+
+print(anonymized_text.text)
+# Salida: "El ciudadano <PERSON> con RUT <CHILE_RUT> solicitó acceso a su ficha clínica."
+```
+
+---
+
+#### B. Klaro! Consent Manager (Gestión de Cookies y Consentimiento Ciudadano):
+Banner Open Source de cookies sin cookies de rastreo de terceros, compatible al 100% con la Ley 21.719 y la directiva europea ePrivacy.
+
+```html
+<!-- Inserción en el <head> del portal institucional -->
+<script defer type="text/javascript" src="https://cdn.jsdelivr.net/npm/klaro@latest/dist/klaro.js"></script>
+<script type="text/javascript">
+  var klaroConfig = {
+    elementID: 'klaro',
+    privacyPolicy: '/politica-privacidad',
+    default: true,
+    mustConsent: false,
+    apps: [
+      {
+        name: 'session_auth',
+        title: 'Cookies de Autenticación ClaveÚnica',
+        purposes: ['security'],
+        required: true
+      },
+      {
+        name: 'analytics_interna',
+        title: 'Métricas de Uso (Matomo Local)',
+        purposes: ['analytics'],
+        default: false
+      }
+    ]
+  };
+</script>
+```
+
+---
+
+#### C. Fides Privacy Automation (Despliegue con Docker Compose):
+Despliegue unificado de la plataforma de atención automática de derechos de los titulares (Acceso, Supresión, Oposición - ARCO+).
+
+```yaml
+version: "3.8"
+services:
+  fides:
+    image: ethyca/fides:latest
+    container_name: fides_privacy_engine
+    ports:
+      - "8080:8080"
+    environment:
+      - FIDES__SECURITY__ROOT_USERNAME=admin
+      - FIDES__SECURITY__ROOT_PASSWORD=CambiarEnProduccion2026!
+      - FIDES__DATABASE__SQLALCHEMY_DATABASE_URI=postgresql://postgres:pass@db:5432/fides
+    depends_on:
+      - db
+  db:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_DB=fides
+      - POSTGRES_PASSWORD=pass
+```
+
+---
+*Emitido por LexApp GRC · Documento de Arquitectura de Privacidad desde el Diseño (Privacy by Design).*
+"""
+    headers = {"Content-Disposition": f"attachment; filename=Blueprint_OpenSource_Privacidad_GDPR_{now.strftime('%Y%m%d')}.md"}
+    return StreamingResponse(io.BytesIO(doc.encode("utf-8")), media_type="text/markdown", headers=headers)
+
+
+

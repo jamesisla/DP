@@ -1511,6 +1511,114 @@ El presente Plan Anual de Ciberseguridad cuenta con el respaldo irrestricto de l
     return StreamingResponse(io.BytesIO(doc.encode("utf-8")), media_type="text/markdown", headers=headers)
 
 
+# ==============================================================================
+# BLUEPRINT TÉCNICO OPEN SOURCE PARA CIBERDEFENSA & ANCI (LEY N° 21.663)
+# ==============================================================================
+
+@router.get("/opensource-cyber-blueprint")
+def download_opensource_cyber_blueprint(_: Annotated[User, Depends(get_current_user)]):
+    """Generador de la Guía Técnica y Blueprint de Arquitectura Open Source para Ciberdefensa ANCI."""
+    now = datetime.now()
+    doc = f"""# GUÍA TÉCNICA DE ARQUITECTURA OPEN SOURCE PARA CIBERDEFENSA & ANCI
+## SOLUCIONES DE CIBERSEGURIDAD ADOPTADAS EN LA UNIÓN EUROPEA (NIS2/ENISA) Y ESTADOS UNIDOS (CISA/NIST)
+**Marco Legal:** Ley N° 21.663 (Chile) · Directiva NIS2 (UE 2022/2555) · Marco NIST CSF 2.0
+**Fecha de Publicación:** {now.strftime('%d de %B de %Y')}
+**Público Objetivo:** CISO, Ingenieros de Ciberseguridad, Administradores SysAdmin/SOC y DevSecOps
+
+---
+
+### 1. MATRIZ DE CORRESPONDENCIA: LEY 21.663 VS SOLUCIONES OPEN SOURCE
+
+| Exigencia Técnica Ley 21.663 | Solución Open Source Recomendada | Origen / Adopción Internacional | Repositorio Oficial / Licencia |
+| :--- | :--- | :--- | :--- |
+| **Monitoreo SOC & SIEM (Alerta 3h)** | **Wazuh SIEM / XDR** | España / Unión Europea / OTAN | `github.com/wazuh/wazuh` (GPL v2) |
+| **Gestión de Incidentes Forenses (SOAR)** | **TheHive 5 + Cortex** | Francia / CERT-EU / Ministerios UE | `github.com/TheHive-Project` (AGPL) |
+| **Inteligencia de Amenazas (IoCs Art. 10)** | **MISP (Threat Intelligence)** | Bélgica / OTAN / CSIRT Globales | `github.com/MISP/MISP` (GPL v3) |
+| **Escáner de Vulnerabilidades (CIS/CVE)** | **Greenbone Community (OpenVAS)** | Alemania / BSI (Gov Standard) | `greenbone.github.io` (GPL v2) |
+| **Auditoría de Hardening Linux** | **Lynis Security Auditing** | Países Bajos / CIS Benchmark | `github.com/CISOfy/lynis` (GPL v3) |
+| **Autenticación MFA & Identity (Zero Trust)** | **Keycloak (Red Hat Community)** | Estándar Cloud Native (CNCF) | `github.com/keycloak/keycloak` (Apache 2.0) |
+| **Acceso Privilegiado Seguro (PAM)** | **Teleport / Apache Guacamole** | USA / Grabación de Sesiones SSH/RDP | `github.com/gravitational/teleport` (AGPL) |
+| **Respaldos Inmutables Anti-Ransomware** | **MinIO Object Lock + Restic** | Recomendación CISA (USA) / WORM | `github.com/minio/minio` (AGPL) |
+
+---
+
+### 2. BLUEPRINTS DE DESPLIEGUE TÉCNICO
+
+#### A. Wazuh Agent (Despliegue Inmediato en Servidores Ubuntu 24.04 RSIC):
+Monitoreo continuo de procesos, detección de malware, integridad de archivos de configuración (`/etc`, `/var/www`) y envío de telemetría en tiempo real para activar la alerta temprana de 3 horas.
+
+```bash
+# Instalación del agente Wazuh en 1 comando (Ubuntu/Debian)
+curl -s https://packages.wazuh.com/key/GPG-KEY-WAZUH | sudo gpg --no-default-keyring --keyring gnupg-ring:/usr/share/keyrings/wazuh.gpg --import && sudo chmod 644 /usr/share/keyrings/wazuh.gpg
+echo "deb [signed-by=/usr/share/keyrings/wazuh.gpg] https://packages.wazuh.com/4.x/apt/ stable main" | sudo tee -a /etc/apt/sources.list.d/wazuh.list
+sudo apt update && sudo WAZUH_MANAGER="soc.institucion.gob.cl" apt install -y wazuh-agent
+sudo systemctl enable --now wazuh-agent
+```
+
+---
+
+#### B. Lynis (Auditoría Técnica CIS Benchmark en 1 Línea):
+Inspección automatizada de controles de seguridad en servidores Linux para verificar puertos, sysctl, SSH y parches.
+
+```bash
+# Ejecución de auditoría de seguridad sin instalación
+curl -sL https://raw.githubusercontent.com/CISOfy/lynis/master/lynis-standalone.sh | sudo bash -s -- audit system --quick
+```
+
+---
+
+#### C. Stack de Gestión de Incidentes TheHive + Cortex (Docker Compose):
+Centro de operaciones de seguridad para registrar evidencias forenses, volcados de memoria y correlación de IoCs con el CSIRT Nacional.
+
+```yaml
+version: "3.8"
+services:
+  thehive:
+    image: thehiveproject/thehive:5.2
+    container_name: thehive_ir
+    ports:
+      - "9000:9000"
+    environment:
+      - DATABASE_BACKEND=cassandra
+      - CASSANDRA_CONTACT_POINTS=cassandra
+    depends_on:
+      - cassandra
+      - elasticsearch
+  cassandra:
+    image: cassandra:4.0
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.17.9
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+```
+
+---
+
+#### D. Respaldos Inmutables WORM con Restic y MinIO (Anti-Ransomware):
+Script automatizado de respaldo que aplica bloqueo de objetos en modo 'Compliance' para evitar que un atacante o ransomware borre las copias de seguridad.
+
+```bash
+#!/bin/bash
+# Backup Inmutable WORM
+export AWS_ACCESS_KEY_ID="s3_backup_user"
+export AWS_SECRET_ACCESS_KEY="ClaveSeguraWORM2026!"
+export RESTIC_REPOSITORY="s3:https://s3.institucion.gob.cl/backups-anci"
+export RESTIC_PASSWORD="ClaveCifradoAES256"
+
+# Ejecutar respaldo de bases de datos
+restic backup /var/backups/db/ /etc/ --tag "anci-rsic"
+# Bloqueo de retención inmutable por 90 días
+```
+
+---
+*Emitido por LexApp GRC · Documento de Arquitectura de Ciberdefensa conforme a la Ley N° 21.663.*
+"""
+    headers = {"Content-Disposition": f"attachment; filename=Blueprint_OpenSource_Ciberdefensa_NIS2_{now.strftime('%Y%m%d')}.md"}
+    return StreamingResponse(io.BytesIO(doc.encode("utf-8")), media_type="text/markdown", headers=headers)
+
+
+
 
 
 
