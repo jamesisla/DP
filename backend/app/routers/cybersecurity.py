@@ -18,6 +18,8 @@ from app.models.domain import (
     CyberMaturityAssessment,
     CyberPolicy,
     CyberProject,
+    CyberRisk,
+    CyberSimulation,
     CyberTarea,
     User,
 )
@@ -32,6 +34,10 @@ from app.schemas.domain import (
     CyberPolicyCreate,
     CyberPolicyRead,
     CyberProjectRead,
+    CyberRiskCreate,
+    CyberRiskRead,
+    CyberSimulationCreate,
+    CyberSimulationRead,
     CyberTareaCreate,
     CyberTareaRead,
 )
@@ -675,3 +681,182 @@ def download_cyber_evidence_zip(_: Annotated[User, Depends(get_current_user)], d
     zip_buffer.seek(0)
     headers = {"Content-Disposition": "attachment; filename=Expediente_Ciberseguridad_Ley21663_ANCI.zip"}
     return StreamingResponse(zip_buffer, media_type="application/zip", headers=headers)
+
+
+# ==============================================================================
+# FASE III: MOTOR DE RIESGOS TECNOLÓGICOS (5x5) & GAP ANALYSIS NIST / ANCI
+# ==============================================================================
+
+@router.get("/risks", response_model=list[CyberRiskRead])
+def get_cyber_risks(_: Annotated[User, Depends(get_current_user)], db: Annotated[Session, Depends(get_db)]):
+    return db.query(CyberRisk).order_by(CyberRisk.puntuacion.desc()).all()
+
+
+@router.post("/risks", response_model=CyberRiskRead, status_code=status.HTTP_201_CREATED)
+def create_cyber_risk(
+    payload: CyberRiskCreate,
+    current_user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[Session, Depends(get_db)]
+):
+    score = payload.probabilidad * payload.impacto
+    if score >= 15:
+        nivel = "Crítico"
+    elif score >= 10:
+        nivel = "Alto"
+    elif score >= 5:
+        nivel = "Medio"
+    else:
+        nivel = "Bajo"
+
+    risk = CyberRisk(
+        amenaza=payload.amenaza,
+        categoria_mitre=payload.categoria_mitre,
+        activo_id=payload.activo_id,
+        probabilidad=payload.probabilidad,
+        impacto=payload.impacto,
+        puntuacion=score,
+        nivel_riesgo=nivel,
+        controles_existentes=payload.controles_existentes,
+        plan_tratamiento=payload.plan_tratamiento,
+        estado=payload.estado,
+        responsable_id=payload.responsable_id or current_user.id
+    )
+    db.add(risk)
+    db.commit()
+    db.refresh(risk)
+
+    log_action(db, current_user.id, "Registrar Riesgo Ciberseguridad", "CyberRisk", {
+        "id": risk.id,
+        "amenaza": risk.amenaza,
+        "score": score
+    })
+    return risk
+
+
+@router.delete("/risks/{id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_cyber_risk(id: int, current_user: Annotated[User, Depends(get_current_user)], db: Annotated[Session, Depends(get_db)]):
+    risk = db.query(CyberRisk).filter(CyberRisk.id == id).first()
+    if not risk:
+        raise HTTPException(status_code=404, detail="Riesgo no encontrado")
+    log_action(db, current_user.id, "Eliminar Riesgo Ciberseguridad", "CyberRisk", {"id": id, "amenaza": risk.amenaza})
+    db.delete(risk)
+    db.commit()
+    return None
+
+
+@router.get("/gap-analysis")
+def get_gap_analysis(_: Annotated[User, Depends(get_current_user)], db: Annotated[Session, Depends(get_db)]):
+    """Análisis de Brechas (Gap Analysis) y Plan de Remediación priorizado por ROI de Seguridad."""
+    assets = db.query(CyberAsset).all()
+    risks = db.query(CyberRisk).all()
+    maturity = db.query(CyberMaturityAssessment).order_by(CyberMaturityAssessment.id.desc()).first()
+
+    missing_mfa = [a.nombre for a in assets if not a.mfa_activo]
+    missing_encryption = [a.nombre for a in assets if not a.cifrado_activo]
+    missing_backup = [a.nombre for a in assets if not a.respaldo_inmutable]
+
+    recommendations = []
+    if missing_mfa:
+        recommendations.append({
+            "dominio": "Proteger (PR.AC)",
+            "control": "MFA Obligatorio en Consolas y SSH",
+            "prioridad": "Crítica",
+            "impacto": "Previene el 98% de accesos no autorizados por credenciales filtradas.",
+            "activos_afectados": missing_mfa,
+            "costo_implementacion": "Bajo (TOTP / FreeOTP / PAM)"
+        })
+    if missing_backup:
+        recommendations.append({
+            "dominio": "Recuperar (RC.RP)",
+            "control": "Copias de Respaldo Inmutables WORM (Anti-Ransomware)",
+            "prioridad": "Alta",
+            "impacto": "Garantiza recuperación sin pago de rescate ante ataques de ransomware.",
+            "activos_afectados": missing_backup,
+            "costo_implementacion": "Medio (Object Storage con retention lock)"
+        })
+    if missing_encryption:
+        recommendations.append({
+            "dominio": "Proteger (PR.DS)",
+            "control": "Cifrado en Reposo AES-256 y TLS 1.3 Forzado",
+            "prioridad": "Alta",
+            "impacto": "Protege datos confidenciales ante robo físico de discos o intercepción.",
+            "activos_afectados": missing_encryption,
+            "costo_implementacion": "Bajo"
+        })
+
+    return {
+        "madurez_global": maturity.madurez_global if maturity else 50,
+        "total_riesgos_criticos": sum(1 for r in risks if r.nivel_riesgo in ["Crítico", "Alto"]),
+        "total_activos_rsic": len(assets),
+        "brechas_detectadas": len(recommendations),
+        "plan_remediacion": recommendations
+    }
+
+
+# ==============================================================================
+# SIMULADOR DE CRISIS / WAR GAMES / TABLETOP (LEY 21.663)
+# ==============================================================================
+
+@router.get("/simulations", response_model=list[CyberSimulationRead])
+def get_cyber_simulations(_: Annotated[User, Depends(get_current_user)], db: Annotated[Session, Depends(get_db)]):
+    return db.query(CyberSimulation).order_by(CyberSimulation.fecha_ejecucion.desc()).all()
+
+
+@router.post("/simulations", response_model=CyberSimulationRead, status_code=status.HTTP_201_CREATED)
+def create_cyber_simulation(
+    payload: CyberSimulationCreate,
+    current_user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[Session, Depends(get_db)]
+):
+    count = db.query(CyberSimulation).count() + 1
+    codigo = f"SIM-WARGAME-{date.today().year}-{str(count).zfill(3)}"
+
+    sim = CyberSimulation(
+        codigo_ejercicio=codigo,
+        titulo=payload.titulo,
+        tipo_escenario=payload.tipo_escenario,
+        escenario_narrativa=payload.escenario_narrativa,
+        fecha_ejecucion=payload.fecha_ejecucion,
+        tiempo_respuesta_minutos=payload.tiempo_respuesta_minutos,
+        participantes_json=payload.participantes_json or ["Jefe de Servicio", "CISO", "Jefe Legal", "Jefe Comunicaciones"],
+        cumplio_plazo_3h=payload.cumplio_plazo_3h,
+        lecciones_aprendidas=payload.lecciones_aprendidas,
+        estado=payload.estado
+    )
+    db.add(sim)
+    db.commit()
+    db.refresh(sim)
+
+    log_action(db, current_user.id, "Registrar Ejercicio de Simulación / War Game", "CyberSimulation", {
+        "codigo": sim.codigo_ejercicio,
+        "titulo": sim.titulo
+    })
+    return sim
+
+
+@router.get("/simulations/{id}/acta")
+def download_simulation_acta(id: int, _: Annotated[User, Depends(get_current_user)], db: Annotated[Session, Depends(get_db)]):
+    sim = db.query(CyberSimulation).filter(CyberSimulation.id == id).first()
+    if not sim:
+        raise HTTPException(status_code=404, detail="Simulación no encontrada")
+
+    acta = "# ACTA FORMAL DE EJERCICIO DE SIMULACIÓN DE CRISIS Y CIBERATAQUE\n"
+    acta += "### Acreditación de Preparación y Tiempos de Respuesta ante la ANCI - Ley N° 21.663\n\n"
+    acta += f"**Código de Ejercicio:** `{sim.codigo_ejercicio}`\n"
+    acta += f"**Fecha de Ejecución:** {sim.fecha_ejecucion.strftime('%d/%m/%Y')}\n"
+    acta += f"**Tipo de Escenario Simulado:** {sim.tipo_escenario}\n"
+    acta += f"**Tiempo de Reacción y Notificación:** {sim.tiempo_respuesta_minutos} minutos\n"
+    acta += f"**¿Cumplió el Plazo Legal de 3 Horas ANCI?:** {'SÍ, CONFORME [✓]' if sim.cumplio_plazo_3h else 'NO, REQUIERE AJUSTE [X]'}\n\n"
+    acta += "---\n\n"
+    acta += "### 1. Narrativa del Escenario Inyectado (War Game)\n"
+    acta += f"> {sim.escenario_narrativa}\n\n"
+    acta += "### 2. Participantes y Roles del Comité de Crisis\n"
+    for p in sim.participantes_json:
+        acta += f"- {p}\n"
+    acta += "\n### 3. Lecciones Aprendidas y Plan de Mejora Continua\n"
+    acta += f"{sim.lecciones_aprendidas or 'Se ejercitaron exitosamente los flujos de aislamiento de red y comunicación formal.'}\n\n"
+    acta += "---\n*Firmado para constancia y registro institucional de auditoría de ciberseguridad.*"
+
+    headers = {"Content-Disposition": f"attachment; filename=Acta_Simulacro_{sim.codigo_ejercicio}.md"}
+    return StreamingResponse(io.BytesIO(acta.encode("utf-8")), media_type="text/markdown", headers=headers)
+

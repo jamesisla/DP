@@ -15,7 +15,8 @@ import {
   Layers,
   FileCode,
   Radio,
-  Sliders
+  Sliders,
+  Flame
 } from "lucide-react";
 
 export const suites = [
@@ -53,8 +54,10 @@ export const cybersecurityModules = [
   { id: "cyber_dashboard", label: "Dashboard ANCI", icon: LayoutDashboard },
   { id: "cyber_phases", label: "Ruta Metodológica (6 Fases)", icon: Gauge },
   { id: "cyber_assets", label: "Activos Críticos (RSIC / OIV)", icon: Server },
+  { id: "cyber_risks", label: "Matriz Riesgos 5x5 & Gap", icon: AlertTriangle },
   { id: "cyber_maturity", label: "Madurez NIST / ANCI", icon: Activity },
   { id: "cyber_incidents", label: "Incidentes ANCI (3h / 72h)", icon: Radio, badgeKey: "urgent_3h" },
+  { id: "cyber_simulations", label: "Simulador de Crisis / War Games", icon: Flame },
   { id: "cyber_policies", label: "Políticas & Planes PRI/BCP", icon: FileCode },
   { id: "cyber_audit", label: "Expediente ANCI (ZIP)", icon: ShieldCheck },
 ];

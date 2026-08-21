@@ -611,3 +611,63 @@ class CyberPolicyCreate(BaseModel):
     version: str = "1.0"
     estado: str = "borrador"
 
+
+class CyberRiskRead(BaseModel):
+    id: int
+    amenaza: str
+    categoria_mitre: str
+    activo_id: int | None = None
+    activo: CyberAssetRead | None = None
+    probabilidad: int
+    impacto: int
+    puntuacion: int
+    nivel_riesgo: str
+    controles_existentes: str
+    plan_tratamiento: str
+    estado: str
+    responsable_id: int | None = None
+    responsable: UserRead | None = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class CyberRiskCreate(BaseModel):
+    amenaza: str
+    categoria_mitre: str = "Acceso Inicial"
+    activo_id: int | None = None
+    probabilidad: int = 3
+    impacto: int = 4
+    controles_existentes: str = ""
+    plan_tratamiento: str = ""
+    estado: str = "Identificado"
+    responsable_id: int | None = None
+
+
+class CyberSimulationRead(BaseModel):
+    id: int
+    codigo_ejercicio: str
+    titulo: str
+    tipo_escenario: str
+    escenario_narrativa: str
+    fecha_ejecucion: date
+    tiempo_respuesta_minutos: int
+    participantes_json: list = []
+    cumplio_plazo_3h: bool
+    lecciones_aprendidas: str
+    estado: str
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class CyberSimulationCreate(BaseModel):
+    titulo: str
+    tipo_escenario: str = "Ransomware & Extorsión Doble"
+    escenario_narrativa: str
+    fecha_ejecucion: date
+    tiempo_respuesta_minutos: int = 45
+    participantes_json: list = []
+    cumplio_plazo_3h: bool = True
+    lecciones_aprendidas: str = ""
+    estado: str = "Planificado"
+
+

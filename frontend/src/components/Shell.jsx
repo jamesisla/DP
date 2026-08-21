@@ -20,8 +20,10 @@ import { OracleMissions } from "../pages/OracleMissions";
 import { CyberDashboard } from "../pages/cyber/CyberDashboard";
 import { CyberPhases } from "../pages/cyber/CyberPhases";
 import { CyberAssets } from "../pages/cyber/CyberAssets";
+import { CyberRisks } from "../pages/cyber/CyberRisks";
 import { CyberMaturity } from "../pages/cyber/CyberMaturity";
 import { CyberIncidents } from "../pages/cyber/CyberIncidents";
+import { CyberSimulations } from "../pages/cyber/CyberSimulations";
 import { CyberPolicies } from "../pages/cyber/CyberPolicies";
 
 export function Shell({ session, onLogout }) {
@@ -57,8 +59,10 @@ export function Shell({ session, onLogout }) {
     cyberProjects: [],
     cyberFases: [],
     cyberAssets: [],
+    cyberRisks: [],
     cyberIncidents: [],
     cyberMaturity: [],
+    cyberSimulations: [],
     cyberPolicies: [],
   });
 
@@ -118,8 +122,10 @@ export function Shell({ session, onLogout }) {
         cyberProjects,
         cyberFases,
         cyberAssets,
+        cyberRisks,
         cyberIncidents,
         cyberMaturity,
+        cyberSimulations,
         cyberPolicies,
       ] = await Promise.all([
         api("/dashboard", session.access_token).catch(() => null),
@@ -139,8 +145,10 @@ export function Shell({ session, onLogout }) {
         api("/cyber/project", session.access_token).catch(() => []),
         api("/cyber/fases", session.access_token).catch(() => []),
         api("/cyber/assets", session.access_token).catch(() => []),
+        api("/cyber/risks", session.access_token).catch(() => []),
         api("/cyber/incidents", session.access_token).catch(() => []),
         api("/cyber/maturity", session.access_token).catch(() => []),
+        api("/cyber/simulations", session.access_token).catch(() => []),
         api("/cyber/policies", session.access_token).catch(() => []),
       ]);
       
@@ -161,8 +169,10 @@ export function Shell({ session, onLogout }) {
         cyberProjects,
         cyberFases,
         cyberAssets,
+        cyberRisks,
         cyberIncidents,
         cyberMaturity,
+        cyberSimulations,
         cyberPolicies,
       });
     } catch (err) {
@@ -351,6 +361,16 @@ export function Shell({ session, onLogout }) {
             onReload={load}
           />
         );
+      case "cyber_risks":
+        return (
+          <CyberRisks
+            risks={data.cyberRisks}
+            assets={data.cyberAssets}
+            token={session.access_token}
+            user={session.user}
+            onReload={load}
+          />
+        );
       case "cyber_maturity":
         return (
           <CyberMaturity
@@ -364,6 +384,15 @@ export function Shell({ session, onLogout }) {
         return (
           <CyberIncidents
             incidents={data.cyberIncidents}
+            token={session.access_token}
+            user={session.user}
+            onReload={load}
+          />
+        );
+      case "cyber_simulations":
+        return (
+          <CyberSimulations
+            simulations={data.cyberSimulations}
             token={session.access_token}
             user={session.user}
             onReload={load}

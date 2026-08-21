@@ -393,6 +393,44 @@ class CyberPolicy(Base, TimestampMixin):
     estado: Mapped[str] = mapped_column(String(60), default="borrador")  # borrador, revision, aprobado, firmado
 
 
+class CyberRisk(Base, TimestampMixin):
+    """Matriz de Riesgos Tecnológicos (5x5) y Amenazas según MITRE ATT&CK / ANCI."""
+    __tablename__ = "cyber_risks"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    amenaza: Mapped[str] = mapped_column(String(200), nullable=False)
+    categoria_mitre: Mapped[str] = mapped_column(String(100), default="Acceso Inicial")
+    activo_id: Mapped[int | None] = mapped_column(ForeignKey("cyber_assets.id", ondelete="SET NULL"), nullable=True)
+    probabilidad: Mapped[int] = mapped_column(Integer, default=3)  # 1 a 5
+    impacto: Mapped[int] = mapped_column(Integer, default=4)  # 1 a 5
+    puntuacion: Mapped[int] = mapped_column(Integer, default=12)  # 1 a 25
+    nivel_riesgo: Mapped[str] = mapped_column(String(40), default="Alto")  # Bajo, Medio, Alto, Crítico
+    controles_existentes: Mapped[str] = mapped_column(Text, default="")
+    plan_tratamiento: Mapped[str] = mapped_column(Text, default="")
+    estado: Mapped[str] = mapped_column(String(60), default="Identificado")  # Identificado, En Mitigación, Aceptado, Mitigado
+    responsable_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True)
+
+    activo: Mapped[CyberAsset | None] = relationship("CyberAsset")
+    responsable: Mapped[User | None] = relationship("User", foreign_keys=[responsable_id])
+
+
+class CyberSimulation(Base, TimestampMixin):
+    """Simulador de Crisis, War Games y Ejercicios de Mesa (Tabletop) para el Comité ANCI."""
+    __tablename__ = "cyber_simulations"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    codigo_ejercicio: Mapped[str] = mapped_column(String(50), unique=True, index=True, nullable=False)
+    titulo: Mapped[str] = mapped_column(String(200), nullable=False)
+    tipo_escenario: Mapped[str] = mapped_column(String(100), default="Ransomware & Extorsión Doble")
+    escenario_narrativa: Mapped[str] = mapped_column(Text, nullable=False)
+    fecha_ejecucion: Mapped[date] = mapped_column(Date, default=date.today)
+    tiempo_respuesta_minutos: Mapped[int] = mapped_column(Integer, default=45)
+    participantes_json: Mapped[list] = mapped_column(JSON, default=list)
+    cumplio_plazo_3h: Mapped[bool] = mapped_column(Boolean, default=True)
+    lecciones_aprendidas: Mapped[str] = mapped_column(Text, default="")
+    estado: Mapped[str] = mapped_column(String(60), default="Planificado")  # Planificado, En Ejecución, Completado y Firmado
+
+
 # Backward Compatibility Tables
 class TreatmentActivity(Base, TimestampMixin):
     __tablename__ = "treatment_activities"

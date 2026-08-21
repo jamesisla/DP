@@ -14,6 +14,8 @@ from app.models.domain import (
     CyberMaturityAssessment,
     CyberPolicy,
     CyberProject,
+    CyberRisk,
+    CyberSimulation,
     CyberTarea,
     Documento,
     Fase,
@@ -755,6 +757,71 @@ Todo incidente con impacto potencial en servicios esenciales debe ser comunicado
 """
             )
         ])
+        db.flush()
+
+    # 19. Seed Matriz de Riesgos Tecnológicos (5x5)
+    if not db.query(CyberRisk).first():
+        asset1 = db.query(CyberAsset).filter(CyberAsset.codigo_activo == "RSIC-0001").first()
+        asset2 = db.query(CyberAsset).filter(CyberAsset.codigo_activo == "RSIC-0002").first()
+        asset3 = db.query(CyberAsset).filter(CyberAsset.codigo_activo == "RSIC-0003").first()
+
+        db.add_all([
+            CyberRisk(
+                amenaza="Secuestro de Datos mediante Ransomware en Servidor de Postulaciones",
+                categoria_mitre="Impacto",
+                activo_id=asset1.id if asset1 else None,
+                probabilidad=3,
+                impacto=5,
+                puntuacion=15,
+                nivel_riesgo="Crítico",
+                controles_existentes="EDR en endpoints, firewall perimetral y respaldo diario.",
+                plan_tratamiento="Habilitar almacenamiento inmutable WORM y MFA obligatorio en consolas de administración.",
+                estado="En Mitigación",
+                responsable_id=db_users["ti@protecciondatos.cl"].id
+            ),
+            CyberRisk(
+                amenaza="Ataque de Denegación de Servicio Distribuido (DDoS) a Ventanilla Única",
+                categoria_mitre="Impacto",
+                activo_id=asset1.id if asset1 else None,
+                probabilidad=4,
+                impacto=3,
+                puntuacion=12,
+                nivel_riesgo="Alto",
+                controles_existentes="Rate limiting en Nginx y Security List en OCI.",
+                plan_tratamiento="Integrar WAF con mitigación automatizada de tráfico anómalo.",
+                estado="Identificado",
+                responsable_id=db_users["ti@protecciondatos.cl"].id
+            ),
+            CyberRisk(
+                amenaza="Exfiltración de Credenciales de Acceso VPN por Phishing Masivo",
+                categoria_mitre="Acceso Inicial",
+                activo_id=asset3.id if asset3 else None,
+                probabilidad=3,
+                impacto=4,
+                puntuacion=12,
+                nivel_riesgo="Alto",
+                controles_existentes="Autenticación con contraseña fuerte.",
+                plan_tratamiento="Forzar MFA FIDO2/TOTP en todos los clientes VPN institucionales.",
+                estado="En Mitigación",
+                responsable_id=db_users["ti@protecciondatos.cl"].id
+            )
+        ])
+        db.flush()
+
+    # 20. Seed Simulador de Crisis / War Game
+    if not db.query(CyberSimulation).first():
+        db.add(CyberSimulation(
+            codigo_ejercicio="SIM-WARGAME-2026-001",
+            titulo="Simulacro Anual de Ransomware con Notificación ANCI en 3 Horas",
+            tipo_escenario="Ransomware & Extorsión Doble",
+            escenario_narrativa="Se simuló la infección de una estación de trabajo administrativa con propagación simulada al servidor de base de datos. El CSIRT aisló la subred en 15 minutos y se despachó la Alerta Temprana en 45 minutos.",
+            fecha_ejecucion=date(2026, 6, 15),
+            tiempo_respuesta_minutos=45,
+            participantes_json=["Jefe de Servicio", "CISO / Resp. TI", "Jefe Legal", "Encargado de Comunicaciones"],
+            cumplio_plazo_3h=True,
+            lecciones_aprendidas="Se evidenció la necesidad de mantener copias físicas impresas del directorio de contactos de emergencia del CSIRT Nacional y proveedores clave.",
+            estado="Completado y Firmado"
+        ))
         db.flush()
 
     db.commit()
