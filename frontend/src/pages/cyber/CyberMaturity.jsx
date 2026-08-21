@@ -11,17 +11,31 @@ import {
   Download,
   BookOpen,
   Scale,
-  FileSpreadsheet
+  FileSpreadsheet,
+  Award,
+  AlertTriangle,
+  FileCheck2,
+  HelpCircle,
+  Sparkles
 } from "lucide-react";
 import { API_URL, api } from "../../lib/api";
 
 export function CyberMaturity({ maturityList = [], token, user, onReload }) {
   const latest = maturityList[0] || null;
-  const [tab, setTab] = useState("radar"); // "radar" | "crosswalk"
+  const [tab, setTab] = useState("radar"); // "radar" | "crosswalk" | "mock_audit"
 
   // Crosswalk data
   const [crosswalk, setCrosswalk] = useState([]);
   const [loadingCrosswalk, setLoadingCrosswalk] = useState(false);
+
+  // Mock Audit questions and answers state
+  const [mockQuestions, setMockQuestions] = useState([]);
+  const [mockAnswers, setMockAnswers] = useState({
+    "1": true, "2": true, "3": true, "4": true, "5": true,
+    "6": true, "7": true, "8": true, "9": true, "10": true
+  });
+  const [mockResult, setMockResult] = useState(null);
+  const [evaluatingMock, setEvaluatingMock] = useState(false);
 
   // Edit / Assessment modal
   const [modalOpen, setModalOpen] = useState(false);
@@ -38,6 +52,9 @@ export function CyberMaturity({ maturityList = [], token, user, onReload }) {
     if (tab === "crosswalk" && crosswalk.length === 0) {
       loadCrosswalk();
     }
+    if (tab === "mock_audit" && mockQuestions.length === 0) {
+      loadMockQuestions();
+    }
   }, [tab]);
 
   async function loadCrosswalk() {
@@ -50,6 +67,38 @@ export function CyberMaturity({ maturityList = [], token, user, onReload }) {
     } finally {
       setLoadingCrosswalk(false);
     }
+  }
+
+  async function loadMockQuestions() {
+    try {
+      const qs = await api("/cyber/mock-audit/questions", token);
+      setMockQuestions(qs);
+      // Run initial evaluation
+      evaluateMock(mockAnswers, qs);
+    } catch (err) {
+      console.error("Error al cargar preguntas de fiscalización:", err);
+    }
+  }
+
+  async function evaluateMock(answersObj, questionsList = mockQuestions) {
+    setEvaluatingMock(true);
+    try {
+      const res = await api("/cyber/mock-audit/evaluate", token, {
+        method: "POST",
+        body: JSON.stringify({ answers: answersObj })
+      });
+      setMockResult(res);
+    } catch (err) {
+      console.error("Error al evaluar simulador:", err);
+    } finally {
+      setEvaluatingMock(false);
+    }
+  }
+
+  function handleToggleMockAnswer(id) {
+    const nextAnswers = { ...mockAnswers, [String(id)]: !mockAnswers[String(id)] };
+    setMockAnswers(nextAnswers);
+    evaluateMock(nextAnswers);
   }
 
   function openCreate() {
@@ -116,9 +165,9 @@ export function CyberMaturity({ maturityList = [], token, user, onReload }) {
                 NIST CSF 2.0 & ISO 27001
               </span>
             </div>
-            <h2 className="text-xl font-bold text-slate-800 mt-0.5">Diagnóstico de Madurez & Matriz de Correspondencia (Crosswalk)</h2>
+            <h2 className="text-xl font-bold text-slate-800 mt-0.5">Diagnóstico de Madurez, Crosswalk & Simulador ANCI</h2>
             <p className="text-xs text-slate-400 mt-0.5">
-              Evaluación cuantitativa en los 5 dominios ANCI y correspondencia regulatoria unificada con la Ley 21.719 y normas ISO.
+              Evaluación en los 5 dominios ANCI, matriz cruzada con Ley 21.719 y simulador interactivo de fiscalización estatal.
             </p>
           </div>
         </div>
@@ -132,19 +181,25 @@ export function CyberMaturity({ maturityList = [], token, user, onReload }) {
         </button>
       </div>
 
-      {/* Tabs Selector: 5 Domains Radar vs Crosswalk Matrix */}
-      <div className="flex bg-slate-200/70 p-1 rounded-xl border border-slate-300 max-w-md">
+      {/* Tabs Selector: 5 Domains Radar vs Crosswalk vs Mock Audit */}
+      <div className="flex bg-slate-200/70 p-1 rounded-xl border border-slate-300 max-w-xl">
         <button
           onClick={() => setTab("radar")}
           className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-all ${tab === "radar" ? "bg-white text-slate-900 shadow-2xs" : "text-slate-600 hover:text-slate-900"}`}
         >
-          Dominios NIST / ANCI ({latest ? `${latest.madurez_global}%` : "0%"})
+          Dominios NIST ({latest ? `${latest.madurez_global}%` : "0%"})
         </button>
         <button
           onClick={() => setTab("crosswalk")}
           className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-all ${tab === "crosswalk" ? "bg-white text-indigo-700 shadow-2xs" : "text-slate-600 hover:text-slate-900"}`}
         >
-          Matriz Cruzada (Crosswalk GRC)
+          Matriz Cruzada (Crosswalk)
+        </button>
+        <button
+          onClick={() => setTab("mock_audit")}
+          className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-all ${tab === "mock_audit" ? "bg-white text-teal-800 shadow-2xs" : "text-slate-600 hover:text-slate-900"}`}
+        >
+          Simulador Fiscalización ANCI
         </button>
       </div>
 
@@ -212,7 +267,7 @@ export function CyberMaturity({ maturityList = [], token, user, onReload }) {
             <p className="text-xs mt-1">Haz clic en "Actualizar Autoevaluación" para calificar los 5 dominios.</p>
           </div>
         )
-      ) : (
+      ) : tab === "crosswalk" ? (
         /* TAB 2: CROSSWALK REGULATORY MATRIX */
         <div className="rounded-xl border border-line bg-white p-6 shadow-sm space-y-6">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-slate-100 pb-3">
@@ -268,6 +323,93 @@ export function CyberMaturity({ maturityList = [], token, user, onReload }) {
               </table>
             </div>
           )}
+        </div>
+      ) : (
+        /* TAB 3: MOCK AUDIT / SIMULADOR DE FISCALIZACIÓN */
+        <div className="space-y-6">
+          
+          {/* Readiness Index & Certificate Download Card */}
+          {mockResult && (
+            <div className="rounded-xl border border-teal-200 bg-teal-50/50 p-6 shadow-sm flex flex-col md:flex-row justify-between items-center gap-6">
+              <div className="space-y-1 text-center md:text-left">
+                <div className="flex items-center justify-center md:justify-start gap-2">
+                  <span className="text-[10px] uppercase font-bold text-teal-700 tracking-wider">Simulador de Fiscalización Estatal</span>
+                  <span className={`px-2 py-0.5 rounded text-[10px] font-black ${mockResult.score_porcentaje >= 85 ? "bg-emerald-100 text-emerald-800" : "bg-rose-100 text-rose-800"}`}>
+                    {mockResult.nivel_preparacion}
+                  </span>
+                </div>
+                <h3 className="text-xl font-black text-slate-900">Índice de Preparación para Inspección ANCI</h3>
+                <p className="text-xs text-slate-600 max-w-xl">
+                  {mockResult.total_brechas === 0 
+                    ? "La institución cumple con el 100% de los requisitos evaluados durante una fiscalización presencial o digital." 
+                    : `Se han detectado ${mockResult.total_brechas} brechas críticas que generarían observaciones o sanciones por parte de la autoridad.`}
+                </p>
+              </div>
+
+              <div className="flex flex-col sm:flex-row items-center gap-4 shrink-0">
+                <div className="bg-white p-3.5 rounded-xl border border-teal-200 shadow-sm text-center">
+                  <span className="text-3xl font-black text-teal-800 tracking-tight">{mockResult.score_porcentaje}%</span>
+                  <span className="text-[10px] font-bold uppercase text-slate-400 block mt-0.5">Readiness Score</span>
+                </div>
+
+                <a
+                  href={`${API_URL.replace("/api", "")}/api/cyber/mock-audit/certificate?token=${token}`}
+                  download
+                  className="flex items-center gap-1.5 px-4 py-3 bg-teal-800 text-white rounded-xl text-xs font-bold hover:bg-teal-900 shadow-sm transition-colors"
+                >
+                  <Award size={16} />
+                  Descargar Certificado Oficial (MD)
+                </a>
+              </div>
+            </div>
+          )}
+
+          {/* 10 Questions Checklist */}
+          <div className="rounded-xl border border-line bg-white p-6 shadow-sm space-y-4">
+            <div className="border-b border-slate-100 pb-3">
+              <h3 className="text-base font-bold text-slate-800">Cuestionario Oficial de Inspección y Fiscalización</h3>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Marca con un toggle los controles técnicos y administrativos actualmente implementados y verificables.
+              </p>
+            </div>
+
+            <div className="space-y-3">
+              {mockQuestions.map((q) => {
+                const isChecked = Boolean(mockAnswers[String(q.id)]);
+                return (
+                  <div
+                    key={q.id}
+                    onClick={() => handleToggleMockAnswer(q.id)}
+                    className={`p-4 rounded-xl border transition-all cursor-pointer flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 ${isChecked ? "border-teal-200 bg-teal-50/20 hover:bg-teal-50/40" : "border-slate-200 bg-slate-50/40 hover:bg-white"}`}
+                  >
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono text-[10px] font-bold text-indigo-700 bg-indigo-50 border border-indigo-150 px-1.5 py-0.5 rounded">
+                          {q.norma}
+                        </span>
+                        <span className="text-[10px] font-bold text-slate-400">Ponderación: {q.ponderacion} pts</span>
+                      </div>
+                      <h4 className="font-bold text-xs text-slate-800">{q.pregunta}</h4>
+                      <p className="text-[11px] text-slate-500 font-medium">{q.exigencia}</p>
+                    </div>
+
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span className={`text-[11px] font-bold ${isChecked ? "text-teal-800" : "text-slate-400"}`}>
+                        {isChecked ? "Conforme [✓]" : "Pendiente [✗]"}
+                      </span>
+                      <input
+                        type="checkbox"
+                        checked={isChecked}
+                        onChange={() => {}} // handled by parent onClick
+                        className="rounded border-slate-300 text-teal-600 focus:ring-teal-500 h-5 w-5 pointer-events-none"
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
         </div>
       )}
 
