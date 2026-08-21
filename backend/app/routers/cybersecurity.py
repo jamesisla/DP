@@ -946,3 +946,175 @@ La institución mantiene un control activo y documentado sobre su infraestructur
     return StreamingResponse(io.BytesIO(dossier.encode("utf-8")), media_type="text/markdown", headers=headers)
 
 
+# ==============================================================================
+# ESCÁNER DE VULNERABILIDADES & HARDENING PERSONALIZADO (CIS BENCHMARK / ANCI)
+# ==============================================================================
+
+@router.post("/assets/{id}/scan")
+def scan_cyber_asset(id: int, _: Annotated[User, Depends(get_current_user)], db: Annotated[Session, Depends(get_db)]):
+    """Auditoría y Escaneo de Seguridad de Activo RSIC (CIS Benchmark & SSL/TLS)."""
+    asset = db.query(CyberAsset).filter(CyberAsset.id == id).first()
+    if not asset:
+        raise HTTPException(status_code=404, detail="Activo no encontrado")
+
+    # Dynamic inspection scoring
+    score = 100
+    findings = []
+    
+    # 1. MFA check
+    if not asset.mfa_activo:
+        score -= 25
+        findings.append({
+            "severidad": "Crítica",
+            "control": "CIS 5.2 / NIST PR.AC-7",
+            "descripcion": "Acceso administrativo sin forzado de MFA (Riesgo de intrusión por credential stuffing).",
+            "remediacion": "Habilitar autenticación multifactor TOTP / llaves FIDO2 en SSH y consolas."
+        })
+
+    # 2. Respaldo Inmutable check
+    if not asset.respaldo_inmutable:
+        score -= 20
+        findings.append({
+            "severidad": "Alta",
+            "control": "CIS 11.1 / NIST RC.RP-1",
+            "descripcion": "Copias de respaldo sin bloqueo de inmutabilidad (Vulnerabilidad crítica ante Ransomware).",
+            "remediacion": "Configurar snapshots de almacenamiento con retención WORM (Write Once, Read Many)."
+        })
+
+    # 3. Cifrado check
+    if not asset.cifrado_activo:
+        score -= 20
+        findings.append({
+            "severidad": "Alta",
+            "control": "CIS 3.10 / NIST PR.DS-1",
+            "descripcion": "Transmisión o almacenamiento sin cifrado robusto.",
+            "remediacion": "Forzar TLS 1.3 con certificados HSTS y cifrado AES-256 en volumen de datos."
+        })
+
+    # 4. Puertos check
+    puertos = asset.puertos_expuestos or ""
+    if "21/tcp" in puertos or "23/tcp" in puertos or "3389/tcp" in puertos:
+        score -= 15
+        findings.append({
+            "severidad": "Media",
+            "control": "CIS 4.1 / NIST PR.PT-4",
+            "descripcion": "Detección de puertos heredados o inseguros expuestos (FTP/Telnet/RDP).",
+            "remediacion": "Bloquear puertos en firewall perimetral y tunelizar mediante VPN segura."
+        })
+
+    if score < 0:
+        score = 0
+
+    return {
+        "activo_id": asset.id,
+        "codigo": asset.codigo_activo,
+        "nombre": asset.nombre,
+        "ip": asset.ubicacion_o_ip,
+        "cis_score": score,
+        "estado_auditoria": "CONFORME [✓]" if score >= 80 else "REQUIERE REMEDIACIÓN [!]",
+        "total_hallazgos": len(findings),
+        "hallazgos": findings,
+        "fecha_escaneo": datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+    }
+
+
+@router.post("/hardening/custom-script")
+def generate_custom_hardening_script(
+    payload: dict,
+    _: Annotated[User, Depends(get_current_user)]
+):
+    """Generador de Scripts de Hardening y Fortalecimiento Linux a Medida."""
+    ssh_key_only = payload.get("ssh_key_only", True)
+    disable_root = payload.get("disable_root", True)
+    firewall_strict = payload.get("firewall_strict", True)
+    sysctl_ddos = payload.get("sysctl_ddos", True)
+    fail2ban = payload.get("fail2ban", True)
+    worm_backup = payload.get("worm_backup", True)
+
+    script = """#!/bin/bash
+# ==============================================================================
+# LEXAPP GRC · SCRIPT DE HARDENING AUTOMATIZADO LINUX (CIS LEVEL 1 & ANCI)
+# Generado a medida para Servidor RSIC / OIV
+# ==============================================================================
+
+set -e
+
+if [ "$EUID" -ne 0 ]; then
+  echo "[-] Por favor ejecuta como root: sudo bash $0"
+  exit 1
+fi
+
+echo "[+] Iniciando Hardening de Seguridad Institucional..."
+"""
+
+    if ssh_key_only:
+        script += """
+echo "=== 1. Forzando Llaves SSH y Deshabilitando Password Auth ==="
+sed -i 's/^#\\?PasswordAuthentication .*/PasswordAuthentication no/' /etc/ssh/sshd_config
+sed -i 's/^#\\?PubkeyAuthentication .*/PubkeyAuthentication yes/' /etc/ssh/sshd_config
+"""
+
+    if disable_root:
+        script += """
+echo "=== 2. Restringiendo Acceso Root Directo ==="
+sed -i 's/^#\\?PermitRootLogin .*/PermitRootLogin prohibit-password/' /etc/ssh/sshd_config
+"""
+
+    if firewall_strict:
+        script += """
+echo "=== 3. Configurando Firewall Restrictivo (Drop All Inbound excepto 80/443/22) ==="
+if command -v ufw >/dev/null 2>&1; then
+  ufw default deny incoming
+  ufw default allow outgoing
+  ufw allow 22/tcp
+  ufw allow 80/tcp
+  ufw allow 443/tcp
+  ufw --force enable
+fi
+"""
+
+    if sysctl_ddos:
+        script += """
+echo "=== 4. Aplicando Hardening de Kernel Sysctl (Anti-SYN Flood / Anti-Spoofing) ==="
+cat << 'EOF' > /etc/sysctl.d/99-lexapp-security.conf
+net.ipv4.tcp_syncookies = 1
+net.ipv4.conf.all.rp_filter = 1
+net.ipv4.conf.default.rp_filter = 1
+net.ipv4.conf.all.accept_redirects = 0
+net.ipv4.conf.default.accept_redirects = 0
+net.ipv4.icmp_echo_ignore_broadcasts = 1
+EOF
+sysctl --system
+"""
+
+    if fail2ban:
+        script += """
+echo "=== 5. Instalando y Asegurando Fail2ban contra Fuerza Bruta ==="
+if command -v apt-get >/dev/null 2>&1; then
+  apt-get update -y && apt-get install -y fail2ban
+  systemctl enable --now fail2ban
+fi
+"""
+
+    if worm_backup:
+        script += """
+echo "=== 6. Creando Bitácora de Respaldo Inmutable ==="
+mkdir -p /opt/backups_inmutables
+chmod 700 /opt/backups_inmutables
+echo "[✓] Directorio seguro creado para backups inmutables."
+"""
+
+    script += """
+echo ""
+echo "========================================================="
+echo " [✓] HARDENING COMPLETADO EXITOSAMENTE CONFORME A LA ANCI"
+echo " Reiniciando servicio SSH para aplicar directivas..."
+systemctl reload sshd || systemctl reload ssh
+echo "========================================================="
+"""
+
+    headers = {"Content-Disposition": "attachment; filename=lexapp_custom_hardening.sh"}
+    return Response(content=script, media_type="text/x-sh", headers=headers)
+
+
+

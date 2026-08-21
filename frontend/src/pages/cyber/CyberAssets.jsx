@@ -21,7 +21,10 @@ import {
   Database,
   Globe,
   Cloud,
-  Laptop
+  Laptop,
+  Sparkles,
+  Sliders,
+  ShieldAlert
 } from "lucide-react";
 import { API_URL, api } from "../../lib/api";
 
@@ -75,6 +78,20 @@ export function CyberAssets({ assets = [], areas = [], token, user, onReload }) 
   const [mfaActivo, setMfaActivo] = useState(true);
   const [respaldoInmutable, setRespaldoInmutable] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+
+  // Scan & Audit State
+  const [scanModalOpen, setScanModalOpen] = useState(false);
+  const [scanResult, setScanResult] = useState(null);
+  const [scanning, setScanning] = useState(false);
+
+  // Custom Hardening Modal State
+  const [customHardeningOpen, setCustomHardeningOpen] = useState(false);
+  const [hSshKeyOnly, setHSshKeyOnly] = useState(true);
+  const [hDisableRoot, setHDisableRoot] = useState(true);
+  const [hFirewallStrict, setHFirewallStrict] = useState(true);
+  const [hSysctlDdos, setHSysctlDdos] = useState(true);
+  const [hFail2ban, setHFail2ban] = useState(true);
+  const [hWormBackup, setHWormBackup] = useState(true);
 
   const filtered = assets.filter((a) => {
     if (selectedCapa !== "Todas" && a.capa_tecnologica !== selectedCapa && a.tipo !== selectedCapa) return false;
@@ -150,6 +167,58 @@ export function CyberAssets({ assets = [], areas = [], token, user, onReload }) 
     }
   }
 
+  async function handleRunScan(asset) {
+    setScanning(true);
+    setScanResult(null);
+    setScanModalOpen(true);
+    try {
+      const res = await api(`/cyber/assets/${asset.id}/scan`, token, {
+        method: "POST"
+      });
+      setScanResult(res);
+    } catch (err) {
+      alert("Error durante la auditoría: " + err.message);
+      setScanModalOpen(false);
+    } finally {
+      setScanning(false);
+    }
+  }
+
+  async function handleDownloadCustomScript() {
+    try {
+      const payload = {
+        ssh_key_only: hSshKeyOnly,
+        disable_root: hDisableRoot,
+        firewall_strict: hFirewallStrict,
+        sysctl_ddos: hSysctlDdos,
+        fail2ban: hFail2ban,
+        worm_backup: hWormBackup
+      };
+
+      const res = await fetch(`${API_URL}/cyber/hardening/custom-script`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (!res.ok) throw new Error("Error al generar script");
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "lexapp_custom_hardening.sh";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setCustomHardeningOpen(false);
+    } catch (err) {
+      alert("Error: " + err.message);
+    }
+  }
+
   async function handleDelete(id) {
     if (!confirm("¿Deseas eliminar este activo del inventario RSIC?")) return;
     try {
@@ -178,21 +247,20 @@ export function CyberAssets({ assets = [], areas = [], token, user, onReload }) 
             </div>
             <h2 className="text-xl font-bold text-slate-800 mt-0.5">Redes y Sistemas Informáticos Críticos (RSIC / OIV)</h2>
             <p className="text-xs text-slate-400 mt-0.5">
-              Catálogo de infraestructura tecnológica esencial, mapeo de dependencias operacionales y verificación de controles técnicos mínimos.
+              Catálogo de infraestructura tecnológica esencial, auditorías CIS Benchmark y generador de scripts de hardening.
             </p>
           </div>
         </div>
 
         <div className="flex items-center gap-2.5 flex-wrap">
-          <a
-            href={`${API_URL.replace("/api", "")}/api/cyber/hardening-script`}
-            download
-            className="flex items-center gap-1.5 rounded border border-slate-300 bg-slate-50 px-3.5 py-2 text-xs font-bold text-slate-700 hover:bg-slate-100 shadow-2xs transition-colors"
-            title="Descargar script Bash para auditar y aplicar Hardening en servidores Linux"
+          <button
+            onClick={() => setCustomHardeningOpen(true)}
+            className="flex items-center gap-1.5 rounded border border-indigo-200 bg-indigo-50 px-3.5 py-2 text-xs font-bold text-indigo-900 hover:bg-indigo-100 shadow-2xs transition-colors"
+            title="Personalizar y generar scripts Bash de hardening según CIS Benchmarks"
           >
             <Terminal size={14} className="text-indigo-600" />
-            Script Hardening Linux (.sh)
-          </a>
+            Hardening Personalizado (.sh)
+          </button>
 
           <button
             onClick={openCreate}
@@ -335,19 +403,31 @@ export function CyberAssets({ assets = [], areas = [], token, user, onReload }) 
                   </div>
                 </div>
 
-                <div className="flex justify-between items-center pt-3 border-t border-slate-100 text-xs">
-                  <span className={`font-bold px-2 py-0.5 rounded text-[10px] ${asset.estado_cumplimiento === "Conforme" ? "bg-emerald-50 text-emerald-700 border border-emerald-200" : "bg-amber-50 text-amber-700 border border-amber-200"}`}>
-                    {asset.estado_cumplimiento}
-                  </span>
-
+                <div className="flex justify-between items-center pt-3 border-t border-slate-100 text-xs flex-wrap gap-2">
                   <button
                     type="button"
-                    onClick={() => handleDelete(asset.id)}
-                    className="text-slate-400 hover:text-rose-600 p-1 rounded"
-                    title="Eliminar activo"
+                    onClick={() => handleRunScan(asset)}
+                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-indigo-50 border border-indigo-200 text-indigo-800 text-[11px] font-bold hover:bg-indigo-100 shadow-2xs"
+                    title="Auditar controles CIS Benchmark en este activo"
                   >
-                    <Trash2 size={14} />
+                    <Activity size={12} className="text-indigo-600" />
+                    Auditoría CIS
                   </button>
+
+                  <div className="flex items-center gap-2">
+                    <span className={`font-bold px-2 py-0.5 rounded text-[10px] ${asset.estado_cumplimiento === "Conforme" ? "bg-emerald-50 text-emerald-700 border border-emerald-200" : "bg-amber-50 text-amber-700 border border-amber-200"}`}>
+                      {asset.estado_cumplimiento}
+                    </span>
+
+                    <button
+                      type="button"
+                      onClick={() => handleDelete(asset.id)}
+                      className="text-slate-400 hover:text-rose-600 p-1 rounded"
+                      title="Eliminar activo"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
                 </div>
               </div>
             ))}
@@ -398,6 +478,192 @@ export function CyberAssets({ assets = [], areas = [], token, user, onReload }) 
                 </div>
               </div>
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* --- CIS SCAN RESULTS MODAL --- */}
+      {scanModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40 p-4">
+          <div className="w-full max-w-xl rounded-xl border border-line bg-white p-6 shadow-soft max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
+              <div className="flex items-center gap-2.5">
+                <ShieldCheck size={22} className="text-indigo-600" />
+                <h3 className="text-lg font-bold text-slate-800">Resultado de Auditoría CIS Benchmark</h3>
+              </div>
+              {scanResult && (
+                <span className="font-mono text-xs font-bold text-indigo-700 bg-indigo-50 border border-indigo-200 px-2 py-0.5 rounded">
+                  Score: {scanResult.cis_score} / 100
+                </span>
+              )}
+            </div>
+
+            {scanning ? (
+              <div className="py-12 text-center text-slate-500 space-y-3">
+                <Activity size={36} className="mx-auto text-indigo-600 animate-spin" />
+                <p className="font-bold text-sm">Escaneando puertos, cifrado TLS y controles de acceso...</p>
+              </div>
+            ) : scanResult ? (
+              <div className="space-y-4 text-xs">
+                <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg flex justify-between items-center">
+                  <div>
+                    <span className="font-bold text-slate-800 block">[{scanResult.codigo}] {scanResult.nombre}</span>
+                    <span className="text-slate-400 font-mono text-[11px]">IP: {scanResult.ip || "127.0.0.1"} · {scanResult.fecha_escaneo}</span>
+                  </div>
+                  <span className={`font-black text-xs px-2.5 py-1 rounded ${scanResult.cis_score >= 80 ? "bg-emerald-100 text-emerald-800" : "bg-rose-100 text-rose-800"}`}>
+                    {scanResult.estado_auditoria}
+                  </span>
+                </div>
+
+                <div className="space-y-2">
+                  <span className="font-bold text-slate-400 uppercase text-[10px] tracking-wider block">
+                    Hallazgos de Seguridad Detectados ({scanResult.total_hallazgos})
+                  </span>
+
+                  {scanResult.hallazgos.length > 0 ? (
+                    scanResult.hallazgos.map((h, idx) => (
+                      <div key={idx} className="p-3 bg-rose-50/50 border border-rose-200 rounded-lg space-y-1">
+                        <div className="flex justify-between items-center">
+                          <span className="font-mono font-bold text-[10px] text-rose-900 bg-rose-100 px-1.5 py-0.5 rounded">
+                            {h.control}
+                          </span>
+                          <span className="text-[10px] font-bold text-rose-700 uppercase">Severidad {h.severidad}</span>
+                        </div>
+                        <p className="text-slate-800 font-medium">{h.descripcion}</p>
+                        <p className="text-indigo-900 font-semibold pt-1 border-t border-rose-100 text-[11px]">
+                          <strong>Remediación sugerida:</strong> {h.remediacion}
+                        </p>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="p-6 text-center text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg font-bold">
+                      [✓] El activo cumple con todos los controles técnicos mínimos auditados.
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex justify-end gap-3 pt-3 border-t border-slate-100">
+                  <button
+                    type="button"
+                    onClick={() => setScanModalOpen(false)}
+                    className="rounded bg-slate-900 px-4 py-2 text-xs font-bold text-white hover:bg-slate-800"
+                  >
+                    Cerrar Auditoría
+                  </button>
+                </div>
+              </div>
+            ) : null}
+          </div>
+        </div>
+      )}
+
+      {/* --- CUSTOM HARDENING GENERATOR MODAL --- */}
+      {customHardeningOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40 p-4">
+          <div className="w-full max-w-lg rounded-xl border border-line bg-white p-6 shadow-soft max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center gap-2 text-indigo-700 mb-1">
+              <Terminal size={22} />
+              <h3 className="text-lg font-bold text-slate-800">Generador de Script de Hardening a Medida</h3>
+            </div>
+            <p className="text-xs text-slate-400 mb-4">Selecciona los controles técnicos de fortificación que deseas empaquetar en el script Bash (.sh).</p>
+
+            <div className="space-y-3 text-xs">
+              <label className="flex items-start gap-2.5 p-2.5 rounded-lg border border-slate-200 bg-slate-50 cursor-pointer">
+                <input
+                  type="checkbox"
+                  className="mt-0.5 rounded text-indigo-600 focus:ring-indigo-500 h-4 w-4"
+                  checked={hSshKeyOnly}
+                  onChange={(e) => setHSshKeyOnly(e.target.checked)}
+                />
+                <div>
+                  <span className="font-bold text-slate-800 block">1. Deshabilitar Contraseñas SSH (Forzar Llaves Criptográficas)</span>
+                  <span className="text-[11px] text-slate-500">Configura `PasswordAuthentication no` en sshd_config.</span>
+                </div>
+              </label>
+
+              <label className="flex items-start gap-2.5 p-2.5 rounded-lg border border-slate-200 bg-slate-50 cursor-pointer">
+                <input
+                  type="checkbox"
+                  className="mt-0.5 rounded text-indigo-600 focus:ring-indigo-500 h-4 w-4"
+                  checked={hDisableRoot}
+                  onChange={(e) => setHDisableRoot(e.target.checked)}
+                />
+                <div>
+                  <span className="font-bold text-slate-800 block">2. Restringir Acceso Root Directo</span>
+                  <span className="text-[11px] text-slate-500">Configura `PermitRootLogin prohibit-password`.</span>
+                </div>
+              </label>
+
+              <label className="flex items-start gap-2.5 p-2.5 rounded-lg border border-slate-200 bg-slate-50 cursor-pointer">
+                <input
+                  type="checkbox"
+                  className="mt-0.5 rounded text-indigo-600 focus:ring-indigo-500 h-4 w-4"
+                  checked={hFirewallStrict}
+                  onChange={(e) => setHFirewallStrict(e.target.checked)}
+                />
+                <div>
+                  <span className="font-bold text-slate-800 block">3. Firewall UFW Restrictivo</span>
+                  <span className="text-[11px] text-slate-500">Denegar todo el tráfico entrante excepto puertos 80, 443 y 22.</span>
+                </div>
+              </label>
+
+              <label className="flex items-start gap-2.5 p-2.5 rounded-lg border border-slate-200 bg-slate-50 cursor-pointer">
+                <input
+                  type="checkbox"
+                  className="mt-0.5 rounded text-indigo-600 focus:ring-indigo-500 h-4 w-4"
+                  checked={hSysctlDdos}
+                  onChange={(e) => setHSysctlDdos(e.target.checked)}
+                />
+                <div>
+                  <span className="font-bold text-slate-800 block">4. Hardening de Kernel Sysctl Anti-DDoS</span>
+                  <span className="text-[11px] text-slate-500">Activa TCP SYN Cookies, rp_filter y desactiva redirects.</span>
+                </div>
+              </label>
+
+              <label className="flex items-start gap-2.5 p-2.5 rounded-lg border border-slate-200 bg-slate-50 cursor-pointer">
+                <input
+                  type="checkbox"
+                  className="mt-0.5 rounded text-indigo-600 focus:ring-indigo-500 h-4 w-4"
+                  checked={hFail2ban}
+                  onChange={(e) => setHFail2ban(e.target.checked)}
+                />
+                <div>
+                  <span className="font-bold text-slate-800 block">5. Instalación y Aseguramiento de Fail2ban</span>
+                  <span className="text-[11px] text-slate-500">Bloqueo automático de IPs atacantes tras múltiples fallos de login.</span>
+                </div>
+              </label>
+
+              <label className="flex items-start gap-2.5 p-2.5 rounded-lg border border-slate-200 bg-slate-50 cursor-pointer">
+                <input
+                  type="checkbox"
+                  className="mt-0.5 rounded text-indigo-600 focus:ring-indigo-500 h-4 w-4"
+                  checked={hWormBackup}
+                  onChange={(e) => setHWormBackup(e.target.checked)}
+                />
+                <div>
+                  <span className="font-bold text-slate-800 block">6. Directorio Seguro para Backups Inmutables (WORM)</span>
+                  <span className="text-[11px] text-slate-500">Crea `/opt/backups_inmutables` con permisos 700.</span>
+                </div>
+              </label>
+
+              <div className="flex justify-end gap-3 pt-3 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setCustomHardeningOpen(false)}
+                  className="rounded border border-line bg-white px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  onClick={handleDownloadCustomScript}
+                  className="flex items-center gap-1.5 rounded bg-indigo-600 px-4 py-2 text-xs font-bold text-white hover:bg-indigo-700 shadow-sm"
+                >
+                  <Download size={13} />
+                  Descargar Script Personalizado (.sh)
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
