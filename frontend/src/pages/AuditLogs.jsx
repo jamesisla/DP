@@ -298,7 +298,7 @@ export function AuditLogs({ auditLogs = [], token, onReload }) {
 
           </div>
         </Panel>
-      ) : (
+      ) : activeTab === "mock_audit" ? (
         /* TAB 2: MOCK AUDIT SIMULATOR (LEY 21.719) */
         <div className="space-y-6">
           
@@ -378,7 +378,7 @@ export function AuditLogs({ auditLogs = [], token, onReload }) {
           </div>
 
         </div>
-      ) : (
+      ) : activeTab === "ledger" ? (
         /* TAB 3: SHA-256 CRYPTOGRAPHIC LEDGER & VERIFIER */
         <div className="space-y-6">
           

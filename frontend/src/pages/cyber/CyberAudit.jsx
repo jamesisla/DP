@@ -160,7 +160,7 @@ export function CyberAudit({ token }) {
             </a>
           </div>
         </div>
-      ) : (
+      ) : activeTab === "ledger" ? (
         /* TAB 2: CRYPTOGRAPHIC LEDGER & VERIFIER */
         <div className="space-y-6">
           

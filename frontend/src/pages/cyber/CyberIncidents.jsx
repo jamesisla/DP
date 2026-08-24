@@ -346,7 +346,7 @@ export function CyberIncidents({ incidents = [], token, user, onReload }) {
         </button>
       </div>
 
-      {activeTab === "incidentes" ? (
+      {activeTab === "incidentes" && (
         <>
           {/* Urgent 3h banner */}
           {urgentCount > 0 && (
@@ -824,6 +824,8 @@ export function CyberIncidents({ incidents = [], token, user, onReload }) {
             </form>
           </div>
         </div>
+      )}
+        </>
       )}
 
       {/* --- TAB 2: CVD VIEW (CANAL DE DIVULGACIÓN DE VULNERABILIDADES - ART. 12) --- */}
