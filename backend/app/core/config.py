@@ -6,8 +6,8 @@ class Settings(BaseSettings):
     environment: str = "local"
     secret_key: str = "change-me-in-production"
     access_token_expire_minutes: int = 480
-    database_url: str = "postgresql+psycopg://proteccion:proteccion@db:5432/protecciondatos"
-    cors_origins: str = "http://localhost:5173,http://127.0.0.1:5173"
+    database_url: str = "sqlite:///./sql_app.db"
+    cors_origins: str = "*"
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 

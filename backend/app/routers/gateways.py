@@ -5,14 +5,13 @@ from typing import Annotated, List
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
-from app.core.auth import get_current_user
+from app.core.helpers import get_current_user, log_action, add_business_days
 from app.core.database import get_db
 from app.models.domain import (
     User, 
     ArcoRequest, 
-    TratamientoDatos, 
-    AuditLog, 
-    CyberIncident, 
+    LogAuditoria, 
+    CyberIncidentANCI, 
     CyberAsset, 
     CvdReport, 
     TelemetryEvent
@@ -23,7 +22,6 @@ from app.schemas.domain import (
     TelemetryEventRead, 
     CitizenArcoSimulationRequest
 )
-from app.routers.arco import calculate_legal_deadline
 
 router = APIRouter(prefix="/gateways", tags=["gateways"])
 
@@ -43,7 +41,7 @@ def simulate_citizen_arco(
     count = db.query(ArcoRequest).count() + 1
     folio = f"ARCO-CU-{now.strftime('%Y%m')}-{count:03d}"
     
-    fecha_limite = calculate_legal_deadline(now.date(), 15) # 15 días hábiles
+    fecha_limite = add_business_days(now.date(), 15) # 15 días hábiles
 
     # Generar hash de prueba ciudadana
     hash_content = f"{folio}|{payload.titular_rut}|{payload.tipo_derecho}|{now.isoformat()}"
@@ -80,14 +78,13 @@ def simulate_citizen_arco(
     )
     db.add(telemetry)
 
-    audit = AuditLog(
-        usuario=current_user.full_name,
-        accion=f"Sandbox: Recepción Solicitud Ciudadana ARCO+ {folio}",
-        tipo_entidad="ArcoRequest",
-        entidad_id=0,
-        detalle={"folio": folio, "derecho": payload.tipo_derecho, "titular": payload.titular_nombre, "canal": "ClaveÚnica"}
+    log_action(
+        db,
+        current_user.id,
+        f"Sandbox: Recepción Solicitud Ciudadana ARCO+ {folio}",
+        "ArcoRequest",
+        {"folio": folio, "derecho": payload.tipo_derecho, "titular": payload.titular_nombre, "canal": "ClaveÚnica"}
     )
-    db.add(audit)
     db.commit()
     db.refresh(arco)
 
@@ -155,14 +152,13 @@ def simulate_cvd_report(
     )
     db.add(telemetry)
 
-    audit = AuditLog(
-        usuario=current_user.full_name,
-        accion=f"Sandbox: Reporte de Vulnerabilidad Ética CVD {folio}",
-        tipo_entidad="CvdReport",
-        entidad_id=0,
-        detalle={"folio": folio, "severidad": payload.severidad, "cvss": payload.cvss_score}
+    log_action(
+        db,
+        current_user.id,
+        f"Sandbox: Reporte de Vulnerabilidad Ética CVD {folio}",
+        "CvdReport",
+        {"folio": folio, "severidad": payload.severidad, "cvss": payload.cvss_score}
     )
-    db.add(audit)
     db.commit()
     db.refresh(cvd)
 
@@ -219,14 +215,13 @@ def simulate_presidio_scan(
     )
     db.add(telemetry)
 
-    audit = AuditLog(
-        usuario="Sistema Automático (Presidio Engine)",
-        accion="Escaneo NLP de PII Finalizado",
-        tipo_entidad="TratamientoDatos",
-        entidad_id=0,
-        detalle={"registros_sensibles_hallados": 1450, "tipo": "RUT / PII"}
+    log_action(
+        db,
+        current_user.id,
+        "Escaneo NLP de PII Finalizado (Presidio)",
+        "TreatmentActivity",
+        {"registros_sensibles_hallados": 1450, "tipo": "RUT / PII"}
     )
-    db.add(audit)
     db.commit()
 
     return {
@@ -245,29 +240,31 @@ def simulate_wazuh_alert(
 ):
     """Simula la llegada de un Webhook de Wazuh SIEM Nivel 12 (Ataque a Activo Crítico RSIC)."""
     now = datetime.now()
-    count = db.query(CyberIncident).count() + 1
+    count = db.query(CyberIncidentANCI).count() + 1
     codigo = f"INC-WAZUH-{now.strftime('%Y%m')}-{count:03d}"
     
-    # Crear incidente automático con límite de 3h
+    # Crear incidente automático con límite de 3h y 72h
     limite_3h = now + timedelta(hours=3)
+    limite_72h = now + timedelta(hours=72)
     
-    incidente = CyberIncident(
+    incidente = CyberIncidentANCI(
         codigo_incidente=codigo,
-        titulo="[Wazuh SIEM L12] Detección de Ataque de Fuerza Bruta y Modificación FIM en Servidor BD",
-        categoria="Intrusión / Acceso No Autorizado",
-        severidad="Crítica",
-        estado="Abierto",
-        servicio_afectado="Servidor de Bases de Datos Producción (RSIC-01)",
         fecha_deteccion=now,
-        fecha_limite_3h=limite_3h,
+        fecha_limite_alerta_3h=limite_3h,
+        fecha_limite_informe_72h=limite_72h,
+        tipo_ataque="Intrusión / Acceso No Autorizado (Wazuh L12)",
+        severidad="Crítica",
+        afecta_servicio_esencial=True,
         descripcion="Wazuh XDR detectó 420 intentos fallidos de SSH seguidos de modificación de binarios en /usr/bin. Posible escalada de privilegios.",
-        iocs_detectados=json.dumps({"ips_atacantes": ["198.51.100.77", "203.0.113.19"], "hash_malware": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"}),
-        acciones_tomadas="IPs bloqueadas automáticamente en Firewall perimetral mediante Active Response.",
-        notificado_anci=False,
-        notificado_titulares=False,
-        impacto_operacional="Contenido en servidor aislado",
-        lecciones_aprendidas="",
-        registrado_por_id=current_user.id
+        sistemas_comprometidos="Servidor de Bases de Datos Producción (RSIC-01)",
+        medidas_contencion_aplicadas="IPs bloqueadas automáticamente en Firewall perimetral mediante Active Response.",
+        iocs_json={"ips_atacantes": ["198.51.100.77", "203.0.113.19"], "hashes_malware": ["e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"]},
+        checklist_forense_json={"volcado_ram": True, "congelamiento_logs": True, "aislamiento_red": True, "hash_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"},
+        tiempo_deteccion_minutos=2,
+        alerta_3h_enviada_anci=False,
+        informe_72h_enviado_anci=False,
+        estado="Alerta Inicial",
+        reportado_por_id=current_user.id
     )
     db.add(incidente)
 
@@ -283,14 +280,13 @@ def simulate_wazuh_alert(
     )
     db.add(telemetry)
 
-    audit = AuditLog(
-        usuario="Wazuh SOC Connector",
-        accion=f"Ingesta Automática Incidente Crítico {codigo} (Alerta 3h)",
-        tipo_entidad="CyberIncident",
-        entidad_id=0,
-        detalle={"codigo": codigo, "severidad": "Crítica", "alerta_3h": limite_3h.isoformat()}
+    log_action(
+        db,
+        current_user.id,
+        f"Ingesta Automática Incidente Crítico {codigo} (Alerta 3h)",
+        "CyberIncidentANCI",
+        {"codigo": codigo, "severidad": "Crítica", "alerta_3h": limite_3h.isoformat()}
     )
-    db.add(audit)
     db.commit()
 
     return {
