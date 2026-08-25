@@ -8,19 +8,32 @@ import {
   Save, 
   ShieldCheck 
 } from "lucide-react";
-import { api } from "../../lib/api";
+import { api, API_URL } from "../../lib/api";
 
 export function CyberPolicies({ policies = [], token, user, onReload }) {
-  const [selectedPol, setSelectedPol] = useState(policies[0] || null);
+  const [localPolicies, setLocalPolicies] = useState(policies);
+  const [selectedPol, setSelectedPol] = useState(null);
   const [content, setContent] = useState("");
   const [saving, setSaving] = useState(false);
   const [viewMode, setViewMode] = useState("split");
 
   useEffect(() => {
-    if ((!selectedPol || !policies.some(p => p.id === selectedPol.id)) && policies && policies.length > 0) {
-      setSelectedPol(policies[0]);
+    if (policies && policies.length > 0) {
+      setLocalPolicies(policies);
+    } else if (token) {
+      api("/cyber/policies", token).then(data => {
+        if (Array.isArray(data) && data.length > 0) {
+          setLocalPolicies(data);
+        }
+      }).catch(console.error);
     }
-  }, [policies, selectedPol]);
+  }, [policies, token]);
+
+  useEffect(() => {
+    if ((!selectedPol || !localPolicies.some(p => p.id === selectedPol.id)) && localPolicies && localPolicies.length > 0) {
+      setSelectedPol(localPolicies[0]);
+    }
+  }, [localPolicies, selectedPol]);
 
   useEffect(() => {
     if (selectedPol) {
@@ -45,6 +58,7 @@ export function CyberPolicies({ policies = [], token, user, onReload }) {
         body: JSON.stringify(payload)
       });
       setSelectedPol(updated);
+      setLocalPolicies(prev => prev.map(p => p.id === updated.id ? updated : p));
       if (onReload) onReload();
       alert("Política guardada con éxito.");
     } catch (err) {
@@ -109,7 +123,7 @@ export function CyberPolicies({ policies = [], token, user, onReload }) {
           <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest px-1">Instrumentos Normativos</h3>
 
           <div className="space-y-2">
-            {policies.map((pol) => (
+            {localPolicies.map((pol) => (
               <button
                 key={pol.id}
                 onClick={() => setSelectedPol(pol)}
@@ -196,7 +210,7 @@ export function CyberPolicies({ policies = [], token, user, onReload }) {
         ) : (
           <div className="rounded-xl border border-line bg-white p-12 text-center text-slate-400">
             <FileCode size={36} className="mx-auto mb-2 opacity-40" />
-            <p className="font-semibold text-sm">Selecciona una política</p>
+            <p className="font-semibold text-sm">Cargando políticas...</p>
           </div>
         )}
 
