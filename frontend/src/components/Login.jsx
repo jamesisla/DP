@@ -8,11 +8,13 @@ import {
   Server, 
   UserCheck, 
   Radio, 
-  Sparkles,
-  ArrowRight,
-  Layers
+  Sparkles, 
+  ArrowRight, 
+  Layers, 
+  Globe 
 } from "lucide-react";
 import { api } from "../lib/api";
+import { CitizenPortalModal } from "./CitizenPortalModal";
 
 const DEMO_USERS = [
   { email: "admin@protecciondatos.cl", name: "DPO Demo", role: "Encargado/a Responsable (DPO)" },
@@ -25,6 +27,7 @@ const DEMO_USERS = [
 
 export function Login({ onLogin }) {
   const [showClaveUnica, setShowClaveUnica] = useState(false);
+  const [citizenModalOpen, setCitizenModalOpen] = useState(false);
   const [email, setEmail] = useState("admin@protecciondatos.cl");
   const [password, setPassword] = useState("admin123");
   const [error, setError] = useState("");
@@ -293,10 +296,32 @@ export function Login({ onLogin }) {
               </div>
             )}
             
+            {/* Citizen Public Entry Point */}
+            <div className="mt-6 pt-5 border-t border-slate-200 text-center">
+              <button
+                type="button"
+                onClick={() => setCitizenModalOpen(true)}
+                className="inline-flex items-center gap-2 text-xs font-bold text-teal-900 hover:text-teal-950 bg-teal-50 border border-teal-200 px-4 py-2 rounded-xl transition-all shadow-2xs hover:bg-teal-100"
+              >
+                <Globe size={15} className="text-teal-600" />
+                <span>Ventanilla Ciudadana & Canal CVD (Sin Login)</span>
+              </button>
+              <p className="text-[10px] text-slate-400 mt-1.5 font-medium">
+                Consulta el estado de tu solicitud ARCO+ con Folio o reporta vulnerabilidades éticas.
+              </p>
+            </div>
+
           </div>
         </section>
         
       </div>
+
+      {/* Unified Citizen Portal & CVD Modal (Public) */}
+      <CitizenPortalModal
+        isOpen={citizenModalOpen}
+        onClose={() => setCitizenModalOpen(false)}
+        token=""
+      />
     </main>
   );
 }

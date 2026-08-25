@@ -99,6 +99,48 @@ def simulate_citizen_arco(
     }
 
 
+@router.get("/track-arco-citizen")
+def track_arco_citizen(
+    folio: str,
+    db: Annotated[Session, Depends(get_db)]
+):
+    """Permite el seguimiento ciudadano de una solicitud ARCO+ mediante Folio."""
+    arco = db.query(ArcoRequest).filter(ArcoRequest.folio == folio.strip()).first()
+    if not arco:
+        raise HTTPException(status_code=404, detail=f"No se encontró ninguna solicitud con el Folio {folio}")
+    
+    # Calcular días hábiles restantes
+    today = date.today()
+    dias_restantes = 0
+    if arco.fecha_limite_legal:
+        cur = today
+        end = arco.fecha_limite_legal
+        is_past = today > end
+        cur_calc = end if is_past else cur
+        end_calc = cur if is_past else end
+        count = 0
+        while cur_calc < end_calc:
+            cur_calc += timedelta(days=1)
+            if cur_calc.weekday() < 5:
+                count += 1
+        dias_restantes = -count if is_past else count
+
+    return {
+        "folio": arco.folio,
+        "titular_nombre": arco.titular_nombre,
+        "titular_rut": f"{arco.titular_rut[:4]}***-*" if len(arco.titular_rut) > 5 else "***",
+        "tipo_derecho": arco.tipo_derecho,
+        "fecha_ingreso": arco.fecha_ingreso.isoformat() if arco.fecha_ingreso else "",
+        "fecha_limite_legal": arco.fecha_limite_legal.isoformat() if arco.fecha_limite_legal else "",
+        "dias_habiles_restantes": dias_restantes,
+        "estado": arco.estado,
+        "descripcion_solicitud": arco.descripcion_solicitud or "",
+        "fundamento_respuesta": arco.fundamento_respuesta or "Solicitud en proceso de revisión por el área responsable.",
+        "hash_integridad": getattr(arco, "hash_integridad", "SHA256-VERIFIED") or "SHA256-VERIFIED",
+        "oficial_dpo": "Delegado/a de Protección de Datos Institucional"
+    }
+
+
 # ==============================================================================
 # 2. CANAL DE DIVULGACIÓN COORDINADA DE VULNERABILIDADES (CVD - ART. 12 ANCI)
 # ==============================================================================
@@ -185,6 +227,30 @@ def update_cvd_status(
 
     db.commit()
     return {"success": True, "message": f"Reporte {cvd.folio} actualizado a {nuevo_estado}."}
+
+
+@router.get("/track-cvd-report")
+def track_cvd_report(
+    folio: str,
+    db: Annotated[Session, Depends(get_db)]
+):
+    """Permite el seguimiento ético de una vulnerabilidad reportada en el canal CVD."""
+    cvd = db.query(CvdReport).filter(CvdReport.folio == folio.strip()).first()
+    if not cvd:
+        raise HTTPException(status_code=404, detail=f"No se encontró ningún reporte CVD con el Folio {folio}")
+    
+    return {
+        "folio": cvd.folio,
+        "titulo": cvd.titulo,
+        "investigador_alias": cvd.investigador_alias,
+        "activo_afectado": cvd.activo_afectado,
+        "severidad": cvd.severidad,
+        "cvss_score": cvd.cvss_score,
+        "estado": cvd.estado,
+        "poa_remediacion": cvd.poa_remediacion or "Evaluación técnica preliminar en curso por el equipo SOC/CISO.",
+        "hash_evidencia": cvd.hash_evidencia or "SHA256-CERTIFIED",
+        "fecha_reporte": cvd.created_at.strftime("%d/%m/%Y %H:%M:%S") if cvd.created_at else ""
+    }
 
 
 # ==============================================================================

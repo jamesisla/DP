@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from "react";
-import { LogOut, Scale, ShieldAlert, ShieldCheck, Server, Radio, Activity, Lock, Layers, Bell, AlertTriangle, Clock, CheckCircle } from "lucide-react";
+import { LogOut, Scale, ShieldAlert, ShieldCheck, Server, Radio, Activity, Lock, Layers, Bell, AlertTriangle, Clock, CheckCircle, Globe } from "lucide-react";
 import { suites, dataProtectionModules, cybersecurityModules } from "../lib/modules";
 import { api, classNames, API_URL } from "../lib/api";
+import { CitizenPortalModal } from "./CitizenPortalModal";
 
 // Data Protection Pages (Ley 21.719)
 import { Dashboard } from "../pages/Dashboard";
@@ -74,6 +75,7 @@ export function Shell({ session, onLogout }) {
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [citizenModalOpen, setCitizenModalOpen] = useState(false);
 
   function handleNavigate(moduleId) {
     setActive(moduleId);
@@ -568,6 +570,17 @@ export function Shell({ session, onLogout }) {
           
           <div className="flex items-center gap-3">
             
+            {/* Citizen Portal & CVD Trigger */}
+            <button
+              type="button"
+              onClick={() => setCitizenModalOpen(true)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 hover:bg-slate-50 transition-colors text-xs font-bold text-slate-700 shadow-2xs"
+              title="Ventanilla Única Ciudadana: Consulta ARCO+ y Canal CVD"
+            >
+              <Globe size={15} className="text-teal-600" />
+              <span className="hidden sm:inline">Portal Ciudadano & CVD</span>
+            </button>
+
             {/* Notification Bell */}
             <div className="relative">
               <button
@@ -701,6 +714,13 @@ export function Shell({ session, onLogout }) {
           {renderContent()}
         </div>
       </section>
+
+      {/* Unified Citizen Portal & CVD Modal */}
+      <CitizenPortalModal
+        isOpen={citizenModalOpen}
+        onClose={() => setCitizenModalOpen(false)}
+        token={session.access_token}
+      />
     </main>
   );
 }
