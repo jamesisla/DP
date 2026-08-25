@@ -303,6 +303,10 @@ class SecurityBreachRead(BaseModel):
     fecha_notificacion_agencia: datetime | None = None
     notificado_titulares: bool
     estado: str
+    origen_ciberseguridad: bool = False
+    incidente_anci_id: int | None = None
+    codigo_incidente_ciber: str | None = None
+    activo_rsic_afectado: str = ""
     reportado_por_id: int | None = None
     reportado_por: UserRead | None = None
 
@@ -316,6 +320,10 @@ class SecurityBreachCreate(BaseModel):
     datos_afectados: str
     cantidad_titulares_afectados: int = 0
     medidas_contencion: str = ""
+    origen_ciberseguridad: bool = False
+    incidente_anci_id: int | None = None
+    codigo_incidente_ciber: str | None = None
+    activo_rsic_afectado: str = ""
 
 
 class SecurityBreachUpdate(BaseModel):
@@ -511,6 +519,9 @@ class CyberAssetRead(BaseModel):
     cifrado_activo: bool
     mfa_activo: bool
     respaldo_inmutable: bool
+    alberga_datos_personales: bool = False
+    tratamientos_asociados: str = ""
+    sensibilidad_datos: str = "Sin Datos Personales"
     estado_cumplimiento: str
 
     model_config = ConfigDict(from_attributes=True)
@@ -532,6 +543,9 @@ class CyberAssetCreate(BaseModel):
     cifrado_activo: bool = True
     mfa_activo: bool = True
     respaldo_inmutable: bool = True
+    alberga_datos_personales: bool = False
+    tratamientos_asociados: str = ""
+    sensibilidad_datos: str = "Sin Datos Personales"
     estado_cumplimiento: str = "Conforme"
 
 
@@ -544,6 +558,10 @@ class CyberIncidentANCIRead(BaseModel):
     tipo_ataque: str
     severidad: str
     afecta_servicio_esencial: bool
+    afecta_datos_personales: bool = False
+    brecha_seguridad_id: int | None = None
+    codigo_brecha_relacionada: str | None = None
+    tratamientos_afectados: str = ""
     descripcion: str
     sistemas_comprometidos: str
     medidas_contencion_aplicadas: str
@@ -565,6 +583,8 @@ class CyberIncidentANCICreate(BaseModel):
     tipo_ataque: str
     severidad: str = "Alta"
     afecta_servicio_esencial: bool = True
+    afecta_datos_personales: bool = False
+    tratamientos_afectados: str = ""
     descripcion: str
     sistemas_comprometidos: str = ""
     medidas_contencion_aplicadas: str = ""

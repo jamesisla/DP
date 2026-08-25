@@ -218,14 +218,25 @@ export function OpenSourceCyber({ token }) {
 
       {/* Telemetry Live Banner if triggered */}
       {wazuhResult && (
-        <div className="rounded-xl border border-rose-300 bg-rose-50/90 p-4 text-rose-900 shadow-sm flex items-start justify-between gap-4 animate-fadeIn">
-          <div className="space-y-1">
-            <div className="flex items-center gap-2">
+        <div className="rounded-xl border border-rose-300 bg-rose-50/90 p-4 text-rose-950 shadow-sm flex items-start justify-between gap-4 animate-fadeIn">
+          <div className="space-y-1.5">
+            <div className="flex items-center gap-2 flex-wrap">
               <span className="h-2 w-2 rounded-full bg-rose-600 animate-ping"></span>
-              <h4 className="font-bold text-xs text-rose-800">TELEMETRÍA WAZUH SIEM RECIBIDA · ALERTA 3 HORAS INICIADA</h4>
-              <span className="text-[10px] font-mono bg-white px-2 py-0.5 rounded border border-rose-200">{wazuhResult.codigo_incidente}</span>
+              <h4 className="font-bold text-xs text-rose-900">⚡ CORRELACIÓN CRUZADA GRC ACTIVADA EN TIEMPO REAL</h4>
+              <span className="text-[10px] font-mono bg-white px-2 py-0.5 rounded border border-rose-200 text-rose-900 font-bold">
+                CISO ANCI: {wazuhResult.codigo_incidente_ciber} (&lt;3h)
+              </span>
+              <span className="text-[10px] font-mono bg-white px-2 py-0.5 rounded border border-teal-300 text-teal-900 font-bold">
+                DPO Agencia: {wazuhResult.codigo_brecha_dpo} (&lt;72h)
+              </span>
             </div>
-            <p className="text-xs font-medium">{wazuhResult.mensaje} · Límite legal ANCI: <span className="font-mono font-bold">{new Date(wazuhResult.limite_3h).toLocaleTimeString()}</span></p>
+            <p className="text-xs font-medium text-slate-700">
+              {wazuhResult.mensaje}
+            </p>
+            <div className="flex items-center gap-4 text-[11px] font-semibold text-slate-600 pt-1 flex-wrap">
+              <span>⏱️ Límite ANCI CISO: <strong className="text-rose-700">{wazuhResult.limite_3h_anci ? new Date(wazuhResult.limite_3h_anci).toLocaleTimeString() : "3 Horas"}</strong></span>
+              <span>⏱️ Límite Agencia DPO: <strong className="text-teal-700">{wazuhResult.limite_72h_agencia ? new Date(wazuhResult.limite_72h_agencia).toLocaleString() : "72 Horas"}</strong></span>
+            </div>
           </div>
           <button onClick={() => setWazuhResult(null)} className="text-rose-700 hover:text-rose-900 text-sm font-bold">&times;</button>
         </div>

@@ -41,6 +41,12 @@ def auto_migrate_sqlite() -> None:
                         conn.execute(text("ALTER TABLE cyber_assets ADD COLUMN impacto_caida_servicio VARCHAR(200) DEFAULT 'Interrupción de servicio'"))
                     if "dependencias_ids" not in columns:
                         conn.execute(text("ALTER TABLE cyber_assets ADD COLUMN dependencias_ids JSON DEFAULT '[]'"))
+                    if "alberga_datos_personales" not in columns:
+                        conn.execute(text("ALTER TABLE cyber_assets ADD COLUMN alberga_datos_personales BOOLEAN DEFAULT 0"))
+                    if "tratamientos_asociados" not in columns:
+                        conn.execute(text("ALTER TABLE cyber_assets ADD COLUMN tratamientos_asociados VARCHAR(255) DEFAULT ''"))
+                    if "sensibilidad_datos" not in columns:
+                        conn.execute(text("ALTER TABLE cyber_assets ADD COLUMN sensibilidad_datos VARCHAR(80) DEFAULT 'Sin Datos Personales'"))
                     conn.commit()
             except Exception as e:
                 print(f"[auto_migrate_cyber_assets] Notice: {e}")
@@ -56,9 +62,34 @@ def auto_migrate_sqlite() -> None:
                         conn.execute(text("ALTER TABLE cyber_incidents_anci ADD COLUMN checklist_forense_json JSON DEFAULT '{}'"))
                     if "tiempo_deteccion_minutos" not in columns:
                         conn.execute(text("ALTER TABLE cyber_incidents_anci ADD COLUMN tiempo_deteccion_minutos INTEGER DEFAULT 15"))
+                    if "afecta_datos_personales" not in columns:
+                        conn.execute(text("ALTER TABLE cyber_incidents_anci ADD COLUMN afecta_datos_personales BOOLEAN DEFAULT 0"))
+                    if "brecha_seguridad_id" not in columns:
+                        conn.execute(text("ALTER TABLE cyber_incidents_anci ADD COLUMN brecha_seguridad_id INTEGER"))
+                    if "codigo_brecha_relacionada" not in columns:
+                        conn.execute(text("ALTER TABLE cyber_incidents_anci ADD COLUMN codigo_brecha_relacionada VARCHAR(50)"))
+                    if "tratamientos_afectados" not in columns:
+                        conn.execute(text("ALTER TABLE cyber_incidents_anci ADD COLUMN tratamientos_afectados VARCHAR(255) DEFAULT ''"))
                     conn.commit()
             except Exception as e:
                 print(f"[auto_migrate_cyber_incidents] Notice: {e}")
+
+            # Security Breaches cross-correlation migrations
+            try:
+                res = conn.execute(text("PRAGMA table_info(security_breaches)")).fetchall()
+                columns = [row[1] for row in res]
+                if columns:
+                    if "origen_ciberseguridad" not in columns:
+                        conn.execute(text("ALTER TABLE security_breaches ADD COLUMN origen_ciberseguridad BOOLEAN DEFAULT 0"))
+                    if "incidente_anci_id" not in columns:
+                        conn.execute(text("ALTER TABLE security_breaches ADD COLUMN incidente_anci_id INTEGER"))
+                    if "codigo_incidente_ciber" not in columns:
+                        conn.execute(text("ALTER TABLE security_breaches ADD COLUMN codigo_incidente_ciber VARCHAR(50)"))
+                    if "activo_rsic_afectado" not in columns:
+                        conn.execute(text("ALTER TABLE security_breaches ADD COLUMN activo_rsic_afectado VARCHAR(180) DEFAULT ''"))
+                    conn.commit()
+            except Exception as e:
+                print(f"[auto_migrate_security_breaches] Notice: {e}")
 
             # Proveedores Supply Chain migrations
             try:

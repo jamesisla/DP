@@ -77,6 +77,9 @@ export function CyberAssets({ assets = [], areas = [], token, user, onReload }) 
   const [cifradoActivo, setCifradoActivo] = useState(true);
   const [mfaActivo, setMfaActivo] = useState(true);
   const [respaldoInmutable, setRespaldoInmutable] = useState(true);
+  const [albergaDatosPersonales, setAlbergaDatosPersonales] = useState(false);
+  const [tratamientosAsociados, setTratamientosAsociados] = useState("");
+  const [sensibilidadDatos, setSensibilidadDatos] = useState("Sensibles / Médicos / PII");
   const [submitting, setSubmitting] = useState(false);
 
   // Scan & Audit State
@@ -98,7 +101,7 @@ export function CyberAssets({ assets = [], areas = [], token, user, onReload }) 
     if (filterCrit !== "Todos" && a.criticidad !== filterCrit) return false;
     if (search) {
       const q = search.toLowerCase();
-      const target = `${a.codigo_activo} ${a.nombre} ${a.servicio_esencial} ${a.ubicacion_o_ip} ${a.puertos_expuestos} ${a.version_so}`.toLowerCase();
+      const target = `${a.codigo_activo} ${a.nombre} ${a.servicio_esencial} ${a.ubicacion_o_ip} ${a.puertos_expuestos} ${a.version_so} ${a.tratamientos_asociados || ""}`.toLowerCase();
       if (!target.includes(q)) return false;
     }
     return true;
@@ -128,6 +131,9 @@ export function CyberAssets({ assets = [], areas = [], token, user, onReload }) 
     setCifradoActivo(true);
     setMfaActivo(true);
     setRespaldoInmutable(true);
+    setAlbergaDatosPersonales(false);
+    setTratamientosAsociados("");
+    setSensibilidadDatos("Sensibles / Médicos / PII");
     setCreateModalOpen(true);
   }
 
@@ -150,6 +156,9 @@ export function CyberAssets({ assets = [], areas = [], token, user, onReload }) 
         cifrado_activo: cifradoActivo,
         mfa_activo: mfaActivo,
         respaldo_inmutable: respaldoInmutable,
+        alberga_datos_personales: albergaDatosPersonales,
+        tratamientos_asociados: tratamientosAsociados,
+        sensibilidad_datos: sensibilidadDatos,
         estado_cumplimiento: (cifradoActivo && mfaActivo && respaldoInmutable) ? "Conforme" : "En Adecuación"
       };
 
@@ -402,18 +411,33 @@ export function CyberAssets({ assets = [], areas = [], token, user, onReload }) 
                     </div>
                   </div>
 
-                  {/* Cross-Compliance GRC: Datos Personales Ley 21.719 */}
-                  {(asset.tipo.includes("Base de Datos") || asset.tipo.includes("Servidor") || asset.tipo.includes("Portal") || asset.tipo.includes("Nube")) && (
-                    <div className="p-2 bg-teal-50/60 border border-teal-200 rounded-lg flex items-center justify-between text-[10px] text-teal-900 font-medium">
-                      <div className="flex items-center gap-1.5">
-                        <ShieldCheck size={13} className="text-teal-600 shrink-0" />
-                        <span>Custodia de Datos Personales (RAT Art. 15)</span>
+                  {/* Cross-Compliance GRC: Custodia de Datos Personales (Ley 21.719 / RAT) */}
+                  {asset.alberga_datos_personales ? (
+                    <div className="p-2.5 bg-teal-50/80 border border-teal-200 rounded-lg space-y-1 text-[11px] text-teal-900 font-medium">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-1.5 font-bold">
+                          <ShieldCheck size={14} className="text-teal-700 shrink-0" />
+                          <span>Custodia Datos Personales (RAT)</span>
+                        </div>
+                        <span className="font-bold text-[9px] bg-white border border-teal-300 text-teal-900 px-1.5 py-0.5 rounded">
+                          {asset.sensibilidad_datos || "Datos Sensibles"}
+                        </span>
                       </div>
-                      <span className="font-bold font-mono text-[9px] bg-white px-1.5 py-0.5 rounded border border-teal-200 text-teal-800">
-                        {asset.cifrado_activo ? "AES-256 Activo" : "Requiere Cifrado"}
+                      <p className="text-[10px] text-teal-800 font-mono truncate" title={asset.tratamientos_asociados}>
+                        Tratamientos: {asset.tratamientos_asociados || "RAT-01 (Registro de Usuarios)"}
+                      </p>
+                    </div>
+                  ) : (asset.tipo.includes("Base de Datos") || asset.tipo.includes("Servidor") || asset.tipo.includes("Portal") || asset.tipo.includes("Nube")) ? (
+                    <div className="p-2 bg-slate-50 border border-slate-200 rounded-lg flex items-center justify-between text-[10px] text-slate-500 font-medium">
+                      <div className="flex items-center gap-1.5">
+                        <ShieldCheck size={13} className="text-slate-400 shrink-0" />
+                        <span>Sin Tratamientos RAT asociados</span>
+                      </div>
+                      <span className="font-mono text-[9px] text-slate-400">
+                        {asset.cifrado_activo ? "AES-256 Activo" : "Sin Cifrado"}
                       </span>
                     </div>
-                  )}
+                  ) : null}
                 </div>
 
                 <div className="flex justify-between items-center pt-3 border-t border-slate-100 text-xs flex-wrap gap-2">
@@ -823,6 +847,48 @@ export function CyberAssets({ assets = [], areas = [], token, user, onReload }) 
                   />
                   <span>Copias de respaldo diarias aisladas e inmutables (Anti-Ransomware)</span>
                 </label>
+              </div>
+
+              {/* Cross-Compliance GRC: Custodia de Datos Personales (Ley 21.719 / RAT) */}
+              <div className="p-3 bg-teal-50/70 border border-teal-200 rounded-lg space-y-2.5 text-xs">
+                <label className="flex items-center gap-2 cursor-pointer font-bold text-teal-900">
+                  <input
+                    type="checkbox"
+                    className="rounded border-teal-300 text-teal-600 focus:ring-teal-500 h-4 w-4"
+                    checked={albergaDatosPersonales}
+                    onChange={(e) => setAlbergaDatosPersonales(e.target.checked)}
+                  />
+                  <span>¿Este activo o servidor alberga Bases de Datos con Información Personal (RAT)?</span>
+                </label>
+
+                {albergaDatosPersonales && (
+                  <div className="grid grid-cols-2 gap-3 pt-1">
+                    <div>
+                      <label className="field-label text-[11px]" htmlFor="as-sens">Nivel de Sensibilidad</label>
+                      <select
+                        id="as-sens"
+                        className="field mt-1 text-xs"
+                        value={sensibilidadDatos}
+                        onChange={(e) => setSensibilidadDatos(e.target.value)}
+                      >
+                        <option value="Sensibles / Médicos / PII">Sensibles / Médicos / PII</option>
+                        <option value="Personales Ordinarios">Personales Ordinarios</option>
+                        <option value="Financieros / Transaccionales">Financieros / Transaccionales</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="field-label text-[11px]" htmlFor="as-rat">Tratamientos Asociados (RAT)</label>
+                      <input
+                        id="as-rat"
+                        className="field mt-1 text-xs"
+                        placeholder="Ej. RAT-01 (Usuarios), RAT-03 (Fichas)"
+                        value={tratamientosAsociados}
+                        onChange={(e) => setTratamientosAsociados(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="flex justify-end gap-3 pt-3 border-t border-slate-100">

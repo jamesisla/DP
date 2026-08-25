@@ -236,6 +236,10 @@ class SecurityBreach(Base, TimestampMixin):
     fecha_notificacion_agencia: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     notificado_titulares: Mapped[bool] = mapped_column(Boolean, default=False)
     estado: Mapped[str] = mapped_column(String(80), default="En contención")  # En contención, En investigación, Notificado a Agencia, Mitigado y Cerrado
+    origen_ciberseguridad: Mapped[bool] = mapped_column(Boolean, default=False)
+    incidente_anci_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    codigo_incidente_ciber: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    activo_rsic_afectado: Mapped[str] = mapped_column(String(180), default="")
     reportado_por_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True)
 
     reportado_por: Mapped[User | None] = relationship("User", foreign_keys=[reportado_por_id])
@@ -339,6 +343,9 @@ class CyberAsset(Base, TimestampMixin):
     cifrado_activo: Mapped[bool] = mapped_column(Boolean, default=True)
     mfa_activo: Mapped[bool] = mapped_column(Boolean, default=True)
     respaldo_inmutable: Mapped[bool] = mapped_column(Boolean, default=True)
+    alberga_datos_personales: Mapped[bool] = mapped_column(Boolean, default=False)
+    tratamientos_asociados: Mapped[str] = mapped_column(String(255), default="")
+    sensibilidad_datos: Mapped[str] = mapped_column(String(80), default="Sin Datos Personales")
     estado_cumplimiento: Mapped[str] = mapped_column(String(60), default="Conforme")  # Conforme, En Adecuación, No Conforme
 
     area_responsable: Mapped[Area | None] = relationship("Area")
@@ -356,6 +363,10 @@ class CyberIncidentANCI(Base, TimestampMixin):
     tipo_ataque: Mapped[str] = mapped_column(String(100), nullable=False)  # Ransomware, Phishing masivo, DDoS, Intrusión APT, Defacement, Fuga de credenciales
     severidad: Mapped[str] = mapped_column(String(40), default="Alta")  # Crítica (Interrupción Servicio Esencial), Alta, Media, Baja
     afecta_servicio_esencial: Mapped[bool] = mapped_column(Boolean, default=False)
+    afecta_datos_personales: Mapped[bool] = mapped_column(Boolean, default=False)
+    brecha_seguridad_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    codigo_brecha_relacionada: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    tratamientos_afectados: Mapped[str] = mapped_column(String(255), default="")
     descripcion: Mapped[str] = mapped_column(Text, nullable=False)
     sistemas_comprometidos: Mapped[str] = mapped_column(Text, default="")
     medidas_contencion_aplicadas: Mapped[str] = mapped_column(Text, default="")

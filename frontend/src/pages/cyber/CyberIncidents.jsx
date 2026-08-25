@@ -105,6 +105,8 @@ export function CyberIncidents({ incidents = [], token, user, onReload }) {
   const [tipoAtaque, setTipoAtaque] = useState(TIPOS_ATAQUE[0]);
   const [severidad, setSeveridad] = useState("Alta");
   const [afectaServicio, setAfectaServicio] = useState(true);
+  const [afectaDatosPersonales, setAfectaDatosPersonales] = useState(false);
+  const [tratamientosAfectados, setTratamientosAfectados] = useState("");
   const [descripcion, setDescripcion] = useState("");
   const [sistemasComprometidos, setSistemasComprometidos] = useState("");
   const [medidasContencion, setMedidasContencion] = useState("");
@@ -148,6 +150,8 @@ export function CyberIncidents({ incidents = [], token, user, onReload }) {
     setTipoAtaque(isPanic ? "Ransomware / Secuestro de datos" : TIPOS_ATAQUE[0]);
     setSeveridad(isPanic ? "Crítica" : "Alta");
     setAfectaServicio(true);
+    setAfectaDatosPersonales(false);
+    setTratamientosAfectados("");
     setDescripcion(isPanic ? "ALERTA URGENTE: Detección activa de vector de ataque crítico en infraestructura esencial. Activación de protocolo de contención inmediata." : "");
     setSistemasComprometidos("");
     setMedidasContencion("");
@@ -172,6 +176,8 @@ export function CyberIncidents({ incidents = [], token, user, onReload }) {
         tipo_ataque: tipoAtaque,
         severidad,
         afecta_servicio_esencial: afectaServicio,
+        afecta_datos_personales: afectaDatosPersonales,
+        tratamientos_afectados: tratamientosAfectados,
         descripcion,
         sistemas_comprometidos: sistemasComprometidos,
         medidas_contencion_aplicadas: medidasContencion,
@@ -479,6 +485,24 @@ export function CyberIncidents({ incidents = [], token, user, onReload }) {
                   </div>
                 </div>
 
+                {/* Cross-correlation DPO Banner */}
+                {inc.afecta_datos_personales && (
+                  <div className="p-3 bg-teal-50 border border-teal-200 rounded-xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 text-xs">
+                    <div className="flex items-center gap-2 text-teal-900 font-bold">
+                      <ShieldAlert size={16} className="text-teal-700 shrink-0" />
+                      <div>
+                        <span>⚡ CORRELACIÓN DUAL GRC ACTIVADA:</span>
+                        <span className="font-normal text-teal-800 ml-1">Compromete tratamiento de datos personales ({inc.tratamientos_afectados || "Bases de datos con PII"}).</span>
+                      </div>
+                    </div>
+                    {inc.codigo_brecha_relacionada && (
+                      <span className="font-mono bg-white px-2.5 py-1 rounded border border-teal-300 text-teal-900 font-bold shrink-0 shadow-2xs">
+                        Brecha DPO: {inc.codigo_brecha_relacionada} · 72h
+                      </span>
+                    )}
+                  </div>
+                )}
+
                 {/* Footer Actions */}
                 <div className="flex justify-between items-center pt-3 border-t border-slate-100 flex-wrap gap-2">
                   <div className="flex items-center gap-2">
@@ -569,6 +593,34 @@ export function CyberIncidents({ incidents = [], token, user, onReload }) {
                   />
                   <span>¿Afecta la continuidad de un Servicio Esencial u OIV?</span>
                 </label>
+              </div>
+
+              {/* Cross-correlation Toggle */}
+              <div className="p-3 bg-teal-50/70 border border-teal-200 rounded-xl space-y-2">
+                <label className="flex items-center gap-2 cursor-pointer text-xs font-bold text-teal-900">
+                  <input
+                    type="checkbox"
+                    className="rounded border-teal-300 text-teal-600 focus:ring-teal-500 h-4 w-4"
+                    checked={afectaDatosPersonales}
+                    onChange={(e) => setAfectaDatosPersonales(e.target.checked)}
+                  />
+                  <span>¿Compromete Bases de Datos o Tratamientos de Datos Personales (Ley N° 21.719)?</span>
+                </label>
+                {afectaDatosPersonales && (
+                  <div>
+                    <label className="field-label text-[11px]" htmlFor="inc-rat">Tratamientos Afectados (RAT)</label>
+                    <input
+                      id="inc-rat"
+                      className="field mt-1 text-xs"
+                      placeholder="Ej. RAT-01: Registro de Usuarios y Fichas de Atención"
+                      value={tratamientosAfectados}
+                      onChange={(e) => setTratamientosAfectados(e.target.value)}
+                    />
+                    <p className="text-[10px] text-teal-700 mt-1 font-medium">
+                      ⚡ Se generará automáticamente la Brecha en la Suite de Datos con temporizador de 72h para la Agencia.
+                    </p>
+                  </div>
+                )}
               </div>
 
               <div>

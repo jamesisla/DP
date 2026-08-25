@@ -278,6 +278,24 @@ export function SecurityBreaches({ breaches = [], token, user, onReload }) {
                   </div>
                 </div>
 
+                {/* Cross-correlation CISO / ANCI Banner */}
+                {b.origen_ciberseguridad && (
+                  <div className="p-3 bg-indigo-50 border border-indigo-200 rounded-xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 text-xs">
+                    <div className="flex items-center gap-2 text-indigo-950 font-bold">
+                      <ServerCrash size={16} className="text-indigo-600 shrink-0" />
+                      <div>
+                        <span>🔒 ORIGEN CIBERATAQUE (WAZUH SIEM / ANCI):</span>
+                        <span className="font-normal text-indigo-900 ml-1">Activo RSIC comprometido: {b.activo_rsic_afectado || "Servidor Central BD"}.</span>
+                      </div>
+                    </div>
+                    {b.codigo_incidente_ciber && (
+                      <span className="font-mono bg-white px-2.5 py-1 rounded border border-indigo-300 text-indigo-900 font-bold shrink-0 shadow-2xs">
+                        Incidente ANCI: {b.codigo_incidente_ciber} · 3h
+                      </span>
+                    )}
+                  </div>
+                )}
+
                 {/* Footer Actions */}
                 <div className="flex justify-between items-center pt-3 border-t border-slate-100 flex-wrap gap-2">
                   <button

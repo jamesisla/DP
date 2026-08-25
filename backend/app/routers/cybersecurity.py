@@ -25,6 +25,7 @@ from app.models.domain import (
     ImplementationProject,
     Proveedor,
     SecurityBreach,
+    TelemetryEvent,
     User,
 )
 from app.schemas.domain import (
@@ -275,13 +276,16 @@ def create_cyber_asset(
         cifrado_activo=payload.cifrado_activo,
         mfa_activo=payload.mfa_activo,
         respaldo_inmutable=payload.respaldo_inmutable,
+        alberga_datos_personales=payload.alberga_datos_personales,
+        tratamientos_asociados=payload.tratamientos_asociados or "",
+        sensibilidad_datos=payload.sensibilidad_datos or "Sin Datos Personales",
         estado_cumplimiento=payload.estado_cumplimiento
     )
     db.add(asset)
     db.commit()
     db.refresh(asset)
     
-    log_action(db, current_user.id, "Registrar Activo Crítico RSIC", "CyberAsset", {"codigo": asset.codigo_activo, "nombre": asset.nombre, "criticidad": asset.criticidad})
+    log_action(db, current_user.id, "Registrar Activo Crítico RSIC", "CyberAsset", {"codigo": asset.codigo_activo, "nombre": asset.nombre, "criticidad": asset.criticidad, "alberga_datos": asset.alberga_datos_personales})
     return asset
 
 
@@ -442,6 +446,8 @@ def create_cyber_incident(
         tipo_ataque=payload.tipo_ataque,
         severidad=payload.severidad,
         afecta_servicio_esencial=payload.afecta_servicio_esencial,
+        afecta_datos_personales=payload.afecta_datos_personales,
+        tratamientos_afectados=payload.tratamientos_afectados or "",
         descripcion=payload.descripcion,
         sistemas_comprometidos=payload.sistemas_comprometidos,
         medidas_contencion_aplicadas=payload.medidas_contencion_aplicadas,
@@ -459,13 +465,56 @@ def create_cyber_incident(
         reportado_por_id=current_user.id
     )
     db.add(incident)
+    db.flush()
+
+    if payload.afecta_datos_personales:
+        count_breach = db.query(SecurityBreach).count() + 1
+        codigo_brecha = f"BRECHA-CIBER-{now.year}-{str(count_breach).zfill(4)}"
+        brecha = SecurityBreach(
+            codigo_incidente=codigo_brecha,
+            fecha_deteccion=now,
+            fecha_limite_notificacion=deadline_72h,
+            tipo_incidente=f"Incidente Ciber: {payload.tipo_ataque}",
+            gravedad=payload.severidad,
+            descripcion=f"Brecha originada por incidente ANCI [{codigo}]: {payload.descripcion}",
+            datos_afectados=f"Tratamientos afectados: {payload.tratamientos_afectados or 'Bases de datos comprometidas'}",
+            cantidad_titulares_afectados=100,
+            medidas_contencion=payload.medidas_contencion_aplicadas or "Aislamiento de activo crítico y preservación de logs.",
+            notificado_agencia=False,
+            notificado_titulares=False,
+            estado="En contención",
+            origen_ciberseguridad=True,
+            incidente_anci_id=incident.id,
+            codigo_incidente_ciber=codigo,
+            activo_rsic_afectado=payload.sistemas_comprometidos or "Activo Crítico RSIC",
+            reportado_por_id=current_user.id
+        )
+        db.add(brecha)
+        db.flush()
+
+        incident.brecha_seguridad_id = brecha.id
+        incident.codigo_brecha_relacionada = codigo_brecha
+
+        # Telemetría Dual
+        telemetry = TelemetryEvent(
+            fuente="Motor de Correlación Cruzada GRC",
+            suite="data_protection",
+            tipo_evento="CROSS_SUITE_BREACH_ALERT",
+            severidad="Crítico",
+            mensaje=f"⚡ CORRELACIÓN DUAL: Ciberataque [{codigo}] compromete datos personales. Brecha DPO [{codigo_brecha}] creada automáticamente con plazo de 72h.",
+            payload_json=json.dumps({"codigo_ciber": codigo, "codigo_brecha": codigo_brecha, "afecta_rat": payload.tratamientos_afectados, "plazo_horas": 72}),
+            accion_automatica="Alerta ingresada en bandeja DPO (72h)."
+        )
+        db.add(telemetry)
+
     db.commit()
     db.refresh(incident)
     
     log_action(db, current_user.id, "Reportar Ciberataque / Incidente ANCI", "CyberIncidentANCI", {
         "codigo": incident.codigo_incidente,
         "tipo": incident.tipo_ataque,
-        "severidad": incident.severidad
+        "severidad": incident.severidad,
+        "afecta_datos": incident.afecta_datos_personales
     })
     return incident
 

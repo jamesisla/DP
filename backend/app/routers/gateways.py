@@ -14,7 +14,8 @@ from app.models.domain import (
     CyberIncidentANCI, 
     CyberAsset, 
     CvdReport, 
-    TelemetryEvent
+    TelemetryEvent,
+    SecurityBreach
 )
 from app.schemas.domain import (
     CvdReportRead, 
@@ -238,26 +239,56 @@ def simulate_wazuh_alert(
     current_user: Annotated[User, Depends(get_current_user)],
     db: Annotated[Session, Depends(get_db)]
 ):
-    """Simula la llegada de un Webhook de Wazuh SIEM Nivel 12 (Ataque a Activo Crítico RSIC)."""
+    """Simula la llegada de un Webhook de Wazuh SIEM Nivel 12 con Correlación Cruzada (CISO 3h & DPO 72h)."""
     now = datetime.now()
-    count = db.query(CyberIncidentANCI).count() + 1
-    codigo = f"INC-WAZUH-{now.strftime('%Y%m')}-{count:03d}"
+    count_inci = db.query(CyberIncidentANCI).count() + 1
+    count_breach = db.query(SecurityBreach).count() + 1
     
-    # Crear incidente automático con límite de 3h y 72h
+    codigo_inci = f"INC-WAZUH-{now.strftime('%Y%m')}-{count_inci:03d}"
+    codigo_brecha = f"BRECHA-WAZUH-{now.strftime('%Y%m')}-{count_breach:03d}"
+    
+    # 1. Plazos perentorios legales
     limite_3h = now + timedelta(hours=3)
     limite_72h = now + timedelta(hours=72)
     
+    # 2. Crear Brecha de Datos Personales para el DPO (Ley 21.719 - 72h)
+    brecha = SecurityBreach(
+        codigo_incidente=codigo_brecha,
+        fecha_deteccion=now,
+        fecha_limite_notificacion=limite_72h,
+        tipo_incidente="Compromiso / Fuga de Servidor BD (Wazuh SIEM FIM)",
+        gravedad="Crítica",
+        descripcion="Correlación cruzada automática: Alerta Wazuh Nivel 12 detectó modificación no autorizada de binarios y volcado de memoria en servidor que alberga base de datos con registros ciudadanos.",
+        datos_afectados="RUTs, Nombres completos, Correos electrónicos, Fichas de Atención y Credenciales de Acceso (RAT-01)",
+        cantidad_titulares_afectados=1450,
+        medidas_contencion="Servidor aislado de la DMZ; revocación de llaves SSH; inicio de protocolo perentorio de notificación 72h a la Agencia de Protección de Datos.",
+        notificado_agencia=False,
+        notificado_titulares=False,
+        estado="En contención",
+        origen_ciberseguridad=True,
+        codigo_incidente_ciber=codigo_inci,
+        activo_rsic_afectado="Servidor de Bases de Datos Producción (RSIC-01)",
+        reportado_por_id=current_user.id
+    )
+    db.add(brecha)
+    db.flush()
+
+    # 3. Crear Incidente CISO para la ANCI (Ley 21.663 - 3h)
     incidente = CyberIncidentANCI(
-        codigo_incidente=codigo,
+        codigo_incidente=codigo_inci,
         fecha_deteccion=now,
         fecha_limite_alerta_3h=limite_3h,
         fecha_limite_informe_72h=limite_72h,
         tipo_ataque="Intrusión / Acceso No Autorizado (Wazuh L12)",
         severidad="Crítica",
         afecta_servicio_esencial=True,
-        descripcion="Wazuh XDR detectó 420 intentos fallidos de SSH seguidos de modificación de binarios en /usr/bin. Posible escalada de privilegios.",
+        afecta_datos_personales=True,
+        brecha_seguridad_id=brecha.id,
+        codigo_brecha_relacionada=codigo_brecha,
+        tratamientos_afectados="RAT-01 (Registro de Usuarios y Fichas de Atención)",
+        descripcion="Wazuh XDR detectó 420 intentos fallidos de SSH seguidos de modificación de binarios en /usr/bin. Compromete activo que almacena datos personales de titulares.",
         sistemas_comprometidos="Servidor de Bases de Datos Producción (RSIC-01)",
-        medidas_contencion_aplicadas="IPs bloqueadas automáticamente en Firewall perimetral mediante Active Response.",
+        medidas_contencion_aplicadas="IPs atacantes bloqueadas en Firewall perimetral mediante Wazuh Active Response. Servidor aislado de la red.",
         iocs_json={"ips_atacantes": ["198.51.100.77", "203.0.113.19"], "hashes_malware": ["e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"]},
         checklist_forense_json={"volcado_ram": True, "congelamiento_logs": True, "aislamiento_red": True, "hash_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"},
         tiempo_deteccion_minutos=2,
@@ -267,34 +298,52 @@ def simulate_wazuh_alert(
         reportado_por_id=current_user.id
     )
     db.add(incidente)
+    db.flush()
 
-    # Telemetría Wazuh
-    telemetry = TelemetryEvent(
+    # Actualizar ID cruzado en la brecha
+    brecha.incidente_anci_id = incidente.id
+
+    # 4. Telemetría Dual (Wazuh Ciber + Correlación Privacidad)
+    telemetry_ciber = TelemetryEvent(
         fuente="Wazuh SIEM / XDR",
         suite="cybersecurity",
         tipo_evento="WAZUH_CRITICAL_LEVEL_12",
         severidad="Crítico",
-        mensaje=f"Alerta Crítica Wazuh: Intrusión detectada en Servidor BD. Incidente [{codigo}] generado con Alerta 3h.",
-        payload_json=json.dumps({"codigo": codigo, "regla_wazuh": "5712 (SSHD Brute Force)", "nivel": 12}),
-        accion_automatica="Cuenta regresiva perentoria de 3 horas para la ANCI iniciada."
+        mensaje=f"Alerta Crítica Wazuh: Intrusión detectada en Servidor BD. Incidente CISO [{codigo_inci}] generado (Alerta 3h ANCI).",
+        payload_json=json.dumps({"codigo_ciber": codigo_inci, "brecha_vinculada": codigo_brecha, "regla_wazuh": "5712 (SSHD Brute Force)", "nivel": 12}),
+        accion_automatica="Temporizador perentorio ANCI (<3h) activado para el CISO."
     )
-    db.add(telemetry)
+    db.add(telemetry_ciber)
 
+    telemetry_privacy = TelemetryEvent(
+        fuente="Motor de Correlación Cruzada GRC",
+        suite="data_protection",
+        tipo_evento="CROSS_SUITE_BREACH_ALERT",
+        severidad="Crítico",
+        mensaje=f"⚡ CORRELACIÓN DUAL GRC: Ataque Wazuh en Servidor BD compromete Tratamiento [RAT-01]. Brecha DPO [{codigo_brecha}] generada automáticamente (Plazo 72h Agencia).",
+        payload_json=json.dumps({"codigo_ciber": codigo_inci, "codigo_brecha": codigo_brecha, "afecta_rat": "RAT-01", "titulares_afectados": 1450, "plazo_horas": 72}),
+        accion_automatica="Alerta ingresada en bandeja DPO (72h) y protocolo de notificación activado."
+    )
+    db.add(telemetry_privacy)
+
+    # 5. Bitácora de Auditoría
     log_action(
         db,
         current_user.id,
-        f"Ingesta Automática Incidente Crítico {codigo} (Alerta 3h)",
-        "CyberIncidentANCI",
-        {"codigo": codigo, "severidad": "Crítica", "alerta_3h": limite_3h.isoformat()}
+        f"Correlación Cruzada: Incidente Wazuh {codigo_inci} generó Brecha DPO {codigo_brecha}",
+        "CrossRegulatoryCorrelation",
+        {"codigo_inci": codigo_inci, "codigo_brecha": codigo_brecha, "alerta_3h": limite_3h.isoformat(), "alerta_72h": limite_72h.isoformat()}
     )
     db.commit()
 
     return {
         "success": True,
-        "fuente": "Wazuh SIEM / XDR Connector",
-        "codigo_incidente": codigo,
-        "limite_3h": limite_3h.isoformat(),
-        "mensaje": "Incidente registrado y temporizador ANCI <3 Horas activado."
+        "fuente": "Wazuh SIEM / XDR + Motor de Correlación GRC",
+        "codigo_incidente_ciber": codigo_inci,
+        "codigo_brecha_dpo": codigo_brecha,
+        "limite_3h_anci": limite_3h.isoformat(),
+        "limite_72h_agencia": limite_72h.isoformat(),
+        "mensaje": "⚡ Correlación Dual Exitosa: Incidente ANCI (<3h) y Brecha de Privacidad (<72h) generados simultáneamente."
     }
 
 
