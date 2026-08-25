@@ -2,26 +2,23 @@
 
 * **Proyecto:** LexApp GRC (SIGE-DP & Ciberseguridad ANCI)
 * **Repositorio:** `https://github.com/jamesisla/DP.git`
-* **Rama:** `main`
+* **Rama Actual:** `prueba/go-stack` (Tag de respaldo: `respaldo-pre-go`)
 * **Última Actualización:** 2026-08-25
 
 ---
 
-## 🎯 Estado Actual (Sprint Activo)
+## 🎯 Estado Actual (Prueba Piloto Go Monolito Modular)
 * **Completado:**
-  * ✅ Matriz de 12 capacidades simétricas de Privacidad (Ley 21.719) y Ciberseguridad (Ley 21.663).
-  * ✅ Routers de backend para incidentes ANCI (3h), ARCO+ (15d), DPA ChileCompra y telemetría Wazuh/Presidio.
-  * ✅ Shell de frontend con selector dinámico de suites y notificaciones globales.
-  * ✅ Scripts de automatización y optimización para servidor OCI.
+  * ✅ Tag de respaldo inmutable `respaldo-pre-go` creado en `main`.
+  * ✅ Rama aislada `prueba/go-stack` creada para pruebas seguras.
+  * ✅ Backend modular 100% implementado en **Go 1.25 + Chi Router + SQLite WAL**.
+  * ✅ Paridad del 100% en contratos JSON de API (Auth JWT, Dashboard, Privacidad Ley 21.719, Ciberseguridad ANCI Ley 21.663, Documentos y Gateways).
+  * ✅ Rendimiento validado: Latencias sub-milisegundo (< 1 ms) y consumo de RAM de **17.6 MB**.
+  * ✅ Frontend React Vite conectado y validado contra el backend en Go.
 
 ---
 
-## 📋 Próximos Pasos (Backlog Inmediato)
-1. [ ] Ejecutar recorrido de verificación según `presentacion/03_Guia_Pruebas_Testing_Walkthrough.md`.
-2. [ ] Validar semáforo de días hábiles chilenos en solicitudes ARCO+.
-3. [ ] Probar canal de divulgación coordinada de vulnerabilidades (CVD Art. 12) en entorno local.
-
----
-
-## ⚠️ Bloqueos / Notas Técnicas
-* Ninguno detectado. El entorno local corre con SQLite y el servidor OCI en Ubuntu Minimal.
+## 📋 Próximos Pasos (Validación & Decisión)
+1. [ ] Ejecutar `bash scripts/dev.sh` para navegar la interfaz visual en navegador.
+2. [ ] Validar flujos de usuario (Login DPO, Dashboard CISO, Botón de Pánico 3h, Generación de One-Pagers).
+3. [ ] Decidir: Fusionar a `main` si la prueba es satisfactoria, o volver a `main` con `git checkout main`.
