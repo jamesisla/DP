@@ -28,3 +28,8 @@
 **/*.log
 **/.DS_Store
 **/Thumbs.db
+
+# Go Binaries & WAL
+lexapp-server
+*.db-shm
+*.db-wal
