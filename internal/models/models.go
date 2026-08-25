@@ -124,18 +124,19 @@ type Riesgo struct {
 }
 
 type ImpactAssessment struct {
-	ID                 int    `json:"id"`
-	Titulo             string `json:"titulo"`
-	AreaID             int    `json:"area_id"`
-	ProcesoRelacionado string `json:"proceso_relacionado"`
-	MotivoAltoRiesgo   string `json:"motivo_alto_riesgo"`
-	AnalisisNecesidad  string `json:"analisis_necesidad"`
-	RiesgosDerechos    string `json:"riesgos_derechos"`
-	MedidasMitigacion  string `json:"medidas_mitigacion"`
-	RiesgoResidual     string `json:"riesgo_residual"`
-	OpinionDPO         string `json:"opinion_dpo"`
-	Estado             string `json:"estado"`
-	Area               *Area  `json:"area,omitempty"`
+	ID                     int    `json:"id"`
+	Titulo                 string `json:"titulo"`
+	AreaID                 int    `json:"area_id"`
+	ProcesoRelacionado     string `json:"proceso_relacionado"`
+	MotivoAltoRiesgo       string `json:"motivo_alto_riesgo"`
+	DescripcionTratamiento string `json:"descripcion_tratamiento"`
+	AnalisisNecesidad      string `json:"analisis_necesidad"`
+	RiesgosDerechos        string `json:"riesgos_derechos"`
+	MedidasMitigacion      string `json:"medidas_mitigacion"`
+	RiesgoResidual         string `json:"riesgo_residual"`
+	OpinionDPO             string `json:"opinion_dpo"`
+	Estado                 string `json:"estado"`
+	Area                   *Area  `json:"area,omitempty"`
 }
 
 // Providers (DPA / Supply Chain)
