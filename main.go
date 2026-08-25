@@ -143,6 +143,7 @@ func main() {
 
 			// Training
 			auth.Get("/campaigns", trainH.GetCampaigns)
+			auth.Get("/training/campaigns", trainH.GetCampaigns)
 			auth.Post("/campaigns", trainH.CreateCampaign)
 			auth.Delete("/campaigns/{id}", trainH.DeleteCampaign)
 			auth.Get("/campaigns/{id}/certificate", trainH.GetCampaignCertificate)
@@ -160,11 +161,15 @@ func main() {
 			auth.Get("/opensource-privacy-blueprint", docH.GetOpensourcePrivacyBlueprint)
 			auth.Get("/executive-onepager-dp", docH.GetExecutiveOnePagerDP)
 			auth.Get("/grc-consolidated-onepager", docH.GetGRCConsolidatedOnePager)
+			auth.Get("/documents/grc-consolidated-onepager", docH.GetGRCConsolidatedOnePager)
+			auth.Get("/documents/executive-onepager-dp", docH.GetExecutiveOnePagerDP)
+			auth.Get("/documents/annual-privacy-plan", docH.GetAnnualPrivacyPlan)
 			auth.Get("/procurement-dpa-clauses", docH.GetProcurementDPAClauses)
 			auth.Get("/crisis-citizen-notification", docH.GetCrisisCitizenNotification)
 
 			// Audit & Q&A
 			auth.Get("/audit/logs", auditH.GetAuditLogs)
+			auth.Get("/audit-logs", auditH.GetAuditLogs)
 			auth.Get("/audit/ledger-verify", auditH.GetLedgerVerify)
 			auth.Get("/audit/export-zip", auditH.GetAuditExportZip)
 			auth.Post("/audit/qa-dpo", auditH.QADPO)
@@ -178,6 +183,9 @@ func main() {
 			auth.Get("/cyber/assets/topology", cyberH.GetCyberTopology)
 
 			auth.Get("/cyber/phases", cyberH.GetCyberPhases)
+			auth.Get("/cyber/fases", cyberH.GetCyberPhases)
+			auth.Get("/cyber/project", projH.GetProjects)
+			auth.Get("/cyber/projects", projH.GetProjects)
 			auth.Put("/cyber/tasks/{id}", cyberH.UpdateCyberTask)
 
 			auth.Get("/cyber/risks", cyberH.GetCyberRisks)

@@ -2,7 +2,8 @@ package handlers
 
 import (
 	"database/sql"
-		"net/http"
+	"fmt"
+	"net/http"
 	"time"
 
 	"github.com/jamesisla/DP/internal/database"
@@ -16,7 +17,12 @@ func NewDashboardHandler() *DashboardHandler {
 }
 
 func (h *DashboardHandler) GetDashboard(w http.ResponseWriter, r *http.Request) {
-	// 1. Projects & Phases
+	currentUser := middleware.GetCurrentUser(r)
+	userName := "DPO Demo"
+	if currentUser != nil {
+		userName = currentUser.FullName
+	}
+
 	var projectID, projProgress int
 	var projName, projStage, projOwner, projSummary, projIni, projFin, projEstado string
 	var projUpdated string
@@ -46,10 +52,9 @@ func (h *DashboardHandler) GetDashboard(w http.ResponseWriter, r *http.Request) 
 			var fNom, fIni, fFin string
 			var fExt bool
 			if err := rows.Scan(&fID, &fNom, &fOrden, &fIni, &fFin, &fPond, &fExt); err == nil {
-				// Count tasks
 				var totalTasks, completedTasks int
 				database.DB.QueryRow(`SELECT COUNT(*) FROM tareas WHERE fase_id = ?`, fID).Scan(&totalTasks)
-				database.DB.QueryRow(`SELECT COUNT(*) FROM tareas WHERE fase_id = ? AND estado = 'Completada'`, fID).Scan(&completedTasks)
+				database.DB.QueryRow(`SELECT COUNT(*) FROM tareas WHERE fase_id = ? AND estado = "Completada"`, fID).Scan(&completedTasks)
 
 				var fProg float64 = 0
 				if fExt {
@@ -73,31 +78,31 @@ func (h *DashboardHandler) GetDashboard(w http.ResponseWriter, r *http.Request) 
 		}
 	}
 
-	// Update project progress in DB
 	projProgress = int(globalProgress)
 	database.DB.Exec(`UPDATE implementation_projects SET progress = ? WHERE id = ?`, projProgress, projectID)
 
-	// Countdown to Dec 1, 2026
 	deadline := time.Date(2026, 12, 1, 0, 0, 0, 0, time.UTC)
 	daysLeft := int(time.Until(deadline).Hours() / 24)
 	if daysLeft < 0 {
 		daysLeft = 0
 	}
 
-	// ARCO+ stats
-	var totalArco, pendingArco int
+	var totalTasks, completedTasks, totalProviders, totalArco, pendingArco, urgentArco int
+	database.DB.QueryRow(`SELECT COUNT(*) FROM tareas`).Scan(&totalTasks)
+	database.DB.QueryRow(`SELECT COUNT(*) FROM tareas WHERE estado = "Completada"`).Scan(&completedTasks)
+	database.DB.QueryRow(`SELECT COUNT(*) FROM proveedores`).Scan(&totalProviders)
 	database.DB.QueryRow(`SELECT COUNT(*) FROM arco_requests`).Scan(&totalArco)
-	database.DB.QueryRow(`SELECT COUNT(*) FROM arco_requests WHERE estado IN ('Ingresada', 'En análisis')`).Scan(&pendingArco)
+	database.DB.QueryRow(`SELECT COUNT(*) FROM arco_requests WHERE estado IN ("Ingresada", "En análisis")`).Scan(&pendingArco)
+	urgentArco = pendingArco
 
-	// Breaches stats
-	var totalBreaches, activeBreaches int
+	var totalBreaches, activeBreaches, unnotifiedBreaches int
 	database.DB.QueryRow(`SELECT COUNT(*) FROM security_breaches`).Scan(&totalBreaches)
-	database.DB.QueryRow(`SELECT COUNT(*) FROM security_breaches WHERE estado IN ('En contención', 'En investigación')`).Scan(&activeBreaches)
+	database.DB.QueryRow(`SELECT COUNT(*) FROM security_breaches WHERE estado IN ("En contención", "En investigación")`).Scan(&activeBreaches)
+	database.DB.QueryRow(`SELECT COUNT(*) FROM security_breaches WHERE notificado_agencia = 0 AND estado != "Mitigado y Cerrado"`).Scan(&unnotifiedBreaches)
 
-	// Recent activity from logs
 	recentActivity := []map[string]interface{}{}
 	logRows, err := database.DB.Query(`
-		SELECT l.id, COALESCE(u.full_name, 'Sistema'), l.accion, l.fecha_hora, l.detalle_json
+		SELECT l.id, COALESCE(u.full_name, "Sistema"), l.accion, l.fecha_hora, l.detalle_json
 		FROM logs_auditoria l
 		LEFT JOIN users u ON l.usuario_id = u.id
 		ORDER BY l.fecha_hora DESC LIMIT 10
@@ -120,79 +125,71 @@ func (h *DashboardHandler) GetDashboard(w http.ResponseWriter, r *http.Request) 
 		}
 	}
 
+	metrics := []map[string]interface{}{
+		{"label": "Avance General Ley 21.719", "value": fmt.Sprintf("%d%%", projProgress), "trend": "ponderado"},
+		{"label": "Días Restantes Entrada Vigencia", "value": fmt.Sprintf("%d", daysLeft), "trend": "01 Dic 2026"},
+		{"label": "Solicitudes ARCO+ (15d)", "value": fmt.Sprintf("%d activas", pendingArco), "trend": fmt.Sprintf("%d urgentes", urgentArco)},
+		{"label": "Brechas de Seguridad (72h)", "value": fmt.Sprintf("%d incidentes", activeBreaches), "trend": fmt.Sprintf("%d por notificar", unnotifiedBreaches)},
+	}
+
+	focus := []string{
+		"Completar Wizard de Levantamiento de Información en todas las divisiones.",
+		"Monitorear las solicitudes de Derechos ARCO+ en curso antes del vencimiento de 15 días hábiles.",
+		"Verificar que los contratos de proveedores con vigencia menor a 6 meses cuenten con el Anexo Ley 21.719.",
+	}
+
 	res := map[string]interface{}{
-		"project": map[string]interface{}{
-			"id":           projectID,
-			"name":         projName,
-			"stage":        projStage,
-			"progress":     projProgress,
-			"owner":        projOwner,
-			"summary":      projSummary,
-			"fecha_inicio": projIni,
-			"fecha_fin":    projFin,
-			"estado":       projEstado,
+		"user":                userName,
+		"metrics":             metrics,
+		"phases":              phasesList,
+		"focus":               focus,
+		"critical_path_alert": nil,
+		"recent_activity":     recentActivity,
+		"stats": map[string]interface{}{
+			"total_tasks":         totalTasks,
+			"completed_tasks":     completedTasks,
+			"total_providers":     totalProviders,
+			"total_arco":          totalArco,
+			"pending_arco":        pendingArco,
+			"urgent_arco":         urgentArco,
+			"total_breaches":      totalBreaches,
+			"active_breaches":     activeBreaches,
+			"unnotified_breaches": unnotifiedBreaches,
 		},
-		"global_progress": projProgress,
-		"days_remaining":  daysLeft,
-		"phases":          phasesList,
-		"metrics": map[string]interface{}{
-			"global_progress": projProgress,
-			"days_remaining":  daysLeft,
-			"total_arco":      totalArco,
-			"pending_arco":    pendingArco,
-			"total_breaches":  totalBreaches,
-			"active_breaches": activeBreaches,
-		},
-		"recent_activity": recentActivity,
 	}
 
 	middleware.WriteJSON(w, http.StatusOK, res)
 }
 
 func (h *DashboardHandler) GetComplianceTimeline(w http.ResponseWriter, r *http.Request) {
-	timeline := []map[string]interface{}{
+	today := time.Now()
+	deadline21719 := time.Date(2026, 12, 1, 0, 0, 0, 0, time.UTC)
+	daysLeft21719 := max(0, int(deadline21719.Sub(today).Hours()/24))
+
+	milestones := []map[string]interface{}{
 		{
-			"fase":        "Fase 1: Preparación",
-			"fecha":       "2025-12-01",
-			"hito":        "Designación de Encargado/a Responsable y Comité de Privacidad",
-			"estado":      "Completado",
-			"ley":         "Ley 21.719 Art. 14",
+			"id":             "l21719_enactment",
+			"ley":            "Ley 21.719",
+			"titulo":         "Entrada en Vigor Plena Ley N° 21.719",
+			"descripcion":    "Exigibilidad total de la Agencia de Protección de Datos Personales, sanciones (hasta 20.000 UTM) y derechos ARCO+.",
+			"fecha":          "2026-12-01",
+			"tipo":           "Hito Legal Mandatorio",
+			"urgencia":       "Alta",
+			"estado":         "En Cuenta Regresiva",
+			"dias_restantes": daysLeft21719,
 		},
 		{
-			"fase":        "Fase 2: Levantamiento",
-			"fecha":       "2026-03-31",
-			"hito":        "Matriz RAT y Registro de Tratamientos de Datos Personales",
-			"estado":      "En Progreso",
-			"ley":         "Ley 21.719 Art. 15",
-		},
-		{
-			"fase":        "Fase 3: Análisis de Riesgos",
-			"fecha":       "2026-06-30",
-			"hito":        "Evaluaciones de Impacto (EIPD) y Matriz 5x5",
-			"estado":      "Pendiente",
-			"ley":         "Ley 21.719 Art. 25",
-		},
-		{
-			"fase":        "Fase 4: Adecuación Contractual",
-			"fecha":       "2026-08-31",
-			"hito":        "Pliegos DPA y Cláusulas para Proveedores ChileCompra",
-			"estado":      "Pendiente",
-			"ley":         "Ley 21.719 Art. 16",
-		},
-		{
-			"fase":        "Fase 5: Capacitación y Protocolos",
-			"fecha":       "2026-10-31",
-			"hito":        "Protocolos ARCO (15d) y Notificación de Brechas (72h)",
-			"estado":      "Pendiente",
-			"ley":         "Ley 21.719 Art. 27",
-		},
-		{
-			"fase":        "Fase 6: Entrada en Vigencia Legal",
-			"fecha":       "2026-12-01",
-			"hito":        "Exigibilidad total ante la Agencia de Protección de Datos",
-			"estado":      "Hito Legal Perentorio",
-			"ley":         "Ley 21.719",
+			"id":             "l21663_anci_enforcement",
+			"ley":            "Ley 21.663",
+			"titulo":         "Exigibilidad Plena Régimen Sancionatorio ANCI",
+			"descripcion":    "Fiscalización de operadores RSIC/OIV y aplicación de multas de hasta 40.000 UTM por incumplimiento de notificación en 3h.",
+			"fecha":          "2026-09-01",
+			"tipo":           "Hito Legal Mandatorio",
+			"urgencia":       "Alta",
+			"estado":         "En Cuenta Regresiva",
+			"dias_restantes": max(0, int(time.Date(2026, 9, 1, 0, 0, 0, 0, time.UTC).Sub(today).Hours()/24)),
 		},
 	}
-	middleware.WriteJSON(w, http.StatusOK, timeline)
+
+	middleware.WriteJSON(w, http.StatusOK, milestones)
 }

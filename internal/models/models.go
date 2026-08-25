@@ -202,17 +202,20 @@ type SecurityBreach struct {
 
 // Training Campaigns
 type TrainingCampaign struct {
-	ID                       int    `json:"id"`
-	Nombre                   string `json:"nombre"`
-	Descripcion              string `json:"descripcion"`
-	Tipo                     string `json:"tipo"`
-	TotalFuncionarios        int    `json:"total_funcionarios"`
-	Completados              int    `json:"completados"`
-	AprobadosEvaluacion      int    `json:"aprobados_evaluacion"`
-	SimulacionPhishingClicks int    `json:"simulacion_phishing_clicks"`
-	Estado                   string `json:"estado"`
-	FechaInicio              string `json:"fecha_inicio"`
-	FechaFin                 string `json:"fecha_fin"`
+	ID                    int      `json:"id"`
+	Titulo                string   `json:"titulo"`
+	Tipo                  string   `json:"tipo"`
+	Descripcion           string   `json:"descripcion"`
+	FechaInicio           string   `json:"fecha_inicio"`
+	FechaFin              string   `json:"fecha_fin"`
+	TotalConvocados       int      `json:"total_convocados"`
+	TotalCapacitados      int      `json:"total_capacitados"`
+	PorcentajeAprobacion  int      `json:"porcentaje_aprobacion"`
+	TasaClicPhishing      float64  `json:"tasa_clic_phishing"`
+	Estado                string   `json:"estado"`
+	InstructorOPlataforma string   `json:"instructor_o_plataforma"`
+	AreaResponsableID     *int     `json:"area_responsable_id"`
+	AreaResponsable       *Area    `json:"area_responsable,omitempty"`
 }
 
 // Documents & Comments
@@ -313,19 +316,20 @@ type CyberFase struct {
 }
 
 type CyberRisk struct {
-	ID                  int     `json:"id"`
-	ActivoID            *int    `json:"activo_id"`
+	ID                  int         `json:"id"`
+	Amenaza             string      `json:"amenaza"`
+	CategoriaMitre      string      `json:"categoria_mitre"`
+	ActivoID            *int        `json:"activo_id"`
 	Activo              *CyberAsset `json:"activo,omitempty"`
-	CodigoAmenaza       string  `json:"codigo_amenaza"`
-	Categoria           string  `json:"categoria"`
-	Descripcion         string  `json:"descripcion"`
-	Probabilidad        int     `json:"probabilidad"`
-	Impacto             int     `json:"impacto"`
-	Puntuacion          int     `json:"puntuacion"`
-	NivelRiesgo         string  `json:"nivel_riesgo"`
-	ControlesCIS        string  `json:"controles_cis"`
-	PlanTratamiento     string  `json:"plan_tratamiento"`
-	EstadoTratamiento   string  `json:"estado_tratamiento"`
+	Probabilidad        int         `json:"probabilidad"`
+	Impacto             int         `json:"impacto"`
+	Puntuacion          int         `json:"puntuacion"`
+	NivelRiesgo         string      `json:"nivel_riesgo"`
+	ControlesExistentes string      `json:"controles_existentes"`
+	PlanTratamiento     string      `json:"plan_tratamiento"`
+	Estado              string      `json:"estado"`
+	ResponsableID       *int        `json:"responsable_id"`
+	Responsable         *UserRead   `json:"responsable,omitempty"`
 }
 
 type CyberIncidentANCI struct {
@@ -357,43 +361,40 @@ type CyberIncidentANCI struct {
 }
 
 type CyberSimulation struct {
-	ID                    int       `json:"id"`
-	NombreSimulacro       string    `json:"nombre_simulacro"`
-	TipoEscenario         string    `json:"tipo_escenario"`
-	FechaEjecucion        time.Time `json:"fecha_ejecucion"`
-	ParticipantesRoles    string    `json:"participantes_roles"`
-	TiempoRespuestaMinutos int      `json:"tiempo_respuesta_minutos"`
-	EfectividadPorcentaje int       `json:"efectividad_porcentaje"`
-	HallazgosClave        string    `json:"hallazgos_clave"`
-	AccionesMejora        string    `json:"acciones_mejora"`
-	Estado                string    `json:"estado"`
+	ID                    int         `json:"id"`
+	CodigoEjercicio       string      `json:"codigo_ejercicio"`
+	Titulo                string      `json:"titulo"`
+	TipoEscenario         string      `json:"tipo_escenario"`
+	EscenarioNarrativa    string      `json:"escenario_narrativa"`
+	FechaEjecucion        string      `json:"fecha_ejecucion"`
+	TiempoRespuestaMinutos int        `json:"tiempo_respuesta_minutos"`
+	ParticipantesJSON     interface{} `json:"participantes_json"`
+	CumplioPlazo3h        bool        `json:"cumplio_plazo_3h"`
+	LeccionesAprendidas   string      `json:"lecciones_aprendidas"`
+	Estado                string      `json:"estado"`
 }
 
 type CyberPolicy struct {
-	ID              int       `json:"id"`
-	Codigo          string    `json:"codigo"`
-	Titulo          string    `json:"titulo"`
-	Categoria       string    `json:"categoria"`
-	Version         string    `json:"version"`
-	Estado          string    `json:"estado"`
-	FechaAprobacion *string   `json:"fecha_aprobacion,omitempty"`
-	ProximaRevision string    `json:"proxima_revision"`
-	Contenido       string    `json:"contenido"`
-	ArticuloANCI    string    `json:"articulo_anci"`
+	ID        int    `json:"id"`
+	Tipo      string `json:"tipo"`
+	Titulo    string `json:"titulo"`
+	Contenido string `json:"contenido"`
+	Version   string `json:"version"`
+	Estado    string `json:"estado"`
 }
 
 type CyberMaturityAssessment struct {
-	ID                       int       `json:"id"`
-	FechaEvaluacion          time.Time `json:"fecha_evaluacion"`
-	PuntajeGobernanza        int       `json:"puntaje_gobernanza"`
-	PuntajeIdentificacion    int       `json:"puntaje_identificacion"`
-	PuntajeProteccion        int       `json:"puntaje_proteccion"`
-	PuntajeDeteccion         int       `json:"puntaje_deteccion"`
-	PuntajeRespuesta         int       `json:"puntaje_respuesta"`
-	PuntajeRecuperacion      int       `json:"puntaje_recuperacion"`
-	NivelMadurezGlobal       string    `json:"nivel_madurez_global"`
-	CumplimientoPorcentaje   int       `json:"cumplimiento_porcentaje"`
-	RecomendacionesPrioritarias string `json:"recomendaciones_prioritarias"`
+	ID                   int    `json:"id"`
+	Titulo               string `json:"titulo"`
+	FechaEvaluacion      string `json:"fecha_evaluacion"`
+	PorcentajeIdentificar int   `json:"porcentaje_identificar"`
+	PorcentajeProteger   int    `json:"porcentaje_proteger"`
+	PorcentajeDetectar   int    `json:"porcentaje_detectar"`
+	PorcentajeResponder  int    `json:"porcentaje_responder"`
+	PorcentajeRecuperar  int    `json:"porcentaje_recuperar"`
+	MadurezGlobal        int    `json:"madurez_global"`
+	ConclusionesCISO     string `json:"conclusiones_ciso"`
+	Estado               string `json:"estado"`
 }
 
 type CvdReport struct {

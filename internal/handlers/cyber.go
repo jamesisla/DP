@@ -23,22 +23,73 @@ func NewCyberHandler() *CyberHandler {
 }
 
 func (h *CyberHandler) GetCyberDashboard(w http.ResponseWriter, r *http.Request) {
-	var totalAssets, rsicCount, totalIncidents, unalertedANCI, openRisks int
+	currentUser := middleware.GetCurrentUser(r)
+	userName := "CISO / Resp. TI"
+	if currentUser != nil {
+		userName = currentUser.FullName
+	}
+
+	var totalAssets, criticalAssets, conformingAssets int
 	database.DB.QueryRow(`SELECT COUNT(*) FROM cyber_assets`).Scan(&totalAssets)
-	database.DB.QueryRow(`SELECT COUNT(*) FROM cyber_assets WHERE es_servicio_esencial_rsic = 1 OR operador_importancia_vital = 1`).Scan(&rsicCount)
+	database.DB.QueryRow(`SELECT COUNT(*) FROM cyber_assets WHERE criticidad IN ("Crítico OIV", "Alto PSE", "Crítico", "Alto")`).Scan(&criticalAssets)
+	database.DB.QueryRow(`SELECT COUNT(*) FROM cyber_assets WHERE estado_cumplimiento = "Conforme" OR (cifrado_activo = 1 AND mfa_activo = 1)`).Scan(&conformingAssets)
+
+	var totalIncidents, activeIncidents, urgent3hCount int
 	database.DB.QueryRow(`SELECT COUNT(*) FROM cyber_incidents_anci`).Scan(&totalIncidents)
-	database.DB.QueryRow(`SELECT COUNT(*) FROM cyber_incidents_anci WHERE alerta_3h_enviada_anci = 0 AND estado != "Cerrado"`).Scan(&unalertedANCI)
-	database.DB.QueryRow(`SELECT COUNT(*) FROM cyber_risks WHERE estado_tratamiento != "Mitigado"`).Scan(&openRisks)
+	database.DB.QueryRow(`SELECT COUNT(*) FROM cyber_incidents_anci WHERE estado != "Mitigado y Notificado"`).Scan(&activeIncidents)
+	database.DB.QueryRow(`SELECT COUNT(*) FROM cyber_incidents_anci WHERE alerta_3h_enviada_anci = 0 AND estado != "Mitigado y Notificado"`).Scan(&urgent3hCount)
+
+	phasesList := []map[string]interface{}{}
+	fRows, fErr := database.DB.Query(`SELECT id, nombre, orden, ponderacion, fecha_inicio_plan, fecha_fin_plan FROM cyber_fases ORDER BY orden ASC`)
+	var globalProgress float64 = 0
+	if fErr == nil {
+		defer fRows.Close()
+		for fRows.Next() {
+			var fID, fOrden, fPond int
+			var fNom, fIni, fFin string
+			if err := fRows.Scan(&fID, &fNom, &fOrden, &fPond, &fIni, &fFin); err == nil {
+				var totalTasks, completedTasks int
+				database.DB.QueryRow(`SELECT COUNT(*) FROM cyber_tareas WHERE fase_id = ?`, fID).Scan(&totalTasks)
+				database.DB.QueryRow(`SELECT COUNT(*) FROM cyber_tareas WHERE fase_id = ? AND estado IN ("Completada", "Resuelto Externamente")`, fID).Scan(&completedTasks)
+				var fProg float64 = 0
+				if totalTasks > 0 {
+					fProg = (float64(completedTasks) / float64(totalTasks)) * 100.0
+				}
+				globalProgress += fProg * (float64(fPond) / 100.0)
+				phasesList = append(phasesList, map[string]interface{}{
+					"id":                 fID,
+					"nombre":             fNom,
+					"orden":              fOrden,
+					"progreso":           int(fProg),
+					"ponderacion":        fPond,
+					"fecha_inicio":       fIni,
+					"fecha_fin":          fFin,
+					"total_tareas":       totalTasks,
+					"tareas_completadas": completedTasks,
+				})
+			}
+		}
+	}
+
+	metrics := []map[string]interface{}{
+		{"label": "Madurez General Ciberseguridad", "value": "92%", "trend": "Marco ANCI / NIST"},
+		{"label": "Activos Críticos RSIC", "value": fmt.Sprintf("%d registrados", totalAssets), "trend": fmt.Sprintf("%d esenciales OIV/PSE", criticalAssets)},
+		{"label": "Alertas Tempranas ANCI (3h)", "value": fmt.Sprintf("%d incidentes", activeIncidents), "trend": fmt.Sprintf("%d urgentes <3h", urgent3hCount)},
+		{"label": "Controles Técnicos Mínimos", "value": fmt.Sprintf("%d/%d", conformingAssets, totalAssets), "trend": "Cifrado + MFA + Backup"},
+	}
 
 	res := map[string]interface{}{
-		"total_activos":             totalAssets,
-		"activos_rsic_oiv":          rsicCount,
-		"total_incidentes_anci":     totalIncidents,
-		"incidentes_pendientes_3h":  unalertedANCI,
-		"riesgos_ciber_abiertos":    openRisks,
-		"nivel_madurez_promedio":    "Nivel 3 - Definido (NIST CSF 2.0 / ANCI)",
-		"cumplimiento_anci_percent": 92,
-		"sla_3h_activo":             true,
+		"user":                   userName,
+		"metrics":                metrics,
+		"phases":                 phasesList,
+		"maturity":               map[string]interface{}{"madurez_global": 92, "estado": "Completado"},
+		"active_incidents_count": activeIncidents,
+		"urgent_3h_count":        urgent3hCount,
+		"assets_stats": map[string]interface{}{
+			"total":      totalAssets,
+			"criticos":   criticalAssets,
+			"conformes":  conformingAssets,
+		},
 	}
 	middleware.WriteJSON(w, http.StatusOK, res)
 }
@@ -129,7 +180,7 @@ func (h *CyberHandler) DeleteCyberAsset(w http.ResponseWriter, r *http.Request) 
 }
 
 func (h *CyberHandler) GetCyberTopology(w http.ResponseWriter, r *http.Request) {
-	rows, _ := database.DB.Query(`SELECT id, nombre_activo, tipo, capa_tecnologica, criticidad FROM cyber_assets`)
+	rows, _ := database.DB.Query(`SELECT id, nombre, tipo, capa_tecnologica, criticidad FROM cyber_assets`)
 	defer rows.Close()
 
 	nodes := []map[string]interface{}{}
@@ -207,14 +258,14 @@ func (h *CyberHandler) UpdateCyberTask(w http.ResponseWriter, r *http.Request) {
 
 func (h *CyberHandler) GetCyberRisks(w http.ResponseWriter, r *http.Request) {
 	rows, err := database.DB.Query(`
-		SELECT r.id, r.activo_id, a.nombre_activo, r.codigo_amenaza, r.categoria, r.descripcion,
-		       r.probabilidad, r.impacto, r.puntuacion, r.nivel_riesgo, r.controles_cis, r.plan_tratamiento, r.estado_tratamiento
+		SELECT r.id, r.amenaza, r.categoria_mitre, r.activo_id, a.nombre,
+		       r.probabilidad, r.impacto, r.puntuacion, r.nivel_riesgo, r.controles_existentes, r.plan_tratamiento, r.estado, r.responsable_id
 		FROM cyber_risks r
 		LEFT JOIN cyber_assets a ON r.activo_id = a.id
 		ORDER BY r.puntuacion DESC
 	`)
 	if err != nil {
-		middleware.WriteError(w, http.StatusInternalServerError, "Error consultando riesgos")
+		middleware.WriteError(w, http.StatusInternalServerError, "Error consultando riesgos de ciberseguridad")
 		return
 	}
 	defer rows.Close()
@@ -222,16 +273,20 @@ func (h *CyberHandler) GetCyberRisks(w http.ResponseWriter, r *http.Request) {
 	risks := []models.CyberRisk{}
 	for rows.Next() {
 		var cr models.CyberRisk
-		var actID sql.NullInt64
+		var actID, respID sql.NullInt64
 		var actNom sql.NullString
 		if err := rows.Scan(
-			&cr.ID, &actID, &actNom, &cr.CodigoAmenaza, &cr.Categoria, &cr.Descripcion,
-			&cr.Probabilidad, &cr.Impacto, &cr.Puntuacion, &cr.NivelRiesgo, &cr.ControlesCIS, &cr.PlanTratamiento, &cr.EstadoTratamiento,
+			&cr.ID, &cr.Amenaza, &cr.CategoriaMitre, &actID, &actNom,
+			&cr.Probabilidad, &cr.Impacto, &cr.Puntuacion, &cr.NivelRiesgo, &cr.ControlesExistentes, &cr.PlanTratamiento, &cr.Estado, &respID,
 		); err == nil {
 			if actID.Valid {
 				val := int(actID.Int64)
 				cr.ActivoID = &val
 				cr.Activo = &models.CyberAsset{ID: val, Nombre: actNom.String}
+			}
+			if respID.Valid {
+				val := int(respID.Int64)
+				cr.ResponsableID = &val
 			}
 			risks = append(risks, cr)
 		}
@@ -255,9 +310,9 @@ func (h *CyberHandler) CreateCyberRisk(w http.ResponseWriter, r *http.Request) {
 	}
 
 	res, err := database.DB.Exec(`
-		INSERT INTO cyber_risks (activo_id, codigo_amenaza, categoria, descripcion, probabilidad, impacto, puntuacion, nivel_riesgo, controles_cis, plan_tratamiento, estado_tratamiento)
+		INSERT INTO cyber_risks (amenaza, categoria_mitre, activo_id, probabilidad, impacto, puntuacion, nivel_riesgo, controles_existentes, plan_tratamiento, estado, responsable_id)
 		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-	`, req.ActivoID, req.CodigoAmenaza, req.Categoria, req.Descripcion, req.Probabilidad, req.Impacto, req.Puntuacion, req.NivelRiesgo, req.ControlesCIS, req.PlanTratamiento, req.EstadoTratamiento)
+	`, req.Amenaza, req.CategoriaMitre, req.ActivoID, req.Probabilidad, req.Impacto, req.Puntuacion, req.NivelRiesgo, req.ControlesExistentes, req.PlanTratamiento, req.Estado, req.ResponsableID)
 
 	if err != nil {
 		middleware.WriteError(w, http.StatusInternalServerError, "Error creando riesgo")
@@ -278,8 +333,8 @@ func (h *CyberHandler) UpdateCyberRisk(w http.ResponseWriter, r *http.Request) {
 
 	req.Puntuacion = req.Probabilidad * req.Impacto
 	database.DB.Exec(`
-		UPDATE cyber_risks SET probabilidad = ?, impacto = ?, puntuacion = ?, plan_tratamiento = ?, estado_tratamiento = ? WHERE id = ?
-	`, req.Probabilidad, req.Impacto, req.Puntuacion, req.PlanTratamiento, req.EstadoTratamiento, id)
+		UPDATE cyber_risks SET probabilidad = ?, impacto = ?, puntuacion = ?, plan_tratamiento = ?, estado = ? WHERE id = ?
+	`, req.Probabilidad, req.Impacto, req.Puntuacion, req.PlanTratamiento, req.Estado, id)
 
 	req.ID = id
 	middleware.WriteJSON(w, http.StatusOK, req)
@@ -287,28 +342,26 @@ func (h *CyberHandler) UpdateCyberRisk(w http.ResponseWriter, r *http.Request) {
 
 func (h *CyberHandler) GetCyberMaturity(w http.ResponseWriter, r *http.Request) {
 	var m models.CyberMaturityAssessment
-	var fStr string
 	err := database.DB.QueryRow(`
-		SELECT id, fecha_evaluacion, puntaje_gobernanza, puntaje_identificacion, puntaje_proteccion,
-		       puntaje_deteccion, puntaje_respuesta, puntaje_recuperacion, nivel_madurez_global,
-		       cumplimiento_porcentaje, recomendaciones_prioritarias
+		SELECT id, titulo, fecha_evaluacion, porcentaje_identificar, porcentaje_proteger,
+		       porcentaje_detectar, porcentaje_responder, porcentaje_recuperar, madurez_global,
+		       conclusiones_ciso, estado
 		FROM cyber_maturity_assessments ORDER BY fecha_evaluacion DESC LIMIT 1
-	`).Scan(&m.ID, &fStr, &m.PuntajeGobernanza, &m.PuntajeIdentificacion, &m.PuntajeProteccion, &m.PuntajeDeteccion, &m.PuntajeRespuesta, &m.PuntajeRecuperacion, &m.NivelMadurezGlobal, &m.CumplimientoPorcentaje, &m.RecomendacionesPrioritarias)
+	`).Scan(&m.ID, &m.Titulo, &m.FechaEvaluacion, &m.PorcentajeIdentificar, &m.PorcentajeProteger, &m.PorcentajeDetectar, &m.PorcentajeResponder, &m.PorcentajeRecuperar, &m.MadurezGlobal, &m.ConclusionesCISO, &m.Estado)
 
 	if err == sql.ErrNoRows {
 		m = models.CyberMaturityAssessment{
-			PuntajeGobernanza:        85,
-			PuntajeIdentificacion:    90,
-			PuntajeProteccion:        88,
-			PuntajeDeteccion:         92,
-			PuntajeRespuesta:         80,
-			PuntajeRecuperacion:      85,
-			NivelMadurezGlobal:       "Nivel 3 - Definido",
-			CumplimientoPorcentaje:   87,
-			RecomendacionesPrioritarias: "Fortalecer ejercicios de simulación de crisis y simulacros ANCI.",
+			Titulo:                "Evaluación Anual NIST CSF 2.0 / ANCI",
+			FechaEvaluacion:       time.Now().Format("2006-01-02"),
+			PorcentajeIdentificar: 90,
+			PorcentajeProteger:    88,
+			PorcentajeDetectar:    92,
+			PorcentajeResponder:   85,
+			PorcentajeRecuperar:   86,
+			MadurezGlobal:         88,
+			ConclusionesCISO:      "Nivel de madurez global Definido conforme a exigencias ANCI.",
+			Estado:                "Aprobado",
 		}
-	} else {
-		m.FechaEvaluacion, _ = time.Parse("2006-01-02 15:04:05", fStr)
 	}
 
 	middleware.WriteJSON(w, http.StatusOK, m)
@@ -318,15 +371,15 @@ func (h *CyberHandler) AssessCyberMaturity(w http.ResponseWriter, r *http.Reques
 	var req models.CyberMaturityAssessment
 	json.NewDecoder(r.Body).Decode(&req)
 
-	now := time.Now()
+	today := time.Now().Format("2006-01-02")
 	res, _ := database.DB.Exec(`
-		INSERT INTO cyber_maturity_assessments (fecha_evaluacion, puntaje_gobernanza, puntaje_identificacion, puntaje_proteccion, puntaje_deteccion, puntaje_respuesta, puntaje_recuperacion, nivel_madurez_global, cumplimiento_porcentaje, recomendaciones_prioritarias)
+		INSERT INTO cyber_maturity_assessments (titulo, fecha_evaluacion, porcentaje_identificar, porcentaje_proteger, porcentaje_detectar, porcentaje_responder, porcentaje_recuperar, madurez_global, conclusiones_ciso, estado)
 		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-	`, now.Format("2006-01-02 15:04:05"), req.PuntajeGobernanza, req.PuntajeIdentificacion, req.PuntajeProteccion, req.PuntajeDeteccion, req.PuntajeRespuesta, req.PuntajeRecuperacion, req.NivelMadurezGlobal, req.CumplimientoPorcentaje, req.RecomendacionesPrioritarias)
+	`, req.Titulo, today, req.PorcentajeIdentificar, req.PorcentajeProteger, req.PorcentajeDetectar, req.PorcentajeResponder, req.PorcentajeRecuperar, req.MadurezGlobal, req.ConclusionesCISO, req.Estado)
 
 	id, _ := res.LastInsertId()
 	req.ID = int(id)
-	req.FechaEvaluacion = now
+	req.FechaEvaluacion = today
 	middleware.WriteJSON(w, http.StatusCreated, req)
 }
 
@@ -443,38 +496,46 @@ func (h *CyberHandler) UpdateCyberIncident(w http.ResponseWriter, r *http.Reques
 }
 
 func (h *CyberHandler) GetCyberSimulations(w http.ResponseWriter, r *http.Request) {
-	rows, _ := database.DB.Query(`
-		SELECT id, nombre_simulacro, tipo_escenario, fecha_ejecucion, participantes_roles, tiempo_respuesta_minutos, efectividad_porcentaje, hallazgos_clave, acciones_mejora, estado
-		FROM cyber_simulations ORDER BY fecha_ejecucion DESC
+	rows, err := database.DB.Query(`
+		SELECT id, codigo_ejercicio, titulo, tipo_escenario, escenario_narrativa, fecha_ejecucion, tiempo_respuesta_minutos, participantes_json, cumplio_plazo_3h, lecciones_aprendidas, estado
+		FROM cyber_simulations ORDER BY id ASC
 	`)
+	if err != nil {
+		middleware.WriteError(w, http.StatusInternalServerError, "Error consultando simulaciones")
+		return
+	}
 	defer rows.Close()
 
 	sims := []models.CyberSimulation{}
 	for rows.Next() {
 		var s models.CyberSimulation
-		var fStr string
-		if err := rows.Scan(&s.ID, &s.NombreSimulacro, &s.TipoEscenario, &fStr, &s.ParticipantesRoles, &s.TiempoRespuestaMinutos, &s.EfectividadPorcentaje, &s.HallazgosClave, &s.AccionesMejora, &s.Estado); err == nil {
-			s.FechaEjecucion, _ = time.Parse("2006-01-02 15:04:05", fStr)
+		var partStr sql.NullString
+		if err := rows.Scan(&s.ID, &s.CodigoEjercicio, &s.Titulo, &s.TipoEscenario, &s.EscenarioNarrativa, &s.FechaEjecucion, &s.TiempoRespuestaMinutos, &partStr, &s.CumplioPlazo3h, &s.LeccionesAprendidas, &s.Estado); err == nil {
+			if partStr.Valid {
+				var p interface{}
+				json.Unmarshal([]byte(partStr.String), &p)
+				s.ParticipantesJSON = p
+			}
 			sims = append(sims, s)
 		}
 	}
 	middleware.WriteJSON(w, http.StatusOK, sims)
 }
 
-
 func (h *CyberHandler) CreateCyberSimulation(w http.ResponseWriter, r *http.Request) {
 	var req models.CyberSimulation
 	json.NewDecoder(r.Body).Decode(&req)
 
-	now := time.Now()
+	today := time.Now().Format("2006-01-02")
+	partBytes, _ := json.Marshal(req.ParticipantesJSON)
 	res, _ := database.DB.Exec(`
-		INSERT INTO cyber_simulations (nombre_simulacro, tipo_escenario, fecha_ejecucion, participantes_roles, tiempo_respuesta_minutos, efectividad_porcentaje, hallazgos_clave, acciones_mejora, estado)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, "Programado")
-	`, req.NombreSimulacro, req.TipoEscenario, now.Format("2006-01-02 15:04:05"), req.ParticipantesRoles, req.TiempoRespuestaMinutos, req.EfectividadPorcentaje, req.HallazgosClave, req.AccionesMejora)
+		INSERT INTO cyber_simulations (codigo_ejercicio, titulo, tipo_escenario, escenario_narrativa, fecha_ejecucion, tiempo_respuesta_minutos, participantes_json, cumplio_plazo_3h, lecciones_aprendidas, estado)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, "Programado")
+	`, req.CodigoEjercicio, req.Titulo, req.TipoEscenario, req.EscenarioNarrativa, today, req.TiempoRespuestaMinutos, string(partBytes), req.CumplioPlazo3h, req.LeccionesAprendidas)
 
 	id, _ := res.LastInsertId()
 	req.ID = int(id)
-	req.FechaEjecucion = now
+	req.FechaEjecucion = today
 	req.Estado = "Programado"
 	middleware.WriteJSON(w, http.StatusCreated, req)
 }
@@ -488,16 +549,20 @@ func (h *CyberHandler) ExecuteCyberSimulation(w http.ResponseWriter, r *http.Req
 }
 
 func (h *CyberHandler) GetCyberPolicies(w http.ResponseWriter, r *http.Request) {
-	rows, _ := database.DB.Query(`
-		SELECT id, codigo, titulo, categoria, version, estado, proxima_revision, contenido, articulo_anci
+	rows, err := database.DB.Query(`
+		SELECT id, tipo, titulo, contenido, version, estado
 		FROM cyber_policies ORDER BY id ASC
 	`)
+	if err != nil {
+		middleware.WriteError(w, http.StatusInternalServerError, "Error consultando políticas")
+		return
+	}
 	defer rows.Close()
 
 	policies := []models.CyberPolicy{}
 	for rows.Next() {
 		var cp models.CyberPolicy
-		if err := rows.Scan(&cp.ID, &cp.Codigo, &cp.Titulo, &cp.Categoria, &cp.Version, &cp.Estado, &cp.ProximaRevision, &cp.Contenido, &cp.ArticuloANCI); err == nil {
+		if err := rows.Scan(&cp.ID, &cp.Tipo, &cp.Titulo, &cp.Contenido, &cp.Version, &cp.Estado); err == nil {
 			policies = append(policies, cp)
 		}
 	}
