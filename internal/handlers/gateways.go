@@ -1,7 +1,9 @@
 package handlers
 
 import (
-		"encoding/json"
+	"crypto/sha256"
+		"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -63,10 +65,8 @@ func (h *GatewaysHandler) TrackArcoCitizen(w http.ResponseWriter, r *http.Reques
 
 func (h *GatewaysHandler) GetCvdReports(w http.ResponseWriter, r *http.Request) {
 	rows, err := database.DB.Query(`
-		SELECT id, folio_cvd, fecha_reporte, reportante_nombre, reportante_email, reportante_handle,
-		       activo_afectado, tipo_vulnerabilidad, severidad_estimada, descripcion_tecnica,
-		       poc_reproduccion, estado, divulgacion_coordinada_acordada, resolucion_notas
-		FROM cvd_reports ORDER BY fecha_reporte DESC
+		SELECT id, folio, titulo, investigador_alias, investigador_email, activo_afectado, severidad, cvss_score, descripcion_tecnica, poa_remediacion, estado, hash_evidencia, created_at
+		FROM cvd_reports ORDER BY created_at DESC
 	`)
 	if err != nil {
 		middleware.WriteError(w, http.StatusInternalServerError, "Error consultando reportes CVD")
@@ -77,13 +77,11 @@ func (h *GatewaysHandler) GetCvdReports(w http.ResponseWriter, r *http.Request) 
 	reports := []models.CvdReport{}
 	for rows.Next() {
 		var cr models.CvdReport
-		var fStr string
 		if err := rows.Scan(
-			&cr.ID, &cr.FolioCVD, &fStr, &cr.ReportanteNombre, &cr.ReportanteEmail, &cr.ReportanteHandle,
-			&cr.ActivoAfectado, &cr.TipoVulnerabilidad, &cr.SeveridadEstimada, &cr.DescripcionTecnica,
-			&cr.PocReproduccion, &cr.Estado, &cr.DivulgacionCoordinadaAcordada, &cr.ResolucionNotas,
+			&cr.ID, &cr.Folio, &cr.Titulo, &cr.InvestigadorAlias, &cr.InvestigadorEmail,
+			&cr.ActivoAfectado, &cr.Severidad, &cr.CvssScore, &cr.DescripcionTecnica,
+			&cr.PoaRemediacion, &cr.Estado, &cr.HashEvidencia, &cr.CreatedAt,
 		); err == nil {
-			cr.FechaReporte, _ = time.Parse("2006-01-02 15:04:05", fStr)
 			reports = append(reports, cr)
 		}
 	}
@@ -97,10 +95,14 @@ func (h *GatewaysHandler) SimulateCvdReport(w http.ResponseWriter, r *http.Reque
 	now := time.Now()
 	folio := fmt.Sprintf("CVD-2026-%04d", now.Unix()%10000)
 
+	hasher := sha256.New()
+	hasher.Write([]byte(folio + req.DescripcionTecnica))
+	hash := hex.EncodeToString(hasher.Sum(nil))
+
 	res, err := database.DB.Exec(`
-		INSERT INTO cvd_reports (folio_cvd, fecha_reporte, reportante_nombre, reportante_email, reportante_handle, activo_afectado, tipo_vulnerabilidad, severidad_estimada, descripcion_tecnica, poc_reproduccion, estado, divulgacion_coordinada_acordada, resolucion_notas)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, "Nuevo Reporte Recibido", ?, "")
-	`, folio, now.Format("2006-01-02 15:04:05"), req.ReportanteNombre, req.ReportanteEmail, req.ReportanteHandle, req.ActivoAfectado, req.TipoVulnerabilidad, req.SeveridadEstimada, req.DescripcionTecnica, req.PocReproduccion, req.DivulgacionCoordinadaAcordada)
+		INSERT INTO cvd_reports (folio, titulo, investigador_alias, investigador_email, activo_afectado, severidad, cvss_score, descripcion_tecnica, poa_remediacion, estado, hash_evidencia)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, "Nuevo Reporte Recibido", ?)
+	`, folio, req.Titulo, req.InvestigadorAlias, req.InvestigadorEmail, req.ActivoAfectado, req.Severidad, req.CvssScore, req.DescripcionTecnica, req.PoaRemediacion, hash)
 
 	if err != nil {
 		middleware.WriteError(w, http.StatusInternalServerError, "Error creando reporte CVD")
@@ -109,9 +111,10 @@ func (h *GatewaysHandler) SimulateCvdReport(w http.ResponseWriter, r *http.Reque
 
 	id, _ := res.LastInsertId()
 	req.ID = int(id)
-	req.FolioCVD = folio
-	req.FechaReporte = now
+	req.Folio = folio
+	req.HashEvidencia = hash
 	req.Estado = "Nuevo Reporte Recibido"
+	req.CreatedAt = now.Format("2006-01-02 15:04:05")
 
 	middleware.WriteJSON(w, http.StatusCreated, req)
 }
@@ -121,14 +124,14 @@ func (h *GatewaysHandler) UpdateCvdReportStatus(w http.ResponseWriter, r *http.R
 	reportID, _ := strconv.Atoi(reportIDStr)
 
 	var req struct {
-		Estado          string `json:"estado"`
-		ResolucionNotas string `json:"resolucion_notas"`
+		Estado         string `json:"estado"`
+		PoaRemediacion string `json:"poa_remediacion"`
 	}
 	json.NewDecoder(r.Body).Decode(&req)
 
 	database.DB.Exec(`
-		UPDATE cvd_reports SET estado = ?, resolucion_notas = ? WHERE id = ?
-	`, req.Estado, req.ResolucionNotas, reportID)
+		UPDATE cvd_reports SET estado = ?, poa_remediacion = ? WHERE id = ?
+	`, req.Estado, req.PoaRemediacion, reportID)
 
 	middleware.WriteJSON(w, http.StatusOK, map[string]interface{}{"status": "updated", "id": reportID})
 }
@@ -136,17 +139,15 @@ func (h *GatewaysHandler) UpdateCvdReportStatus(w http.ResponseWriter, r *http.R
 func (h *GatewaysHandler) TrackCvdReport(w http.ResponseWriter, r *http.Request) {
 	folio := r.URL.Query().Get("folio")
 	var cr models.CvdReport
-	var fStr string
 	err := database.DB.QueryRow(`
-		SELECT id, folio_cvd, fecha_reporte, activo_afectado, tipo_vulnerabilidad, severidad_estimada, estado, resolucion_notas
-		FROM cvd_reports WHERE folio_cvd = ?
-	`, folio).Scan(&cr.ID, &cr.FolioCVD, &fStr, &cr.ActivoAfectado, &cr.TipoVulnerabilidad, &cr.SeveridadEstimada, &cr.Estado, &cr.ResolucionNotas)
+		SELECT id, folio, titulo, activo_afectado, severidad, cvss_score, estado, poa_remediacion, hash_evidencia, created_at
+		FROM cvd_reports WHERE folio = ?
+	`, folio).Scan(&cr.ID, &cr.Folio, &cr.Titulo, &cr.ActivoAfectado, &cr.Severidad, &cr.CvssScore, &cr.Estado, &cr.PoaRemediacion, &cr.HashEvidencia, &cr.CreatedAt)
 
 	if err != nil {
 		middleware.WriteError(w, http.StatusNotFound, "Reporte no encontrado")
 		return
 	}
-	cr.FechaReporte, _ = time.Parse("2006-01-02 15:04:05", fStr)
 	middleware.WriteJSON(w, http.StatusOK, cr)
 }
 

@@ -399,21 +399,19 @@ type CyberMaturityAssessment struct {
 }
 
 type CvdReport struct {
-	ID                         int        `json:"id"`
-	FolioCVD                   string     `json:"folio_cvd"`
-	FechaReporte               time.Time  `json:"fecha_reporte"`
-	ReportanteNombre           string     `json:"reportante_nombre"`
-	ReportanteEmail            string     `json:"reportante_email"`
-	ReportanteHandle           string     `json:"reportante_handle"`
-	ActivoAfectado             string     `json:"activo_afectado"`
-	TipoVulnerabilidad         string     `json:"tipo_vulnerabilidad"`
-	SeveridadEstimada          string     `json:"severidad_estimada"`
-	DescripcionTecnica         string     `json:"descripcion_tecnica"`
-	PocReproduccion            string     `json:"poc_reproduccion"`
-	Estado                     string     `json:"estado"`
-	DivulgacionCoordinadaAcordada bool    `json:"divulgacion_coordinada_acordada"`
-	FechaLimiteDivulgacion     *time.Time `json:"fecha_limite_divulgacion,omitempty"`
-	ResolucionNotas            string     `json:"resolucion_notas"`
+	ID                 int     `json:"id"`
+	Folio              string  `json:"folio"`
+	Titulo             string  `json:"titulo"`
+	InvestigadorAlias  string  `json:"investigador_alias"`
+	InvestigadorEmail  string  `json:"investigador_email"`
+	ActivoAfectado     string  `json:"activo_afectado"`
+	Severidad          string  `json:"severidad"`
+	CvssScore          float64 `json:"cvss_score"`
+	DescripcionTecnica string  `json:"descripcion_tecnica"`
+	PoaRemediacion     string  `json:"poa_remediacion"`
+	Estado             string  `json:"estado"`
+	HashEvidencia      string  `json:"hash_evidencia"`
+	CreatedAt          string  `json:"created_at"`
 }
 
 type TelemetryEvent struct {
