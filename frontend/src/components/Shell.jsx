@@ -447,6 +447,16 @@ export function Shell({ session, onLogout }) {
             onReload={load}
           />
         );
+      case "cyber_providers":
+        return (
+          <Providers
+            providers={data.providers}
+            areas={data.areas}
+            token={session.access_token}
+            onReload={load}
+            isCyber={true}
+          />
+        );
       case "cyber_audit":
         return <CyberAudit token={session.access_token} />;
 

@@ -10,22 +10,68 @@ import {
   Check, 
   FileText,
   FileArchive,
-  Layers
+  Layers,
+  Award
 } from "lucide-react";
 import { api, API_URL } from "../../lib/api";
 
 export function CyberAudit({ token }) {
-  const [activeTab, setActiveTab] = useState("expediente"); // 'expediente', 'ledger', 'qa'
+  const [activeTab, setActiveTab] = useState("expediente"); // 'expediente', 'mock_audit', 'ledger', 'qa'
+  
+  // Mock Audit state
+  const [questions, setQuestions] = useState([]);
+  const [answers, setAnswers] = useState({});
+  const [auditResult, setAuditResult] = useState(null);
+  const [evaluating, setEvaluating] = useState(false);
+
+  // Ledger state
   const [ledger, setLedger] = useState({ total_evidencias_selladas: 0, ledger: [] });
   const [hashInput, setHashInput] = useState("");
   const [verificationResult, setVerificationResult] = useState(null);
   const [verifying, setVerifying] = useState(false);
+  
+  // Inspector QA state
   const [qaList, setQaList] = useState([]);
 
   useEffect(() => {
+    loadMockAuditQuestions();
     loadLedger();
     loadCyberQa();
   }, [token]);
+
+  async function loadMockAuditQuestions() {
+    try {
+      const data = await api("/cyber/mock-audit/questions", token);
+      setQuestions(data);
+      const initial = {};
+      data.forEach(q => { initial[String(q.id)] = true; });
+      setAnswers(initial);
+      evaluateAudit(initial);
+    } catch (err) {
+      console.error("Error cargando preguntas ANCI:", err);
+    }
+  }
+
+  async function evaluateAudit(currentAnswers) {
+    setEvaluating(true);
+    try {
+      const res = await api("/cyber/mock-audit/evaluate", token, {
+        method: "POST",
+        body: JSON.stringify({ answers: currentAnswers })
+      });
+      setAuditResult(res);
+    } catch (err) {
+      console.error("Error evaluando auditoría ANCI:", err);
+    } finally {
+      setEvaluating(false);
+    }
+  }
+
+  function handleToggleAnswer(qid) {
+    const updated = { ...answers, [qid]: !answers[qid] };
+    setAnswers(updated);
+    evaluateAudit(updated);
+  }
 
   async function loadCyberQa() {
     try {
@@ -96,12 +142,18 @@ export function CyberAudit({ token }) {
       </div>
 
       {/* Tab Selector */}
-      <div className="flex bg-slate-200/70 p-1 rounded-xl border border-slate-300 max-w-lg">
+      <div className="flex bg-slate-200/70 p-1 rounded-xl border border-slate-300 max-w-2xl">
         <button
           onClick={() => setActiveTab("expediente")}
           className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-all ${activeTab === "expediente" ? "bg-white text-indigo-900 shadow-2xs" : "text-slate-600 hover:text-slate-900"}`}
         >
           Expediente Oficial
+        </button>
+        <button
+          onClick={() => setActiveTab("mock_audit")}
+          className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-all ${activeTab === "mock_audit" ? "bg-white text-indigo-900 shadow-2xs" : "text-slate-600 hover:text-slate-900"}`}
+        >
+          Simulador ANCI
         </button>
         <button
           onClick={() => setActiveTab("ledger")}
@@ -159,6 +211,86 @@ export function CyberAudit({ token }) {
               Descargar Archivo Completo
             </a>
           </div>
+        </div>
+      ) : activeTab === "mock_audit" ? (
+        /* TAB 2: MOCK AUDIT SIMULATOR (LEY 21.663 ANCI) */
+        <div className="space-y-6">
+          
+          {/* Readiness Score Card */}
+          <div className="rounded-xl border border-indigo-200 bg-indigo-50/60 p-6 shadow-sm flex flex-col md:flex-row justify-between items-center gap-6">
+            <div className="space-y-1 text-center md:text-left">
+              <span className="text-[10px] uppercase font-bold text-indigo-700 tracking-wider">Simulador Oficial de Inspección</span>
+              <h3 className="text-xl font-black text-slate-900">Preparación ante la Agencia Nacional de Ciberseguridad</h3>
+              <p className="text-xs text-slate-600 max-w-xl">
+                Cuestionario de auto-diagnóstico conforme a los 10 controles esenciales de la Ley N° 21.663. Acredita la postura de resiliencia y mitigación de sanciones.
+              </p>
+            </div>
+
+            <div className="flex items-center gap-4 shrink-0">
+              <div className="bg-white p-3.5 rounded-xl border border-indigo-200 shadow-sm text-center">
+                <span className="text-xs font-bold text-slate-400 uppercase block">Readiness Score</span>
+                <span className="text-3xl font-black text-indigo-800 tracking-tight">{auditResult?.score_porcentaje || 0}%</span>
+                <span className="text-[10px] font-bold text-indigo-600 block mt-0.5">{auditResult?.nivel_preparacion}</span>
+              </div>
+
+              <a
+                href={`${API_URL.replace("/api", "")}/api/cyber/mock-audit/certificate?token=${token}`}
+                download
+                className="flex items-center gap-2 rounded bg-indigo-800 px-4 py-3 text-xs font-bold text-white hover:bg-indigo-900 shadow-md transition-all"
+              >
+                <Award size={16} />
+                Certificado ANCI (MD)
+              </a>
+            </div>
+          </div>
+
+          {/* Checklist Questions */}
+          <div className="rounded-xl border border-line bg-white p-6 shadow-sm space-y-4">
+            <div className="border-b border-slate-100 pb-3">
+              <h3 className="text-base font-bold text-slate-800">Checklist de Controles Esenciales ANCI (Ley N° 21.663)</h3>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Marca los controles acreditados en la plataforma para calcular el índice de preparación en tiempo real.
+              </p>
+            </div>
+
+            <div className="space-y-3">
+              {questions.map((q) => {
+                const qidStr = String(q.id);
+                const isChecked = Boolean(answers[qidStr]);
+
+                return (
+                  <div
+                    key={q.id}
+                    onClick={() => handleToggleAnswer(qidStr)}
+                    className={`p-4 rounded-xl border transition-all cursor-pointer flex items-start justify-between gap-4 ${isChecked ? "border-indigo-300 bg-indigo-50/30" : "border-slate-200 bg-slate-50/50 hover:bg-white"}`}
+                  >
+                    <div className="flex items-start gap-3">
+                      <input
+                        type="checkbox"
+                        checked={isChecked}
+                        onChange={() => {}}
+                        className="mt-1 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 h-4 w-4 shrink-0"
+                      />
+                      <div className="space-y-0.5">
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono text-[10px] font-bold text-indigo-800 bg-indigo-50 border border-indigo-200 px-2 py-0.5 rounded">
+                            {q.norma || "ANCI"}
+                          </span>
+                          <h4 className="font-bold text-xs text-slate-800">{q.pregunta}</h4>
+                        </div>
+                        <p className="text-[11px] text-slate-500 leading-relaxed">{q.exigencia}</p>
+                      </div>
+                    </div>
+
+                    <span className="text-[11px] font-bold text-slate-400 shrink-0">
+                      {q.ponderacion} pts
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
         </div>
       ) : activeTab === "ledger" ? (
         /* TAB 2: CRYPTOGRAPHIC LEDGER & VERIFIER */

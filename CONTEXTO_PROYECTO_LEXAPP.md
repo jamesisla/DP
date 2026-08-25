@@ -34,7 +34,7 @@ El asistente leerá este documento y tendrá inmediatamente el 100% del conocimi
 
 ---
 
-## 🧩 3. MATRIZ DE CAPACIDADES SIMÉTRICAS IMPLEMENTADAS
+## 🧩 3. MATRIZ DE CAPACIDADES SIMÉTRICAS IMPLEMENTADAS (12:12)
 
 ```
 ┌──────────────────────────────────────────────────────────────────────────────────────────────────────────┐
@@ -43,16 +43,17 @@ El asistente leerá este documento y tendrá inmediatamente el 100% del conocimi
 │ 🛡️ SUITE DE PROTECCIÓN DE DATOS (LEY N° 21.719)    │ 🔒 SUITE DE CIBERSEGURIDAD & ANCI (LEY N° 21.663)    │
 ├────────────────────────────────────────────────────┼─────────────────────────────────────────────────────┤
 │ 1. Dashboard Ejecutivo + One-Pager Directorio + GRC│ 1. Dashboard CISO + One-Pager Directorio + GRC      │
-│ 2. Hoja de Ruta & Fases de Adecuación (1 a 5)      │ 2. Fases de Ciberdefensa ANCI (I a V)                │
+│ 2. Hoja de Ruta & Fases de Adecuación (1 a 6)      │ 2. Ruta Metodológica ANCI (6 Fases)                 │
 │ 3. Matriz RAT + Pipeline Ciclo de Vida del Dato    │ 3. Inventario RSIC + Topología BIA + Vínculo RAT    │
-│ 4. Matriz de Riesgos & Evaluaciones EIPD           │ 4. Matriz de Riesgos Técnicos 5x5 + CIS Benchmarks  │
-│ 5. Gestión Terceros + Pliego ChileCompra DPA (MD)  │ 5. Proveedores + Pliego ChileCompra Ciberdefensa    │
-│ 6. Derechos ARCO+ con Sandbox ClaveÚnica           │ 6. Incidentes ANCI (3h) con Canal CVD Ético (Art.12)│
+│ 4. Matriz de Riesgos & Evaluaciones EIPD (5x5)     │ 4. Matriz de Riesgos Técnicos 5x5 + CIS Benchmarks  │
+│ 5. Gestión Terceros + Pliego ChileCompra DPA (MD)  │ 5. Cadena Suministro TI + Pliego Ciberdefensa (MD)  │
+│ 6. Derechos ARCO+ con Sandbox ClaveÚnica (15d)     │ 6. Incidentes ANCI (3h) con Canal CVD Ético (Art.12)│
 │ 7. Brechas (72h) + Comunicado Oficial Prensa/MD    │ 7. War Games / Crisis + Protocolo Desconexión Red   │
 │ 8. Capacitación & Cultura (Acta Certificada)       │ 8. Simulador de Phishing ANCI (CyberTraining.jsx)   │
-│ 9. Auditoría + Expediente ZIP + Verificador SHA256 │ 9. Expediente ANCI ZIP + Verificador Forense SHA256 │
-│ 10. Entrenador de Entrevistas Fiscalización DPO    │ 10. Entrenador de Entrevistas Fiscalización CISO    │
+│ 9. Documentos, Políticas y Actas de Comité         │ 9. Políticas PGSI, Plan PRI y Continuidad BCP/DRP   │
+│ 10. Auditoría + Mock Audit + SHA-256 + Q&A DPO     │ 10. Expediente ANCI + Mock Audit + SHA-256 + Q&A CISO│
 │ 11. Stack Open Source (Presidio NLP Scan en Vivo)  │ 11. Stack Open Source (Wazuh SIEM Alerta 3h en Vivo)│
+│ 12. Monitoreo & Madurez de Privacidad              │ 12. Diagnóstico de Madurez NIST CSF 2.0 / ANCI      │
 └────────────────────────────────────────────────────┴─────────────────────────────────────────────────────┘
 ```
 

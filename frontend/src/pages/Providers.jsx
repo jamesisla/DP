@@ -22,7 +22,7 @@ const CRITICIDADES = ["Crítico OIV", "Alto PSE", "Medio", "Bajo"];
 
 const PAISES_ADECUADOS = ["Chile", "Estados Unidos", "Unión Europea", "Alemania", "España", "Irlanda", "Reino Unido", "Japón", "Canadá"];
 
-export function Providers({ providers = [], areas = [], token, onReload }) {
+export function Providers({ providers = [], areas = [], token, onReload, isCyber = false }) {
   const [tab, setTab] = useState("list"); // 'list', 'transfers'
   const [modalOpen, setModalOpen] = useState(false);
   const [nombre, setNombre] = useState("");
@@ -31,9 +31,9 @@ export function Providers({ providers = [], areas = [], token, onReload }) {
   const [fechaInicio, setFechaInicio] = useState("");
   const [fechaFin, setFechaFin] = useState("");
   const [areaId, setAreaId] = useState(areas[0] ? String(areas[0].id) : "");
-  const [criticidadCiber, setCriticidadCiber] = useState("Medio");
+  const [criticidadCiber, setCriticidadCiber] = useState(isCyber ? "Alto PSE" : "Medio");
   const [paisAlojamiento, setPaisAlojamiento] = useState("Chile");
-  const [slaNotificacion, setSlaNotificacion] = useState(24);
+  const [slaNotificacion, setSlaNotificacion] = useState(isCyber ? 12 : 24);
   const [dpaFirmado, setDpaFirmado] = useState(true);
   const [clausulaAnci, setClausulaAnci] = useState(true);
   const [evaluacionSeguridad, setEvaluacionSeguridad] = useState("Conforme ISO 27001 / SOC 2");
@@ -47,9 +47,9 @@ export function Providers({ providers = [], areas = [], token, onReload }) {
     setFechaInicio("");
     setFechaFin("");
     setAreaId(areas[0] ? String(areas[0].id) : "");
-    setCriticidadCiber("Medio");
+    setCriticidadCiber(isCyber ? "Alto PSE" : "Medio");
     setPaisAlojamiento("Chile");
-    setSlaNotificacion(24);
+    setSlaNotificacion(isCyber ? 12 : 24);
     setDpaFirmado(true);
     setClausulaAnci(true);
     setEvaluacionSeguridad("Conforme ISO 27001 / SOC 2");
@@ -122,33 +122,43 @@ export function Providers({ providers = [], areas = [], token, onReload }) {
       <div className="rounded-xl border border-line bg-white p-5 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <div className="flex items-center gap-2">
-            <span className="text-xs uppercase font-bold text-teal-600 tracking-wider">Gestión de Terceros & Cadena de Suministro</span>
-            <span className="text-[10px] px-2 py-0.5 rounded bg-indigo-50 text-indigo-700 font-bold border border-indigo-200">
-              Art. 16 y 28 Ley 21.719 · Art. 8 Ley 21.663
+            <span className={`text-xs uppercase font-bold tracking-wider ${isCyber ? "text-indigo-600" : "text-teal-600"}`}>
+              {isCyber ? "Cadena de Suministro TI & Proveedores Críticos" : "Gestión de Terceros & Cadena de Suministro"}
+            </span>
+            <span className={`text-[10px] px-2 py-0.5 rounded font-bold border ${isCyber ? "bg-indigo-50 text-indigo-700 border-indigo-200" : "bg-teal-50 text-teal-700 border-teal-200"}`}>
+              {isCyber ? "Art. 8 y 10 Ley 21.663 (ANCI)" : "Art. 16 y 28 Ley 21.719 · Art. 8 Ley 21.663"}
             </span>
           </div>
-          <h2 className="text-xl font-bold text-slate-800 mt-1">Proveedores, Acuerdos DPA y Transferencias Internacionales</h2>
+          <h2 className="text-xl font-bold text-slate-800 mt-1">
+            {isCyber ? "Proveedores Críticos TI, SLAs de Seguridad y Resiliencia" : "Proveedores, Acuerdos DPA y Transferencias Internacionales"}
+          </h2>
           <p className="text-xs text-slate-400 mt-0.5">
-            Control de encargados de datos, cláusulas de notificación mandatoria y flujo transfronterizo de información.
+            {isCyber 
+              ? "Control de proveedores tecnológicos de servicios esenciales, evaluación ISO 27001/SOC 2 y SLAs de notificación ante incidentes."
+              : "Control de encargados de datos, cláusulas de notificación mandatoria y flujo transfronterizo de información."
+            }
           </p>
         </div>
 
         <div className="flex items-center gap-2.5 flex-wrap">
           <a
-            href={`${API_URL.replace("/api", "")}/api/documents/procurement-dpa-clauses?token=${token}`}
+            href={isCyber 
+              ? `${API_URL.replace("/api", "")}/api/cyber/procurement-security-clauses?token=${token}`
+              : `${API_URL.replace("/api", "")}/api/documents/procurement-dpa-clauses?token=${token}`
+            }
             download
-            className="flex items-center gap-1.5 rounded-lg border border-teal-300 bg-teal-50 px-3 py-2 text-xs font-bold text-teal-900 hover:bg-teal-100 shadow-2xs transition-colors shrink-0"
-            title="Descargar Pliego y Cláusulas Tipo DPA para Bases de Licitación en Mercado Público / ChileCompra"
+            className={`flex items-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-bold shadow-2xs transition-colors shrink-0 ${isCyber ? "border-indigo-300 bg-indigo-50 text-indigo-900 hover:bg-indigo-100" : "border-teal-300 bg-teal-50 text-teal-900 hover:bg-teal-100"}`}
+            title={isCyber ? "Descargar Pliego de Ciberseguridad para Mercado Público / ChileCompra" : "Descargar Pliego DPA para Mercado Público / ChileCompra"}
           >
-            <span>📋 Pliego ChileCompra DPA (MD)</span>
+            <span>{isCyber ? "📋 Pliego ChileCompra Ciberdefensa (MD)" : "📋 Pliego ChileCompra DPA (MD)"}</span>
           </a>
 
           <button
             onClick={openCreate}
-            className="flex items-center gap-1.5 rounded bg-teal-700 px-4 py-2 text-xs font-bold text-white hover:bg-teal-800 shadow-sm shrink-0"
+            className={`flex items-center gap-1.5 rounded px-4 py-2 text-xs font-bold text-white shadow-sm shrink-0 transition-colors ${isCyber ? "bg-indigo-700 hover:bg-indigo-800" : "bg-teal-700 hover:bg-teal-800"}`}
           >
             <Plus size={15} />
-            Ingresar Proveedor
+            {isCyber ? "Ingresar Proveedor TI" : "Ingresar Proveedor"}
           </button>
         </div>
       </div>
@@ -157,13 +167,13 @@ export function Providers({ providers = [], areas = [], token, onReload }) {
       <div className="flex bg-slate-200/70 p-1 rounded-xl border border-slate-300 max-w-md">
         <button
           onClick={() => setTab("list")}
-          className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-all ${tab === "list" ? "bg-white text-slate-900 shadow-2xs" : "text-slate-600 hover:text-slate-900"}`}
+          className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-all ${tab === "list" ? (isCyber ? "bg-white text-indigo-900 shadow-2xs" : "bg-white text-slate-900 shadow-2xs") : "text-slate-600 hover:text-slate-900"}`}
         >
           Catálogo & Contratos ({providers.length})
         </button>
         <button
           onClick={() => setTab("transfers")}
-          className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-all ${tab === "transfers" ? "bg-white text-teal-800 shadow-2xs" : "text-slate-600 hover:text-slate-900"}`}
+          className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-all ${tab === "transfers" ? (isCyber ? "bg-white text-indigo-700 shadow-2xs" : "bg-white text-teal-800 shadow-2xs") : "text-slate-600 hover:text-slate-900"}`}
         >
           Transferencias Internacionales ({internationalProviders.length})
         </button>
