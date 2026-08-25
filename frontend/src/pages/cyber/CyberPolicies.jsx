@@ -17,8 +17,14 @@ export function CyberPolicies({ policies = [], token, user, onReload }) {
   const [viewMode, setViewMode] = useState("split");
 
   useEffect(() => {
+    if ((!selectedPol || !policies.some(p => p.id === selectedPol.id)) && policies && policies.length > 0) {
+      setSelectedPol(policies[0]);
+    }
+  }, [policies, selectedPol]);
+
+  useEffect(() => {
     if (selectedPol) {
-      setContent(selectedPol.contenido);
+      setContent(selectedPol.contenido || "");
     }
   }, [selectedPol]);
 

@@ -30,8 +30,14 @@ export function Documents({ documents = [], token, user, onReload }) {
   const [viewMode, setViewMode] = useState("split"); // 'split', 'editor', 'preview'
 
   useEffect(() => {
+    if ((!selectedDoc || !documents.some(d => d.id === selectedDoc.id)) && documents && documents.length > 0) {
+      setSelectedDoc(documents[0]);
+    }
+  }, [documents, selectedDoc]);
+
+  useEffect(() => {
     if (selectedDoc) {
-      setContent(selectedDoc.contenido);
+      setContent(selectedDoc.contenido || "");
     }
   }, [selectedDoc]);
 
