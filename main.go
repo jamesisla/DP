@@ -199,6 +199,8 @@ func main() {
 			auth.Post("/dp-mock-audit/evaluate", auditH.EvaluateDPMockAudit)
 			auth.Get("/dp-mock-audit/certificate", auditH.GetDPMockAuditCertificate)
 			auth.Get("/inspector-qa-dp", auditH.GetInspectorQADP)
+			auth.Get("/executive-consolidated-report", auditH.GetExecutiveConsolidatedReport)
+			auth.Get("/executive-consolidated-report/download", auditH.DownloadExecutiveConsolidatedReport)
 
 			// Cybersecurity & ANCI Suite (Ley 21.663)
 			auth.Get("/cyber/dashboard", cyberH.GetCyberDashboard)
