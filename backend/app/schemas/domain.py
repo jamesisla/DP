@@ -216,6 +216,9 @@ class ProveedorRead(BaseModel):
     pais_alojamiento: str = "Chile"
     sla_notificacion_horas: int = 24
     evaluacion_seguridad: str = "Conforme ISO 27001 / SOC 2"
+    transferencia_internacional: bool = False
+    mecanismo_transferencia: str = "Cláusulas Contractuales Tipo (SCC)"
+    nivel_garantia_pais: str = "Garantías Contractuales Reforzadas"
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -233,6 +236,9 @@ class ProveedorCreate(BaseModel):
     pais_alojamiento: str = "Chile"
     sla_notificacion_horas: int = 24
     evaluacion_seguridad: str = "Conforme ISO 27001 / SOC 2"
+    transferencia_internacional: bool = False
+    mecanismo_transferencia: str = "Cláusulas Contractuales Tipo (SCC)"
+    nivel_garantia_pais: str = "Garantías Contractuales Reforzadas"
 
 
 # Audit Log Schemas

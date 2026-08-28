@@ -303,10 +303,19 @@ export function Providers({ providers = [], areas = [], token, onReload, isCyber
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-3">
+                    <div className="flex flex-wrap items-center gap-2">
                       <span className={`text-xs font-bold px-3 py-1 rounded-full border ${isAdequate ? "bg-emerald-50 text-emerald-800 border-emerald-200" : "bg-amber-50 text-amber-800 border-amber-300"}`}>
-                        {isAdequate ? "✓ País con Nivel Adecuado" : "⚠️ Requiere Cláusulas Tipo (CCT)"}
+                        {isAdequate ? "✓ Nivel Adecuado Declarado" : "⚠️ Requiere Cláusulas SCC"}
                       </span>
+                      <a
+                        href={`${API_URL.replace("/api", "")}/api/proveedores/${p.id}/scc-agreement?token=${token}`}
+                        download
+                        className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg border border-indigo-200 bg-white hover:bg-indigo-50 text-indigo-800 font-bold text-xs shadow-2xs transition-colors"
+                        title="Descargar Acuerdo de Transferencia Internacional con Cláusulas Contractuales Tipo (SCC - Art. 28)"
+                      >
+                        <Download size={13} />
+                        <span>Acuerdo SCC (Art. 28)</span>
+                      </a>
                     </div>
                   </div>
                 );

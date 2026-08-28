@@ -180,6 +180,9 @@ class Proveedor(Base, TimestampMixin):
     pais_alojamiento: Mapped[str] = mapped_column(String(80), default="Chile")
     sla_notificacion_horas: Mapped[int] = mapped_column(Integer, default=24)
     evaluacion_seguridad: Mapped[str] = mapped_column(String(100), default="Conforme ISO 27001 / SOC 2")
+    transferencia_internacional: Mapped[bool] = mapped_column(Boolean, default=False)
+    mecanismo_transferencia: Mapped[str] = mapped_column(String(120), default="Cláusulas Contractuales Tipo (SCC)")  # País Adecuado, Cláusulas Tipo (SCC), Normas BCR
+    nivel_garantia_pais: Mapped[str] = mapped_column(String(80), default="Garantías Contractuales Reforzadas")
 
     area: Mapped[Area] = relationship("Area")
 

@@ -108,6 +108,12 @@ def auto_migrate_sqlite() -> None:
                         conn.execute(text("ALTER TABLE proveedores ADD COLUMN sla_notificacion_horas INTEGER DEFAULT 24"))
                     if "evaluacion_seguridad" not in columns:
                         conn.execute(text("ALTER TABLE proveedores ADD COLUMN evaluacion_seguridad VARCHAR(100) DEFAULT 'Conforme ISO 27001 / SOC 2'"))
+                    if "transferencia_internacional" not in columns:
+                        conn.execute(text("ALTER TABLE proveedores ADD COLUMN transferencia_internacional BOOLEAN DEFAULT 0"))
+                    if "mecanismo_transferencia" not in columns:
+                        conn.execute(text("ALTER TABLE proveedores ADD COLUMN mecanismo_transferencia VARCHAR(120) DEFAULT 'Cláusulas Contractuales Tipo (SCC)'"))
+                    if "nivel_garantia_pais" not in columns:
+                        conn.execute(text("ALTER TABLE proveedores ADD COLUMN nivel_garantia_pais VARCHAR(80) DEFAULT 'Garantías Contractuales Reforzadas'"))
                     conn.commit()
             except Exception as e:
                 print(f"[auto_migrate_proveedores] Notice: {e}")

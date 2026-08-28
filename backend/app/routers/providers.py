@@ -77,3 +77,67 @@ def get_proveedor_annex(id: int, _: Annotated[User, Depends(get_current_user)], 
 
     headers = {"Content-Disposition": f"attachment; filename=Anexo_DPA_ANCI_{prov.nombre.replace(' ', '_')}.md"}
     return StreamingResponse(io.BytesIO(annex.encode("utf-8")), media_type="text/markdown", headers=headers)
+
+
+@router.get("/proveedores/{id}/scc-agreement")
+def get_proveedor_scc_agreement(id: int, _: Annotated[User, Depends(get_current_user)], db: Annotated[Session, Depends(get_db)]):
+    """Genera el Acuerdo de Transferencia Internacional con Cláusulas Contractuales Tipo (SCC - Art. 28 Ley 21.719)."""
+    prov = db.query(Proveedor).filter(Proveedor.id == id).first()
+    if not prov:
+        raise HTTPException(status_code=404, detail="Proveedor no encontrado")
+
+    doc = f"""# ACUERDO DE TRANSFERENCIA INTERNACIONAL DE DATOS PERSONALES
+## CLÁUSULAS CONTRACTUALES TIPO (SCC) CONFORME AL ARTÍCULO 28 DE LA LEY N° 21.719
+
+**Exportador de Datos (Responsable):** Servicio Público del Estado de Chile  
+**Importador de Datos (Encargado/Subencargado):** {prov.nombre}  
+**RUT / Identificador Internacional:** {prov.rut}  
+**País de Destino / Alojamiento:** {prov.pais_alojamiento}  
+**Mecanismo de Transferencia Habilitante:** {prov.mecanismo_transferencia}  
+**Nivel de Garantía Declarado:** {prov.nivel_garantia_pais}  
+
+---
+
+### CLÁUSULA PRIMERA: OBJETO Y ALCANCE
+El presente acuerdo regula el flujo transfronterizo de datos personales derivado de la contratación de los servicios de **{prov.servicio}**, asegurando un nivel de protección sustancialmente equivalente al exigido por la Ley N° 21.719 de la República de Chile.
+
+### CLÁUSULA SEGUNDA: OBLIGACIONES DEL IMPORTADOR DE DATOS
+1. **Principio de Finalidad Restringida:** El Importador no podrá utilizar los datos transferidos para finalidades distintas a la prestación del servicio encomendado.
+2. **Prohibición de Transferencias Ulteriores:** Se prohíbe la subcontratación o reenvío de datos a terceros países u otras entidades sin autorización previa por escrito del Exportador.
+3. **Sometimiento a la Jurisdicción de la Agencia de Datos:** El Importador acepta expresamente la competencia fiscalizadora y sancionatoria de la Agencia Nacional de Protección de Datos Personales de Chile.
+4. **Ejercicio de Derechos ARCO+:** El Importador cooperará de inmediato con el Exportador para hacer efectivos los derechos de acceso, rectificación, cancelación, oposición, portabilidad y bloqueo de los titulares en el plazo legal de 15 días hábiles.
+
+### CLÁUSULA TERCERA: SALVAGUARDAS TÉCNICAS Y ENCRIPTACIÓN
+- Cifrado en tránsito (TLS 1.3) y en reposo (AES-256 con claves gestionadas por el Exportador).
+- Restricción de acceso lógico y registros de auditoría inmutables.
+- Supresión certificada de datos e imágenes forenses al término del servicio.
+
+_____________________________________          _____________________________________
+**Por el Exportador de Datos**                 **Por el Importador de Datos**
+*Delegado/a de Protección de Datos (DPO)*      *Representante Legal {prov.nombre}*
+"""
+
+    headers = {"Content-Disposition": f"attachment; filename=Acuerdo_Transferencia_SCC_{prov.nombre.replace(' ', '_')}.md"}
+    return StreamingResponse(io.BytesIO(doc.encode("utf-8")), media_type="text/markdown", headers=headers)
+
+
+@router.get("/proveedores/international-transfers/summary")
+def get_international_transfers_summary(_: Annotated[User, Depends(get_current_user)], db: Annotated[Session, Depends(get_db)]):
+    """Resumen consolidado del inventario de transferencias transfronterizas (Art. 28)."""
+    provs = db.query(Proveedor).all()
+    transfers = []
+    
+    for p in provs:
+        is_intl = p.pais_alojamiento.lower() not in ["chile", "local", "on-premise"]
+        transfers.append({
+            "proveedor_id": p.id,
+            "proveedor_nombre": p.nombre,
+            "servicio": p.servicio,
+            "pais_destino": p.pais_alojamiento,
+            "es_internacional": is_intl,
+            "mecanismo_transferencia": p.mecanismo_transferencia if is_intl else "Tratamiento Nacional (In-country)",
+            "nivel_garantia": p.nivel_garantia_pais if is_intl else "Territorio Nacional",
+            "dpa_firmado": p.dpa_firmado,
+            "criticidad": p.criticidad_ciber
+        })
+    return transfers

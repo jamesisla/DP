@@ -523,15 +523,26 @@ export function CyberIncidents({ incidents = [], token, user, onReload }) {
                     </button>
                   </div>
 
-                  <a
-                    href={`${API_URL.replace("/api", "")}/api/cyber/incidents/${inc.id}/oficio-anci?token=${token}`}
-                    download
-                    className="inline-flex items-center gap-1.5 px-3.5 py-1.5 border border-rose-300 bg-rose-50 text-rose-800 rounded-lg text-xs font-bold hover:bg-rose-100 shadow-2xs"
-                    title="Descargar Formulario Oficial de Notificación a la ANCI"
-                  >
-                    <Download size={13} />
-                    Oficio Oficial ANCI (MD)
-                  </a>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <a
+                      href={`${API_URL.replace("/api", "")}/api/cyber/incidents/${inc.id}/forensic-chain-of-custody?token=${token}`}
+                      download
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 border border-indigo-300 bg-indigo-50 text-indigo-800 rounded-lg text-xs font-bold hover:bg-indigo-100 shadow-2xs"
+                      title="Descargar Acta Oficial de Cadena de Custodia Forense Digital (Ley N° 21.459 y Ley N° 21.663)"
+                    >
+                      <Download size={13} />
+                      Cadena de Custodia (Ley 21.459)
+                    </a>
+                    <a
+                      href={`${API_URL.replace("/api", "")}/api/cyber/incidents/${inc.id}/oficio-anci?token=${token}`}
+                      download
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 border border-rose-300 bg-rose-50 text-rose-800 rounded-lg text-xs font-bold hover:bg-rose-100 shadow-2xs"
+                      title="Descargar Formulario Oficial de Notificación a la ANCI"
+                    >
+                      <Download size={13} />
+                      Oficio Oficial ANCI (MD)
+                    </a>
+                  </div>
                 </div>
               </div>
             );
