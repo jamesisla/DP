@@ -14,14 +14,23 @@ import {
   KeyRound,
   Fingerprint,
   FileCode2,
-  Check
+  Check,
+  BarChart3,
+  Building2,
+  TrendingUp,
+  Layers,
+  PieChart
 } from "lucide-react";
 import { Panel } from "../components/Panel";
 import { api, API_URL } from "../lib/api";
 
 export function AuditLogs({ auditLogs = [], token, onReload }) {
-  const [activeTab, setActiveTab] = useState("audit"); // 'audit', 'mock_audit', 'ledger', 'qa'
+  const [activeTab, setActiveTab] = useState("executive"); // 'executive', 'audit', 'mock_audit', 'ledger', 'qa'
   const [filterQuery, setFilterQuery] = useState("");
+
+  // Executive Report state
+  const [executiveReport, setExecutiveReport] = useState(null);
+  const [loadingExecutive, setLoadingExecutive] = useState(false);
 
   // Mock audit state
   const [questions, setQuestions] = useState([]);
@@ -39,10 +48,23 @@ export function AuditLogs({ auditLogs = [], token, onReload }) {
   const [qaList, setQaList] = useState([]);
 
   useEffect(() => {
+    loadExecutiveReport();
     loadMockAuditQuestions();
     loadLedger();
     loadInspectorQa();
   }, [token]);
+
+  async function loadExecutiveReport() {
+    setLoadingExecutive(true);
+    try {
+      const data = await api("/executive-consolidated-report", token);
+      setExecutiveReport(data);
+    } catch (err) {
+      console.error("Error cargando informe consolidado:", err);
+    } finally {
+      setLoadingExecutive(false);
+    }
+  }
 
   async function loadInspectorQa() {
     try {
@@ -185,34 +207,264 @@ export function AuditLogs({ auditLogs = [], token, onReload }) {
       </div>
 
       {/* Tab Selector */}
-      <div className="flex bg-slate-200/70 p-1 rounded-xl border border-slate-300 max-w-2xl">
+      <div className="flex bg-slate-200/70 p-1 rounded-xl border border-slate-300 max-w-3xl overflow-x-auto">
+        <button
+          onClick={() => setActiveTab("executive")}
+          className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${activeTab === "executive" ? "bg-white text-teal-900 shadow-2xs" : "text-slate-600 hover:text-slate-900"}`}
+        >
+          Informe Consolidado GRC
+        </button>
         <button
           onClick={() => setActiveTab("audit")}
-          className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-all ${activeTab === "audit" ? "bg-white text-slate-900 shadow-2xs" : "text-slate-600 hover:text-slate-900"}`}
+          className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${activeTab === "audit" ? "bg-white text-slate-900 shadow-2xs" : "text-slate-600 hover:text-slate-900"}`}
         >
           Bitácora ({auditLogs.length})
         </button>
         <button
           onClick={() => setActiveTab("mock_audit")}
-          className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-all ${activeTab === "mock_audit" ? "bg-white text-teal-800 shadow-2xs" : "text-slate-600 hover:text-slate-900"}`}
+          className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${activeTab === "mock_audit" ? "bg-white text-teal-800 shadow-2xs" : "text-slate-600 hover:text-slate-900"}`}
         >
           Simulador
         </button>
         <button
           onClick={() => setActiveTab("ledger")}
-          className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-all ${activeTab === "ledger" ? "bg-white text-indigo-700 shadow-2xs" : "text-slate-600 hover:text-slate-900"}`}
+          className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${activeTab === "ledger" ? "bg-white text-indigo-700 shadow-2xs" : "text-slate-600 hover:text-slate-900"}`}
         >
           Verificador SHA-256
         </button>
         <button
           onClick={() => setActiveTab("qa")}
-          className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-all ${activeTab === "qa" ? "bg-white text-teal-800 shadow-2xs" : "text-slate-600 hover:text-slate-900"}`}
+          className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${activeTab === "qa" ? "bg-white text-teal-800 shadow-2xs" : "text-slate-600 hover:text-slate-900"}`}
         >
           Entrenador Q&A ({qaList.length})
         </button>
       </div>
 
-      {activeTab === "audit" ? (
+      {activeTab === "executive" ? (
+        /* TAB 0: CONSOLIDATED GRC EXECUTIVE REPORT */
+        loadingExecutive ? (
+          <div className="rounded-xl border border-line bg-white p-12 text-center text-slate-400">
+            <Activity size={32} className="mx-auto mb-2 animate-spin text-teal-600" />
+            <p className="text-xs font-semibold">Consolidando métricas de Gobernanza, Privacidad y Ciberdefensa...</p>
+          </div>
+        ) : executiveReport ? (
+          <div className="space-y-6">
+            
+            {/* Top Banner with Dual GRC Global Score */}
+            <div className="rounded-2xl border border-teal-200 bg-gradient-to-br from-slate-900 via-teal-950 to-indigo-950 text-white p-6 shadow-xl space-y-4">
+              <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-teal-500/20 text-teal-300 border border-teal-500/30">
+                      Auditoría Consolidada GRC
+                    </span>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-white/10 text-slate-300">
+                      {executiveReport.fecha_informe}
+                    </span>
+                  </div>
+                  <h3 className="text-xl font-black text-white flex items-center gap-2">
+                    <TrendingUp size={24} className="text-teal-400" />
+                    Índice Global Consolidado GRC: {executiveReport.grc_global_score}%
+                  </h3>
+                  <p className="text-xs text-slate-300 max-w-2xl leading-relaxed">
+                    {executiveReport.diagnostico_ejecutivo}
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-3 shrink-0">
+                  <a
+                    href={`${API_URL.replace("/api", "")}/api/executive-consolidated-report/download?token=${token}`}
+                    download
+                    className="inline-flex items-center gap-2 rounded-xl bg-teal-600 px-4 py-2.5 text-xs font-bold text-white hover:bg-teal-500 shadow-md transition-all"
+                    title="Descargar Informe Ejecutivo Oficial en Markdown"
+                  >
+                    <Download size={14} />
+                    Descargar Informe Oficial (MD)
+                  </a>
+                </div>
+              </div>
+
+              {/* Global Gauge & Status Pills */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-3 border-t border-white/10 text-xs">
+                <div className="p-3 rounded-xl bg-white/5 border border-white/10 space-y-1">
+                  <span className="text-[10px] text-slate-400 font-bold block uppercase">Estado de Cumplimiento:</span>
+                  <span className="font-bold text-teal-300">{executiveReport.nivel_cumplimiento}</span>
+                </div>
+                <div className="p-3 rounded-xl bg-white/5 border border-white/10 space-y-1">
+                  <span className="text-[10px] text-slate-400 font-bold block uppercase">Semáforo de Riesgo:</span>
+                  <span className="font-bold text-slate-200">{executiveReport.semaforo}</span>
+                </div>
+                <div className="p-3 rounded-xl bg-white/5 border border-white/10 space-y-1">
+                  <span className="text-[10px] text-slate-400 font-bold block uppercase">Madurez Datos (21.719):</span>
+                  <span className="font-bold text-teal-400 text-sm">{executiveReport.suite_privacidad.score}%</span>
+                </div>
+                <div className="p-3 rounded-xl bg-white/5 border border-white/10 space-y-1">
+                  <span className="text-[10px] text-slate-400 font-bold block uppercase">Madurez Ciber (21.663):</span>
+                  <span className="font-bold text-indigo-300 text-sm">{executiveReport.suite_ciberseguridad.score}%</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Dual Suite Breakdown Cards */}
+            <div className="grid md:grid-cols-2 gap-6">
+              
+              {/* Suite 1: Datos Personales */}
+              <div className="rounded-xl border border-teal-200 bg-white p-5 shadow-sm space-y-4">
+                <div className="flex justify-between items-center border-b border-teal-100 pb-3">
+                  <div className="flex items-center gap-2">
+                    <ShieldCheck size={20} className="text-teal-700" />
+                    <h4 className="font-bold text-sm text-slate-800">Suite Datos Personales (Ley N° 21.719)</h4>
+                  </div>
+                  <span className="font-mono font-bold text-xs px-2.5 py-1 rounded bg-teal-50 text-teal-800 border border-teal-200">
+                    {executiveReport.suite_privacidad.score}% Conforme
+                  </span>
+                </div>
+
+                <div className="space-y-2.5 text-xs">
+                  <div className="flex justify-between items-center p-2 rounded bg-slate-50 border border-slate-150">
+                    <span className="text-slate-600 font-medium">Levantamiento RAT por División:</span>
+                    <strong className="text-slate-800 font-mono">{executiveReport.suite_privacidad.matrices_rat_completadas}</strong>
+                  </div>
+                  <div className="flex justify-between items-center p-2 rounded bg-slate-50 border border-slate-150">
+                    <span className="text-slate-600 font-medium">Solicitudes ARCO+ Atendidas (&lt;15d):</span>
+                    <strong className="text-teal-700 font-mono">{executiveReport.suite_privacidad.solicitudes_arco_atendidas}</strong>
+                  </div>
+                  <div className="flex justify-between items-center p-2 rounded bg-slate-50 border border-slate-150">
+                    <span className="text-slate-600 font-medium">Brechas de Privacidad Notificadas (&lt;72h):</span>
+                    <strong className="text-slate-800 font-mono">{executiveReport.suite_privacidad.brechas_notificadas_72h}</strong>
+                  </div>
+                  <div className="flex justify-between items-center p-2 rounded bg-slate-50 border border-slate-150">
+                    <span className="text-slate-600 font-medium">Proveedores con DPA Firmado (Art. 16):</span>
+                    <strong className="text-slate-800 font-mono">{executiveReport.suite_privacidad.proveedores_dpa_firmados}</strong>
+                  </div>
+                </div>
+              </div>
+
+              {/* Suite 2: Ciberseguridad */}
+              <div className="rounded-xl border border-indigo-200 bg-white p-5 shadow-sm space-y-4">
+                <div className="flex justify-between items-center border-b border-indigo-100 pb-3">
+                  <div className="flex items-center gap-2">
+                    <Layers size={20} className="text-indigo-700" />
+                    <h4 className="font-bold text-sm text-slate-800">Suite Ciberseguridad (Ley N° 21.663 - ANCI)</h4>
+                  </div>
+                  <span className="font-mono font-bold text-xs px-2.5 py-1 rounded bg-indigo-50 text-indigo-800 border border-indigo-200">
+                    {executiveReport.suite_ciberseguridad.score}% Conforme
+                  </span>
+                </div>
+
+                <div className="space-y-2.5 text-xs">
+                  <div className="flex justify-between items-center p-2 rounded bg-slate-50 border border-slate-150">
+                    <span className="text-slate-600 font-medium">Fases y Tareas ANCI Completadas:</span>
+                    <strong className="text-slate-800 font-mono">{executiveReport.suite_ciberseguridad.fases_anci_completadas}</strong>
+                  </div>
+                  <div className="flex justify-between items-center p-2 rounded bg-slate-50 border border-slate-150">
+                    <span className="text-slate-600 font-medium">Activos RSIC con Controles Técnicos Mínimos:</span>
+                    <strong className="text-slate-800 font-mono">{executiveReport.suite_ciberseguridad.activos_rsic_conformes}</strong>
+                  </div>
+                  <div className="flex justify-between items-center p-2 rounded bg-slate-50 border border-slate-150">
+                    <span className="text-slate-600 font-medium">Incidentes ANCI Notificados (&lt;3h):</span>
+                    <strong className="text-indigo-700 font-mono">{executiveReport.suite_ciberseguridad.incidentes_anci_3h}</strong>
+                  </div>
+                  <div className="flex justify-between items-center p-2 rounded bg-slate-50 border border-slate-150">
+                    <span className="text-slate-600 font-medium">Vulnerabilidades CVD Remediadas:</span>
+                    <strong className="text-slate-800 font-mono">{executiveReport.suite_ciberseguridad.reportes_cvd_remediados}</strong>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+
+            {/* Breakdown Table by Institutional Division / Area */}
+            <div className="rounded-xl border border-line bg-white p-6 shadow-sm space-y-4">
+              <div className="flex items-center gap-2 border-b border-slate-100 pb-3">
+                <Building2 size={20} className="text-slate-700" />
+                <div>
+                  <h4 className="font-bold text-sm text-slate-800">Desempeño y Cumplimiento por División Institucional</h4>
+                  <p className="text-xs text-slate-400">Progreso simétrico de la matriz RAT de privacidad y activos RSIC asignados.</p>
+                </div>
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs border-collapse">
+                  <thead>
+                    <tr className="border-b border-slate-200 bg-slate-50 text-[10px] uppercase font-bold text-slate-500 tracking-wider">
+                      <th className="py-2.5 px-3">División / Área</th>
+                      <th className="py-2.5 px-3">Responsable</th>
+                      <th className="py-2.5 px-3 text-center">Matriz RAT</th>
+                      <th className="py-2.5 px-3 text-center">Activos RSIC</th>
+                      <th className="py-2.5 px-3">Cumpl. Datos</th>
+                      <th className="py-2.5 px-3">Cumpl. Ciber</th>
+                      <th className="py-2.5 px-3 text-right">Índice División</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 text-slate-700 font-medium">
+                    {executiveReport.metricas_por_area.map((area) => (
+                      <tr key={area.area_id} className="hover:bg-slate-50">
+                        <td className="py-3 px-3 font-bold text-slate-800">{area.nombre}</td>
+                        <td className="py-3 px-3 text-slate-600">{area.responsable}</td>
+                        <td className="py-3 px-3 text-center">
+                          {area.matriz_completada ? (
+                            <span className="px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 font-bold text-[10px] border border-emerald-200">
+                              ✓ Finalizada ({area.tratamientos_declarados} RAT)
+                            </span>
+                          ) : (
+                            <span className="px-2 py-0.5 rounded bg-amber-50 text-amber-700 font-bold text-[10px] border border-amber-200">
+                              ! En Progreso
+                            </span>
+                          )}
+                        </td>
+                        <td className="py-3 px-3 text-center font-mono font-semibold">
+                          {area.activos_rsic_asignados} ({area.activos_conformes} Conformes)
+                        </td>
+                        <td className="py-3 px-3">
+                          <div className="flex items-center gap-2">
+                            <div className="w-16 bg-slate-200 rounded-full h-1.5 overflow-hidden">
+                              <div className="bg-teal-600 h-1.5 rounded-full" style={{ width: `${area.porcentaje_privacidad}%` }}></div>
+                            </div>
+                            <span className="font-mono text-[10px] font-bold">{area.porcentaje_privacidad}%</span>
+                          </div>
+                        </td>
+                        <td className="py-3 px-3">
+                          <div className="flex items-center gap-2">
+                            <div className="w-16 bg-slate-200 rounded-full h-1.5 overflow-hidden">
+                              <div className="bg-indigo-600 h-1.5 rounded-full" style={{ width: `${area.porcentaje_ciberseguridad}%` }}></div>
+                            </div>
+                            <span className="font-mono text-[10px] font-bold">{area.porcentaje_ciberseguridad}%</span>
+                          </div>
+                        </td>
+                        <td className="py-3 px-3 text-right">
+                          <span className={`font-mono font-bold text-xs px-2 py-0.5 rounded ${area.promedio_area >= 80 ? "bg-emerald-50 text-emerald-700 border border-emerald-200" : area.promedio_area >= 50 ? "bg-amber-50 text-amber-700 border border-amber-200" : "bg-rose-50 text-rose-700 border border-rose-200"}`}>
+                            {area.promedio_area}%
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Top Action Priorities Card */}
+            <div className="rounded-xl border border-line bg-white p-6 shadow-sm space-y-3">
+              <h4 className="font-bold text-sm text-slate-800 flex items-center gap-2">
+                <Award size={18} className="text-teal-600" />
+                Plan de Acción y Recomendaciones Prioritarias para la Jefatura
+              </h4>
+              <div className="grid sm:grid-cols-2 gap-3 pt-1">
+                {executiveReport.top_prioridades.map((pri, idx) => (
+                  <div key={idx} className="p-3 rounded-xl bg-slate-50 border border-slate-200 flex items-start gap-2.5 text-xs text-slate-700">
+                    <span className="font-mono font-bold h-5 w-5 rounded-full bg-teal-100 text-teal-800 text-[10px] flex items-center justify-center shrink-0 mt-0.5">
+                      {idx + 1}
+                    </span>
+                    <p className="leading-relaxed font-medium">{pri}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+          </div>
+        ) : null
+      ) : activeTab === "audit" ? (
         /* TAB 1: AUDIT LOGS */
         <Panel title="Historial Completo de Trazabilidad Administrativa" icon={Activity}>
           <div className="space-y-4">
