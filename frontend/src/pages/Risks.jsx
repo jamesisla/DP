@@ -12,16 +12,52 @@ import {
   DollarSign,
   Scale,
   Percent,
-  ShieldCheck
+  ShieldCheck,
+  Plus,
+  FileText,
+  Check,
+  Sparkles,
+  Shield,
+  Fingerprint
 } from "lucide-react";
 import { Panel } from "../components/Panel";
 import { api, API_URL } from "../lib/api";
 
 export function Risks({ risks = [], masterMatrix = [], token, onReload }) {
-  const [tab, setTab] = useState("matrix"); // 'matrix', 'fines'
+  const [tab, setTab] = useState("matrix"); // 'matrix', 'eipd', 'fines'
   const [heatmap, setHeatmap] = useState([]);
   const [loadingHeatmap, setLoadingHeatmap] = useState(true);
   const [selectedRiskCell, setSelectedRiskCell] = useState(null);
+
+  // EIPD state
+  const [eipdList, setEipdList] = useState([]);
+  const [loadingEipd, setLoadingEipd] = useState(false);
+  const [showEipdModal, setShowEipdModal] = useState(false);
+  const [newEipd, setNewEipd] = useState({
+    titulo: "",
+    area_id: 1,
+    descripcion_tratamiento: "",
+    base_licitud: "Obligación Legal (Art. 13)",
+    criterios_alto_riesgo_json: [],
+    analisis_necesidad: "",
+    riesgos_derechos: "",
+    medidas_mitigacion: "",
+    riesgo_residual: "Aceptable / Bajo",
+    opinion_dpo: "",
+    estado: "Aprobado con Mitigaciones"
+  });
+
+  const criteriosOficiales = [
+    "1. Evaluación o puntuación / Perfilamiento de personas",
+    "2. Toma de decisiones automatizadas con efectos jurídicos",
+    "3. Observación, monitorización o videovigilancia sistemática",
+    "4. Datos sensibles o categorías especiales (salud, biometría)",
+    "5. Tratamiento de datos personales a gran escala",
+    "6. Cruce o combinación de bases de datos distintas",
+    "7. Datos de sujetos vulnerables (niños, pacientes, empleados)",
+    "8. Uso innovador de nuevas tecnologías o IA",
+    "9. Tratamientos que impiden a los titulares ejercer un derecho"
+  ];
 
   // Fines simulator state
   const [finesData, setFinesData] = useState(null);
@@ -45,6 +81,18 @@ export function Risks({ risks = [], masterMatrix = [], token, onReload }) {
     }
   }
 
+  async function loadEipds() {
+    setLoadingEipd(true);
+    try {
+      const data = await api("/impact-assessments", token);
+      setEipdList(data || []);
+    } catch (err) {
+      console.error("Error cargando EIPDs:", err);
+    } finally {
+      setLoadingEipd(false);
+    }
+  }
+
   async function loadFinesData() {
     try {
       const data = await api("/risks/fines-simulator", token);
@@ -57,7 +105,44 @@ export function Risks({ risks = [], masterMatrix = [], token, onReload }) {
   useEffect(() => {
     loadHeatmap();
     loadFinesData();
+    loadEipds();
   }, [risks, token]);
+
+  async function handleApproveEipd(id) {
+    try {
+      await api(`/impact-assessments/${id}/approve`, token, { method: "POST" });
+      loadEipds();
+    } catch (err) {
+      alert("Error al aprobar EIPD: " + err.message);
+    }
+  }
+
+  async function handleCreateEipd(e) {
+    e.preventDefault();
+    try {
+      await api("/impact-assessments", token, {
+        method: "POST",
+        body: JSON.stringify(newEipd)
+      });
+      setShowEipdModal(false);
+      loadEipds();
+      setNewEipd({
+        titulo: "",
+        area_id: 1,
+        descripcion_tratamiento: "",
+        base_licitud: "Obligación Legal (Art. 13)",
+        criterios_alto_riesgo_json: [],
+        analisis_necesidad: "",
+        riesgos_derechos: "",
+        medidas_mitigacion: "",
+        riesgo_residual: "Aceptable / Bajo",
+        opinion_dpo: "",
+        estado: "Aprobado con Mitigaciones"
+      });
+    } catch (err) {
+      alert("Error al crear EIPD: " + err.message);
+    }
+  }
 
   function getLevelBadge(level) {
     switch (level) {
@@ -139,22 +224,249 @@ export function Risks({ risks = [], masterMatrix = [], token, onReload }) {
       </div>
 
       {/* Tab Selector */}
-      <div className="flex bg-slate-200/70 p-1 rounded-xl border border-slate-300 max-w-lg">
+      <div className="flex bg-slate-200/70 p-1 rounded-xl border border-slate-300 max-w-xl">
         <button
           onClick={() => setTab("matrix")}
           className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-all ${tab === "matrix" ? "bg-white text-slate-900 shadow-2xs" : "text-slate-600 hover:text-slate-900"}`}
         >
-          Matriz 5×5 & EIPD ({risks.length})
+          Matriz 5×5 ({risks.length})
+        </button>
+        <button
+          onClick={() => setTab("eipd")}
+          className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-all ${tab === "eipd" ? "bg-white text-teal-800 shadow-2xs" : "text-slate-600 hover:text-slate-900"}`}
+        >
+          Evaluaciones EIPD (Art. 25) ({eipdList.length})
         </button>
         <button
           onClick={() => setTab("fines")}
           className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-all ${tab === "fines" ? "bg-white text-teal-800 shadow-2xs" : "text-slate-600 hover:text-slate-900"}`}
         >
-          Simulador de Sanciones (Art. 50)
+          Simulador de Sanciones
         </button>
       </div>
 
-      {tab === "matrix" ? (
+      {tab === "eipd" ? (
+        /* TAB 2: EIPD / DPIA ASSESSMENTS (ART. 25 LEY 21.719) */
+        <div className="space-y-6">
+          
+          {/* Header Banner */}
+          <div className="rounded-xl border border-teal-200 bg-gradient-to-r from-teal-900 via-teal-950 to-slate-900 text-white p-6 shadow-md flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <div className="space-y-1">
+              <span className="text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-teal-500/20 text-teal-300 border border-teal-500/30">
+                Gobernanza de Alto Riesgo · Art. 25 Ley N° 21.719
+              </span>
+              <h3 className="text-xl font-bold text-white flex items-center gap-2">
+                <Sparkles size={20} className="text-teal-400" />
+                Evaluaciones de Impacto en Protección de Datos (EIPD / DPIA)
+              </h3>
+              <p className="text-xs text-slate-300 max-w-2xl leading-relaxed">
+                Dictamen formal y obligatorio del DPO para tratamientos que involucren biometría, perfilamiento automatizado, vigilancia sistemática o datos sensibles a gran escala.
+              </p>
+            </div>
+
+            <button
+              onClick={() => setShowEipdModal(true)}
+              className="inline-flex items-center gap-2 rounded-xl bg-teal-600 px-4 py-2.5 text-xs font-bold text-white hover:bg-teal-500 shadow-md transition-all shrink-0"
+            >
+              <Plus size={15} />
+              Nueva Evaluación EIPD (Wizard)
+            </button>
+          </div>
+
+          {/* EIPD Cards Grid */}
+          {loadingEipd ? (
+            <div className="p-12 text-center text-xs text-slate-400">Cargando evaluaciones EIPD...</div>
+          ) : (
+            <div className="grid gap-5">
+              {eipdList.map((eipd) => (
+                <div key={eipd.id} className="rounded-xl border border-line bg-white p-6 shadow-sm space-y-4">
+                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 border-b border-slate-100 pb-3">
+                    <div className="flex items-center gap-3">
+                      <span className="font-mono text-xs font-black px-2.5 py-1 rounded bg-teal-50 text-teal-800 border border-teal-200">
+                        EIPD-{String(eipd.id).padStart(4, "0")}
+                      </span>
+                      <h4 className="font-bold text-sm text-slate-900">{eipd.titulo}</h4>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <span className="px-2.5 py-0.5 rounded text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1">
+                        <Check size={12} />
+                        {eipd.estado}
+                      </span>
+                    </div>
+                  </div>
+
+                  <p className="text-xs text-slate-600 leading-relaxed">
+                    {eipd.descripcion_tratamiento}
+                  </p>
+
+                  {/* High risk criteria tags */}
+                  {eipd.criterios_alto_riesgo_json && eipd.criterios_alto_riesgo_json.length > 0 && (
+                    <div className="space-y-1.5 pt-1">
+                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Factores de Alto Riesgo Acreditados (Art. 25):</span>
+                      <div className="flex flex-wrap gap-1.5">
+                        {eipd.criterios_alto_riesgo_json.map((crit, idx) => (
+                          <span key={idx} className="text-[10px] font-semibold px-2 py-0.5 rounded bg-amber-50 text-amber-800 border border-amber-200">
+                            ⚠️ {crit}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Technical & Organizational Mitigations */}
+                  <div className="grid md:grid-cols-2 gap-3 text-xs pt-2">
+                    <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-1">
+                      <span className="text-[10px] font-bold text-slate-500 uppercase block">Salvaguardas Técnicas Implementadas:</span>
+                      <p className="text-slate-700 font-medium leading-relaxed">{eipd.medidas_mitigacion}</p>
+                    </div>
+                    <div className="p-3 bg-teal-50/50 rounded-xl border border-teal-200 space-y-1">
+                      <span className="text-[10px] font-bold text-teal-800 uppercase block">Dictamen y Opinión del DPO:</span>
+                      <p className="text-teal-950 font-medium leading-relaxed">{eipd.opinion_dpo}</p>
+                    </div>
+                  </div>
+
+                  {/* Footer & Actions */}
+                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pt-3 border-t border-slate-100 text-xs">
+                    <div className="flex items-center gap-2 text-slate-400 font-mono text-[10px]">
+                      <Fingerprint size={14} className="text-teal-600" />
+                      <span>Hash SHA-256: {eipd.hash_integridad ? eipd.hash_integridad.substring(0, 24) + "..." : "Sello pendiente"}</span>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <a
+                        href={`${API_URL.replace("/api", "")}/api/impact-assessments/${eipd.id}/download?token=${token}`}
+                        download
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-bold text-xs shadow-sm"
+                      >
+                        <Download size={13} />
+                        Descargar Dictamen (MD)
+                      </a>
+                      <button
+                        onClick={() => handleApproveEipd(eipd.id)}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-teal-700 hover:bg-teal-800 text-white font-bold text-xs shadow-sm"
+                      >
+                        <ShieldCheck size={13} />
+                        Sellar Dictamen DPO
+                      </button>
+                    </div>
+                  </div>
+
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Modal Wizard Nueva EIPD */}
+          {showEipdModal && (
+            <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+              <div className="bg-white rounded-2xl max-w-2xl w-full p-6 shadow-2xl space-y-4 my-8 max-h-[90vh] overflow-y-auto">
+                <div className="flex justify-between items-center border-b border-slate-100 pb-3">
+                  <div>
+                    <h3 className="font-bold text-slate-800 text-base">Asistente de Evaluación de Impacto (EIPD / DPIA)</h3>
+                    <p className="text-xs text-slate-400">Metodología oficial de 9 criterios conforme al Art. 25 de la Ley N° 21.719.</p>
+                  </div>
+                  <button onClick={() => setShowEipdModal(false)} className="text-slate-400 hover:text-slate-600 font-bold text-lg">×</button>
+                </div>
+
+                <form onSubmit={handleCreateEipd} className="space-y-4 text-xs">
+                  <div>
+                    <label className="font-bold text-slate-700 block mb-1">Título del Proyecto / Tratamiento *</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="Ej: EIPD-03: Sistema de Videovigilancia y Reconocimiento de Patentes"
+                      value={newEipd.titulo}
+                      onChange={(e) => setNewEipd({ ...newEipd, titulo: e.target.value })}
+                      className="w-full rounded-lg border border-slate-200 p-2.5 text-xs focus:ring-2 focus:ring-teal-500 focus:outline-hidden"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="font-bold text-slate-700 block mb-1">Descripción Sistemática del Tratamiento *</label>
+                    <textarea
+                      rows={2}
+                      required
+                      placeholder="Detalle los datos recolectados, flujos de almacenamiento, finalidades y usuarios con acceso..."
+                      value={newEipd.descripcion_tratamiento}
+                      onChange={(e) => setNewEipd({ ...newEipd, descripcion_tratamiento: e.target.value })}
+                      className="w-full rounded-lg border border-slate-200 p-2.5 text-xs focus:ring-2 focus:ring-teal-500 focus:outline-hidden"
+                    />
+                  </div>
+
+                  {/* 9 High risk criteria checkboxes */}
+                  <div className="space-y-2 p-3 bg-slate-50 rounded-xl border border-slate-200">
+                    <span className="font-bold text-slate-800 block text-xs">
+                      Criterios Oficiales de Alto Riesgo (Marque los que apliquen):
+                    </span>
+                    <div className="space-y-1.5">
+                      {criteriosOficiales.map((crit, idx) => {
+                        const checked = newEipd.criterios_alto_riesgo_json.includes(crit);
+                        return (
+                          <label key={idx} className="flex items-center gap-2 cursor-pointer text-slate-700">
+                            <input
+                              type="checkbox"
+                              checked={checked}
+                              onChange={() => {
+                                const updated = checked
+                                  ? newEipd.criterios_alto_riesgo_json.filter((c) => c !== crit)
+                                  : [...newEipd.criterios_alto_riesgo_json, crit];
+                                setNewEipd({ ...newEipd, criterios_alto_riesgo_json: updated });
+                              }}
+                              className="rounded border-slate-300 text-teal-600 focus:ring-teal-500"
+                            />
+                            <span>{crit}</span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <div className="grid sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="font-bold text-slate-700 block mb-1">Salvaguardas y Mitigaciones Técnicas</label>
+                      <textarea
+                        rows={2}
+                        placeholder="Ej: Cifrado AES-256, seudonimización, MFA y borrado seguro..."
+                        value={newEipd.medidas_mitigacion}
+                        onChange={(e) => setNewEipd({ ...newEipd, medidas_mitigacion: e.target.value })}
+                        className="w-full rounded-lg border border-slate-200 p-2.5 text-xs"
+                      />
+                    </div>
+                    <div>
+                      <label className="font-bold text-slate-700 block mb-1">Dictamen Vinculante del DPO</label>
+                      <textarea
+                        rows={2}
+                        placeholder="Dictamen favorable con salvaguardas técnicas..."
+                        value={newEipd.opinion_dpo}
+                        onChange={(e) => setNewEipd({ ...newEipd, opinion_dpo: e.target.value })}
+                        className="w-full rounded-lg border border-slate-200 p-2.5 text-xs"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
+                    <button
+                      type="button"
+                      onClick={() => setShowEipdModal(false)}
+                      className="px-4 py-2 rounded-lg border border-slate-200 text-slate-600 font-bold hover:bg-slate-50"
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      type="submit"
+                      className="px-4 py-2 rounded-lg bg-teal-700 text-white font-bold hover:bg-teal-800 shadow-md"
+                    >
+                      Guardar y Sellar EIPD
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
+
+        </div>
+      ) : tab === "matrix" ? (
         <div className="space-y-6">
           {/* EIPD Banner if high risk exists */}
           {eipdRequiredRisks.length > 0 && (

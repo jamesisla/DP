@@ -691,6 +691,94 @@ def update_cyber_policy(
     return pol
 
 
+@router.get("/policies/formal-resolution/{tipo}")
+def generate_formal_cyber_resolution(
+    tipo: str,
+    _: Annotated[User, Depends(get_current_user)],
+    db: Annotated[Session, Depends(get_db)]
+):
+    now = datetime.now()
+    fecha_str = now.strftime("%d de %B de %Y")
+    
+    total_assets = db.query(CyberAsset).count()
+    rsic_assets = db.query(CyberAsset).filter(CyberAsset.es_rsic == True).count()
+    
+    if tipo == "pri":
+        title = "PLAN DE RESPUESTA A INCIDENTES DE CIBERSEGURIDAD (PRI)"
+        doc = f"""# REPÚBLICA DE CHILE
+## SERVICIO PÚBLICO DE LA ADMINISTRACIÓN DEL ESTADO
+### RESOLUCIÓN EXENTA N° ______ / {now.year}
+**SANTIAGO, {fecha_str}**
+
+**VISTOS:** Lo dispuesto en la Ley N° 21.663 (Ley Marco de Ciberseguridad e Infraestructura Crítica de la Información); el DFL N° 1/19.653 que fija el texto refundido de la Ley N° 18.575; las atribuciones de la Agencia Nacional de Ciberseguridad (ANCI); y la necesidad institucional de resguardar la continuidad de los servicios públicos esenciales.
+
+**CONSIDERANDO:**
+1. Que el Artículo 8° de la Ley N° 21.663 impone el deber legal inexcusable de contar con protocolos expeditos para la contención de ciberataques y la notificación perentoria de incidentes con impacto significativo a la ANCI en un plazo **máximo de 3 horas**.
+2. Que la institución administra **{rsic_assets} Redes y Sistemas Informáticos Críticos (RSIC)** cuya interrupción generaría grave perjuicio al interés público.
+3. Que se requiere formalizar la cadena de mando, roles de guardia técnica y protocolo forense de aislamiento.
+
+**RESUELVO:**
+
+**ARTÍCULO 1°.- APRUÉBASE** el **Plan de Respuesta a Incidentes de Ciberseguridad (PRI)** de la institución, compuesto por las siguientes directrices obligatorias:
+- **Flujo de Alerta Temprana (T < 3 Horas):** Notificación automatizada al CSIRT Nacional / ANCI vía API o canal de emergencia ante incidentes de severidad Alta o Crítica.
+- **Protocolo de Contención Inmediata:** Aislamiento de VLANs afectadas, preservación de memoria RAM y congelamiento de registros (FIM).
+- **Cadena de Mando Operativa:** El Oficial de Seguridad de la Información (CISO) asumirá el mando técnico con facultad de ordenar la desconexión preventiva de servidores RSIC.
+
+**ARTÍCULO 2°.- NOTIFÍQUESE** a todas las divisiones institucionales y remítase copia digital a la Agencia Nacional de Ciberseguridad.
+
+**ANÓTESE, COMUNÍQUESE Y PUBLÍQUESE.**
+
+_____________________________________
+**JEFE / DIRECTORA DE SERVICIO**
+*Firma Electrónica Avanzada Ley N° 19.799*
+"""
+    elif tipo == "bcp":
+        title = "PLAN DE CONTINUIDAD OPERACIONAL Y RECUPERACIÓN ANTE DESASTRES (BCP/DRP)"
+        doc = f"""# REPÚBLICA DE CHILE
+## SERVICIO PÚBLICO DE LA ADMINISTRACIÓN DEL ESTADO
+### RESOLUCIÓN EXENTA N° ______ / {now.year}
+**SANTIAGO, {fecha_str}**
+
+**VISTOS:** La Ley N° 21.663; la Política Nacional de Ciberseguridad; las directrices técnicas del CSIRT de Gobierno; y la necesidad de asegurar la resiliencia operativa del Estado.
+
+**RESUELVO:**
+
+**ARTÍCULO 1°.- APRUÉBASE** el **Plan de Continuidad Operacional y Recuperación ante Desastres (BCP/DRP)** institucional:
+- **Objetivos de Recuperación:** RTO (Recovery Time Objective) menor a 4 horas para servicios esenciales y RPO (Recovery Point Objective) menor a 1 hora.
+- **Arquitectura de Respaldo Inmutable (WORM):** Prohibición de almacenamiento de copias únicamente en la misma red local; obligatoriedad de réplica fuera de sitio con bloqueo criptográfico contra ransomware.
+- **Pruebas y Simulacros:** Realización de al menos 1 simulacro anual de restauración completa de base de datos y servidores principales.
+
+**ANÓTESE, COMUNÍQUESE Y ARCHÍVESE.**
+
+_____________________________________
+**JEFE / DIRECTORA DE SERVICIO**
+"""
+    else: # psi o marco general
+        title = "POLÍTICA GENERAL DE SEGURIDAD DE LA INFORMACIÓN (PSI)"
+        doc = f"""# REPÚBLICA DE CHILE
+## SERVICIO PÚBLICO DE LA ADMINISTRACIÓN DEL ESTADO
+### RESOLUCIÓN EXENTA N° ______ / {now.year}
+**SANTIAGO, {fecha_str}**
+
+**VISTOS:** La Ley N° 21.663; la Ley N° 21.719 sobre Protección de Datos Personales; el DFL N° 1-19.653; y las facultades que me confiere la ley orgánica del servicio.
+
+**RESUELVO:**
+
+**ARTÍCULO 1°.- APRUÉBASE** la **Política General de Seguridad de la Información y Ciberdefensa (PSI)**:
+- **Clasificación de Activos RSIC:** Se declaran formalmente {total_assets} activos de información, de los cuales {rsic_assets} revisten la calidad de Infraestructura Crítica RSIC.
+- **Controles Técnicos Obligatorios:** Cifrado en reposo y tránsito (AES-256 / TLS 1.3), Autenticación Multifactor (MFA) obligatoria en accesos administrativos y monitoreo 24/7 con agente SIEM (Wazuh).
+- **Canal Ético CVD:** Publicación obligatoria en el portal web institucional del canal de Divulgación Coordinada de Vulnerabilidades (Art. 12 Ley 21.663).
+
+**ANÓTESE, REGÍSTRESE Y COMUNÍQUESE.**
+
+_____________________________________
+**JEFE / DIRECTORA DE SERVICIO**
+"""
+
+    headers = {"Content-Disposition": f"attachment; filename=Resolucion_Exenta_{tipo.upper()}_Ley21663.md"}
+    return StreamingResponse(io.BytesIO(doc.encode("utf-8")), media_type="text/markdown", headers=headers)
+
+
 # ==============================================================================
 # EXPEDIENTE DE FISCALIZACIÓN ANCI (ZIP)
 # ==============================================================================

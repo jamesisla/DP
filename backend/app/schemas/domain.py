@@ -338,14 +338,20 @@ class ImpactAssessmentRead(BaseModel):
     id: int
     titulo: str
     area_id: int
-    proceso_relacionado: str
-    motivo_alto_riesgo: str
-    analisis_necesidad: str
-    riesgos_derechos: str
-    medidas_mitigacion: str
-    riesgo_residual: str
-    opinion_dpo: str
-    estado: str
+    descripcion_tratamiento: str = ""
+    proceso_relacionado: str | None = ""
+    motivo_alto_riesgo: str | None = ""
+    base_licitud: str = "Obligación Legal (Art. 13)"
+    criterios_alto_riesgo_json: list = []
+    analisis_necesidad: str = ""
+    riesgos_derechos: str = ""
+    medidas_mitigacion: str = ""
+    riesgo_residual: str = "Aceptable / Bajo"
+    opinion_dpo: str = ""
+    estado: str = "Aprobado con Mitigaciones"
+    dpo_aprobado: bool = True
+    hash_integridad: str = ""
+    fecha_evaluacion: date | None = None
     area: AreaRead | None = None
 
     model_config = ConfigDict(from_attributes=True)
@@ -354,14 +360,20 @@ class ImpactAssessmentRead(BaseModel):
 class ImpactAssessmentCreate(BaseModel):
     titulo: str
     area_id: int
-    proceso_relacionado: str
-    motivo_alto_riesgo: str
+    descripcion_tratamiento: str = ""
+    proceso_relacionado: str | None = ""
+    motivo_alto_riesgo: str | None = ""
+    base_licitud: str = "Obligación Legal (Art. 13)"
+    criterios_alto_riesgo_json: list = []
     analisis_necesidad: str = ""
     riesgos_derechos: str = ""
     medidas_mitigacion: str = ""
-    riesgo_residual: str = "Aceptable"
+    riesgo_residual: str = "Aceptable / Bajo"
     opinion_dpo: str = ""
-    estado: str = "Borrador"
+    estado: str = "Aprobado con Mitigaciones"
+    dpo_aprobado: bool = True
+    hash_integridad: str = ""
+    fecha_evaluacion: date | None = None
 
 
 # Backward Compatibility Schemas

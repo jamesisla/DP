@@ -105,14 +105,34 @@ export function CyberPolicies({ policies = [], token, user, onReload }) {
           </div>
         </div>
 
-        <a
-          href={`${API_URL.replace("/api", "")}/api/cyber/procurement-security-clauses?token=${token}`}
-          download
-          className="flex items-center gap-1.5 rounded-lg border border-indigo-300 bg-indigo-50 px-3.5 py-2 text-xs font-bold text-indigo-900 hover:bg-indigo-100 shadow-2xs transition-colors shrink-0"
-          title="Descargar Pliego y Cláusulas Tipo de Ciberseguridad para Bases de Licitación en Mercado Público / ChileCompra"
-        >
-          <span>📋 Pliego ChileCompra Ciberseguridad (MD)</span>
-        </a>
+        <div className="flex flex-wrap items-center gap-2 shrink-0">
+          <a
+            href={`${API_URL.replace("/api", "")}/api/cyber/policies/formal-resolution/pri?token=${token}`}
+            download
+            className="flex items-center gap-1.5 rounded-lg border border-indigo-300 bg-indigo-50 px-3 py-1.5 text-xs font-bold text-indigo-900 hover:bg-indigo-100 shadow-2xs transition-colors"
+            title="Descargar Decreto / Resolución Exenta del Plan de Respuesta a Incidentes (PRI)"
+          >
+            <Download size={13} />
+            <span>Resolución PRI (3h)</span>
+          </a>
+          <a
+            href={`${API_URL.replace("/api", "")}/api/cyber/policies/formal-resolution/bcp?token=${token}`}
+            download
+            className="flex items-center gap-1.5 rounded-lg border border-indigo-300 bg-indigo-50 px-3 py-1.5 text-xs font-bold text-indigo-900 hover:bg-indigo-100 shadow-2xs transition-colors"
+            title="Descargar Decreto / Resolución Exenta del Plan de Continuidad Operacional (BCP/DRP)"
+          >
+            <Download size={13} />
+            <span>Resolución BCP/DRP</span>
+          </a>
+          <a
+            href={`${API_URL.replace("/api", "")}/api/cyber/procurement-security-clauses?token=${token}`}
+            download
+            className="flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-bold text-slate-700 hover:bg-slate-50 shadow-2xs transition-colors"
+            title="Descargar Pliego y Cláusulas Tipo de Ciberseguridad para Bases de Licitación en Mercado Público / ChileCompra"
+          >
+            <span>📋 Pliego ChileCompra</span>
+          </a>
+        </div>
       </div>
 
       {/* Grid: Policies List (Left) & Editor (Right) */}

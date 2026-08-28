@@ -125,6 +125,25 @@ def auto_migrate_sqlite() -> None:
             except Exception as e:
                 print(f"[auto_migrate_fases] Notice: {e}")
 
+            # Impact Assessments (EIPD / DPIA) migrations
+            try:
+                res = conn.execute(text("PRAGMA table_info(impact_assessments)")).fetchall()
+                columns = [row[1] for row in res]
+                if columns:
+                    if "base_licitud" not in columns:
+                        conn.execute(text("ALTER TABLE impact_assessments ADD COLUMN base_licitud VARCHAR(120) DEFAULT 'Obligación Legal (Art. 13)'"))
+                    if "criterios_alto_riesgo_json" not in columns:
+                        conn.execute(text("ALTER TABLE impact_assessments ADD COLUMN criterios_alto_riesgo_json JSON DEFAULT '[]'"))
+                    if "dpo_aprobado" not in columns:
+                        conn.execute(text("ALTER TABLE impact_assessments ADD COLUMN dpo_aprobado BOOLEAN DEFAULT 1"))
+                    if "hash_integridad" not in columns:
+                        conn.execute(text("ALTER TABLE impact_assessments ADD COLUMN hash_integridad VARCHAR(100) DEFAULT ''"))
+                    if "fecha_evaluacion" not in columns:
+                        conn.execute(text("ALTER TABLE impact_assessments ADD COLUMN fecha_evaluacion DATE"))
+                    conn.commit()
+            except Exception as e:
+                print(f"[auto_migrate_impact_assessments] Notice: {e}")
+
 
 def create_app() -> FastAPI:
     app = FastAPI(title=settings.app_name, version="0.1.0")
