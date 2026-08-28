@@ -1,0 +1,29 @@
+[Unit]
+Description=LexApp DP — Plataforma de Privacidad & Ciberseguridad (Go Monolith)
+After=network.target
+
+[Service]
+Type=simple
+User=ubuntu
+WorkingDirectory=/opt/apps/dp
+ExecStart=/opt/apps/dp/lexapp-dp
+Restart=always
+RestartSec=3
+
+# Variables de Entorno
+Environment=PORT=8083
+Environment=DATABASE_PATH=/opt/apps/dp/data/lexapp.db
+Environment=JWT_SECRET=cambia-este-secreto-en-produccion-por-uno-aleatorio
+Environment=ENV=production
+
+# Límites de Recursos para VM OCI (1GB RAM)
+MemoryMax=150M
+CPUQuota=90%
+
+# Hardening
+NoNewPrivileges=true
+ProtectSystem=full
+ReadWritePaths=/opt/apps/dp/data /opt/apps/dp/uploads
+
+[Install]
+WantedBy=multi-user.target
