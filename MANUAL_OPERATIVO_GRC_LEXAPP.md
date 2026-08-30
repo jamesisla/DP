@@ -4,8 +4,8 @@
 ---
 
 > **Organismo:** Servicio Público de la Administración del Estado / Institución Privada Obligada  
-> **Versión del Manual:** 2.0 (Producción)  
-> **Ámbito de Aplicación:** Jefatura de Servicio, Delegado/a de Protección de Datos (DPO), Oficial de Seguridad de la Información (CISO), Jefaturas de División, Equipos TI y Asesoría Jurídica.  
+> **Versión del Manual:** 2.1 (Producción & Integración Técnica Open Source)  
+> **Ámbito de Aplicación:** Jefatura de Servicio, Delegado/a de Protección de Datos (DPO), Oficial de Seguridad de la Información (CISO), Jefaturas de División, Administradores SysAdmin/DevOps y Asesoría Jurídica.  
 > **Plataforma:** LexApp GRC Hub Interoperable  
 
 ---
@@ -32,11 +32,18 @@
    * 5.1. Motor de Correlación Cruzada en Tiempo Real (Wazuh SIEM ➔ ANCI + DPO)
    * 5.2. Portal Público Ciudadano y Radicación con Folio Único
    * 5.3. Informe Consolidado Ejecutivo GRC para la Jefatura de Servicio
-6. [GUÍA TÉCNICA DE DESPLIEGUE Y MANTENIMIENTO EN PRODUCCIÓN (OCI)](#6-guía-técnica-de-despliegue-y-mantenimiento-en-producción-oci)
-   * 6.1. Procedimiento de Actualización con `./update.sh`
-   * 6.2. Arquitectura de Doble Motor (Python FastAPI & Go Chi Monolito WAL)
-   * 6.3. Protocolo de Respaldo Inmutable WORM
-7. [CHECKLIST DE PREPARACIÓN ANTE FISCALIZACIONES REGULATORIAS](#7-checklist-de-preparación-ante-fiscalizaciones-regulatorias)
+6. [MANUAL DE INTEGRACIÓN TÉCNICA RESTFUL CON APPS OPEN SOURCE](#6-manual-de-integración-técnica-restful-con-apps-open-source)
+   * 6.1. Arquitectura RESTful, Inbound Webhooks y Seguridad (HMAC & API Keys)
+   * 6.2. Integración con Wazuh SIEM / XDR (Alertas 3h ANCI & Brechas 72h DPO)
+   * 6.3. Integración con Microsoft Presidio NLP (Descubrimiento y Auditoría de PII)
+   * 6.4. Integración con MinIO / Restic (Heartbeat y Certificación de Respaldos WORM)
+   * 6.5. Integración con Keycloak / Authentik (Trazabilidad IAM & MFA Forzado)
+   * 6.6. Integración con TheHive & MISP (Respuesta a Incidentes y Sincronización CSIRT)
+7. [GUÍA TÉCNICA DE DESPLIEGUE Y MANTENIMIENTO EN PRODUCCIÓN (OCI)](#7-guía-técnica-de-despliegue-y-mantenimiento-en-producción-oci)
+   * 7.1. Procedimiento de Actualización con `./update.sh`
+   * 7.2. Arquitectura de Doble Motor (Python FastAPI & Go Chi Monolito WAL)
+   * 7.3. Protocolo de Respaldo Inmutable WORM
+8. [CHECKLIST DE PREPARACIÓN ANTE FISCALIZACIONES REGULATORIAS](#8-checklist-de-preparación-ante-fiscalizaciones-regulatorias)
 
 ---
 
@@ -225,9 +232,181 @@ En la pestaña **"Informe Consolidado GRC"** de las vistas de auditoría, la dir
 
 ---
 
-## 6. GUÍA TÉCNICA DE DESPLIEGUE Y MANTENIMIENTO EN PRODUCCIÓN (OCI)
+## 6. MANUAL DE INTEGRACIÓN TÉCNICA RESTFUL CON APPS OPEN SOURCE
 
-### 6.1. Procedimiento de Actualización con `./update.sh`
+La integración técnica entre **LexApp GRC Hub** y las herramientas de seguridad Open Source opera mediante arquitectura **RESTful y Event-Driven (Inbound Webhooks + Outbound API Calls + Telemetry Heartbeats)**, asegurada mediante API Keys de Servicio o firmas criptográficas HMAC SHA-256.
+
+```
+ ┌─────────────────────────────────────────────────────────────────────────────────────────────┐
+ │                                   LEXAPP GRC HUB (CORE)                                     │
+ │                          Backend FastAPI / Go Monolito (REST API)                           │
+ └──────▲───────────────────────▲────────────────────────▲────────────────────────▲────────────┘
+        │ (1) Inbound Webhook   │ (2) API Discovery      │ (3) Heartbeat WORM     │ (4) Auth Webhook
+        │ POST /wazuh-alert     │ POST /presidio-scan    │ POST /backup-status    │ POST /iam-event
+ ┌──────┴─────────────┐  ┌──────┴─────────────┐   ┌──────┴─────────────┐   ┌──────┴────────────┐
+ │  🛡️ WAZUH SIEM/FIM │  │  🔍 MS PRESIDIO    │   │  💾 MINIO / RESTIC │   │  🔑 KEYCLOAK /    │
+ │   XDR & Monitoreo  │  │   Detección de PII │   │   Backups WORM     │   │     AUTHENTIK     │
+ └────────────────────┘  └────────────────────┘   └────────────────────┘   └───────────────────┘
+```
+
+---
+
+### 6.1. Arquitectura RESTful, Inbound Webhooks y Seguridad
+
+Todos los endpoints de ingesta técnica operan bajo el prefijo `/api/gateways/`.
+
+#### Estándares de Seguridad para la Integración:
+1. **Autenticación por Bearer Token:** En cabecera HTTP: `Authorization: Bearer <LEXAPP_API_KEY_SERVICIO>`.
+2. **Validación de Firma HMAC SHA-256 (Opcional):** Cabecera `X-Hub-Signature-256: sha256=<HASH_HMAC>` calculada sobre el body del JSON con una clave secreta compartida.
+3. **Aislamiento en Red Interna / VPN:** Los endpoints de ingesta de telemetría deben exponerse exclusivamente en la red interna o DMZ administrativa.
+
+---
+
+### 6.2. Integración con Wazuh SIEM / XDR (Alertas 3h ANCI & Brechas 72h DPO)
+* **Mecanismo:** Inbound Webhook activado automáticamente por el demonio `wazuh-integratord`.
+* **Configuración en el Servidor Wazuh Manager (`/var/ossec/etc/ossec.conf`):**
+  ```xml
+  <ossec_config>
+    <integration>
+      <name>custom-lexapp</name>
+      <hook_url>http://10.0.0.5:8000/api/gateways/wazuh-alert</hook_url>
+      <level>10</level>
+      <api_key>Bearer LEXAPP_SERVICE_KEY_SECRET_2026</api_key>
+      <alert_format>json</alert_format>
+    </integration>
+  </ossec_config>
+  ```
+* **Script de Integración en Wazuh (`/var/ossec/integrations/custom-lexapp`):**
+  ```python
+  #!/usr/bin/env python3
+  import sys
+  import json
+  import requests
+
+  alert_file = sys.argv[1]
+  user = sys.argv[2]
+  api_key = sys.argv[3]
+  hook_url = sys.argv[4]
+
+  with open(alert_file) as f:
+      alert_json = json.load(f)
+
+  headers = {
+      "Authorization": api_key,
+      "Content-Type": "application/json"
+  }
+
+  payload = {
+      "agent_name": alert_json.get("agent", {}).get("name"),
+      "rule_level": alert_json.get("rule", {}).get("level"),
+      "rule_description": alert_json.get("rule", {}).get("description"),
+      "src_ip": alert_json.get("data", {}).get("srcip", "0.0.0.0"),
+      "raw_alert": alert_json
+  }
+
+  requests.post(hook_url, json=payload, headers=headers, timeout=5)
+  ```
+* **Efecto en LexApp:** Dispara simultáneamente el temporizador ANCI `<3h` y el temporizador DPO `<72h` si el agente afectado aloja bases de datos con PII.
+
+---
+
+### 6.3. Integración con Microsoft Presidio NLP (Descubrimiento y Auditoría de PII)
+* **Mecanismo:** Script programado (Cron / Python) que escanea periódicamente bases de datos y reporta a LexApp.
+* **Script de Escaneo en Python (`audit_pii_presidio.py`):**
+  ```python
+  import psycopg2
+  import requests
+  from presidio_analyzer import AnalyzerEngine
+
+  analyzer = AnalyzerEngine()
+  conn = psycopg2.connect("host=localhost dbname=ciudadano user=postgres password=secret")
+  cursor = conn.cursor()
+
+  cursor.execute("SELECT rut, email, nombre FROM solicitudes_web LIMIT 1000;")
+  rows = cursor.fetchall()
+
+  rut_detectados = 0
+  for row in rows:
+      text = f"{row[0]} {row[1]} {row[2]}"
+      results = analyzer.analyze(text=text, language='es')
+      if results:
+          rut_detectados += 1
+
+  # Reportar hallazgos a LexApp GRC Hub
+  payload = {
+      "tabla_auditada": "solicitudes_web",
+      "total_registros_analizados": len(rows),
+      "registros_con_pii": rut_detectados,
+      "entidades_detectadas": ["CL_RUT", "EMAIL_ADDRESS", "PERSON_NAME"],
+      "estado_cifrado": "Texto Plano (Requiere Cifrado Vault)"
+  }
+
+  requests.post(
+      "http://10.0.0.5:8000/api/gateways/presidio-scan",
+      json=payload,
+      headers={"Authorization": "Bearer LEXAPP_SERVICE_KEY_SECRET_2026"}
+  )
+  ```
+
+---
+
+### 6.4. Integración con MinIO / Restic (Heartbeat y Certificación de Respaldos WORM)
+* **Mecanismo:** Telemetry Heartbeat ejecutado al finalizar el script de respaldo nocturno.
+* **Script Bash de Respaldo Inmutable (`backup_rsic_worm.sh`):**
+  ```bash
+  #!/usr/bin/env bash
+  set -euo pipefail
+
+  # 1. Ejecutar snapshot inmutable hacia MinIO Object Lock
+  export RESTIC_REPOSITORY="s3:http://minio.local:9000/rsic-backups"
+  export RESTIC_PASSWORD="password_seguro_inmutable"
+  restic backup /var/lib/postgresql/data --tag database-rsic-01
+
+  # 2. Extraer hash SHA-256 del snapshot inmutable
+  SNAPSHOT_HASH=$(restic snapshots --json | jq -r '.[-1].tree')
+
+  # 3. Notificar a LexApp GRC para certificar cumplimiento ANCI
+  curl -s -X POST "http://10.0.0.5:8000/api/gateways/backup-heartbeat" \
+    -H "Authorization: Bearer LEXAPP_SERVICE_KEY_SECRET_2026" \
+    -H "Content-Type: application/json" \
+    -d '{
+      "activo_rsic_id": 1,
+      "tipo_backup": "Snapshot Inmutable WORM",
+      "destino": "MinIO S3 (Object Lock 30 Días)",
+      "hash_sha256": "'"$SNAPSHOT_HASH"'",
+      "estado": "Exitoso"
+    }'
+  ```
+
+---
+
+### 6.5. Integración con Keycloak / Authentik (Trazabilidad IAM & MFA Forzado)
+* **Mecanismo:** Webhook de eventos de autenticación hacia `POST /api/gateways/iam-event`.
+* **Payload JSON:**
+  ```json
+  {
+    "event_type": "LOGIN_SUCCESS",
+    "user": "ciso_admin",
+    "ip_address": "10.0.2.15",
+    "mfa_verified": true,
+    "mfa_method": "TOTP_HARDWARE_KEY",
+    "target_system": "Servidor Producción RSIC-01"
+  }
+  ```
+* **Efecto en LexApp:** Registra automáticamente el evento en la Bitácora de Auditoría y certifica el cumplimiento del control de acceso multifactor obligatorio (Art. 8 ANCI).
+
+---
+
+### 6.6. Integración con TheHive & MISP (Respuesta a Incidentes y Sincronización CSIRT)
+* **Mecanismo:** Outbound REST API. Al activarse el **Botón de Pánico (3h)** en LexApp:
+  1. LexApp emite un `POST https://thehive.organismo.gob.cl/api/case` creando el caso forense para los analistas SOC.
+  2. Remite los IoCs a la instancia **MISP** local para sincronizar hashes maliciosos con el CSIRT Nacional.
+
+---
+
+## 7. GUÍA TÉCNICA DE DESPLIEGUE Y MANTENIMIENTO EN PRODUCCIÓN (OCI)
+
+### 7.1. Procedimiento de Actualización con `./update.sh`
 El servidor de producción opera en una instancia Ubuntu en Oracle Cloud Infrastructure (OCI) bajo el directorio `/opt/sige-dp/`. Para actualizar el sistema con la última versión de `main`:
 
 1. Conéctese vía SSH al servidor:
@@ -242,17 +421,17 @@ El servidor de producción opera en una instancia Ubuntu en Oracle Cloud Infrast
    ```
    *El script se encarga automáticamente de sincronizar git, aplicar migraciones a SQLite, compilar el frontend con Vite y reiniciar los servicios Systemd (`sige-dp.service` y `nginx`).*
 
-### 6.2. Arquitectura de Doble Motor Backend
+### 7.2. Arquitectura de Doble Motor Backend
 La plataforma cuenta con compatibilidad y paridad simétrica en dos motores:
 * **Motor Python FastAPI:** Motor principal con ORM SQLAlchemy, Pydantic v2 y migraciones reactivas.
 * **Motor Go Monolito WAL (Chi Router):** Motor de ultra alto rendimiento (< 1 ms de latencia y consumo de ~18 MB de RAM), ideal para alta concurrencia o despliegues en contenedores ultraligeros.
 
-### 6.3. Protocolo de Respaldo Inmutable WORM
+### 7.3. Protocolo de Respaldo Inmutable WORM
 Conforme al mandato del Art. 8 de la Ley N° 21.663, las copias de seguridad de la base de datos `dp.db` deben sincronizarse diariamente hacia un bucket de almacenamiento seguro (OCI Object Storage / MinIO) configurado con política **WORM (Write Once, Read Many)** con retención bloqueada contra ransomware.
 
 ---
 
-## 7. CHECKLIST DE PREPARACIÓN ANTE FISCALIZACIONES REGULATORIAS
+## 8. CHECKLIST DE PREPARACIÓN ANTE FISCALIZACIONES REGULATORIAS
 
 Utilice este checklist de verificación previo a cualquier auditoría de la **Agencia de Protección de Datos Personales**, la **ANCI** o la **Contraloría General de la República**:
 
@@ -265,6 +444,7 @@ Utilice este checklist de verificación previo a cualquier auditoría de la **Ag
 | **Activos RSIC (Art. 4)** | Catálogo con Cifrado AES-256, MFA y Respaldo WORM verificados. | `[✓]` |
 | **Resoluciones Exentas (Art. 10)** | Resoluciones PSI, PRI y BCP firmadas por la Jefatura de Servicio. | `[✓]` |
 | **Canal CVD Ético (Art. 12)** | Enlace público visible en el portal institucional con calculadora CVSS. | `[✓]` |
+| **Integración Wazuh SIEM** | Webhook configurado con alerta `<3h` ANCI y `<72h` DPO. | `[✓]` |
 | **Bitácora Inmutable (Art. 17)** | Ledger SHA-256 verificado y Expediente ZIP generado. | `[✓]` |
 
 ---
