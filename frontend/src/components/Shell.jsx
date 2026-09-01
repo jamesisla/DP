@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { LogOut, Scale, ShieldAlert, ShieldCheck, Server, Radio, Activity, Lock, Layers, Bell, AlertTriangle, Clock, CheckCircle, Globe } from "lucide-react";
+import { LogOut, Scale, ShieldAlert, ShieldCheck, Server, Radio, Activity, Lock, Layers, Bell, AlertTriangle, Clock, CheckCircle, Globe, Lightbulb } from "lucide-react";
 import { suites, dataProtectionModules, cybersecurityModules } from "../lib/modules";
 import { api, classNames, API_URL } from "../lib/api";
 import { CitizenPortalModal } from "./CitizenPortalModal";
@@ -33,6 +33,17 @@ import { CyberAudit } from "../pages/cyber/CyberAudit";
 import { OpenSourceCyber } from "../pages/cyber/OpenSourceCyber";
 
 export function Shell({ session, onLogout }) {
+  const [guidanceMode, setGuidanceMode] = useState(() => {
+    const saved = localStorage.getItem("lexapp_guidance_mode");
+    return saved !== null ? saved === "true" : true;
+  });
+
+  function toggleGuidanceMode() {
+    const next = !guidanceMode;
+    setGuidanceMode(next);
+    localStorage.setItem("lexapp_guidance_mode", String(next));
+  }
+
   // Determine initial suite and active module from window.location.hash
   const [active, setActive] = useState(() => {
     const hash = window.location.hash.replace("#", "");
@@ -260,7 +271,16 @@ export function Shell({ session, onLogout }) {
     // Suite 1: Data Protection Pages
     switch (active) {
       case "dashboard":
-        return <Dashboard data={data.dashboard} token={session.access_token} onReload={load} onNavigate={handleNavigate} />;
+        return (
+          <Dashboard
+            data={data.dashboard}
+            token={session.access_token}
+            onReload={load}
+            onNavigate={handleNavigate}
+            guidanceMode={guidanceMode}
+            onToggleGuidance={toggleGuidanceMode}
+          />
+        );
       case "project":
         return (
           <ProjectTasks
@@ -270,6 +290,8 @@ export function Shell({ session, onLogout }) {
             users={data.users}
             areas={data.areas}
             onReload={load}
+            guidanceMode={guidanceMode}
+            onToggleGuidance={toggleGuidanceMode}
           />
         );
       case "matrix":
@@ -281,6 +303,8 @@ export function Shell({ session, onLogout }) {
             user={session.user}
             token={session.access_token}
             onReload={load}
+            guidanceMode={guidanceMode}
+            onToggleGuidance={toggleGuidanceMode}
           />
         );
       case "risks":
@@ -290,6 +314,8 @@ export function Shell({ session, onLogout }) {
             masterMatrix={data.masterMatrix}
             token={session.access_token}
             onReload={load}
+            guidanceMode={guidanceMode}
+            onToggleGuidance={toggleGuidanceMode}
           />
         );
       case "documents":
@@ -299,6 +325,8 @@ export function Shell({ session, onLogout }) {
             token={session.access_token}
             user={session.user}
             onReload={load}
+            guidanceMode={guidanceMode}
+            onToggleGuidance={toggleGuidanceMode}
           />
         );
       case "training":
@@ -309,6 +337,8 @@ export function Shell({ session, onLogout }) {
             token={session.access_token}
             user={session.user}
             onReload={load}
+            guidanceMode={guidanceMode}
+            onToggleGuidance={toggleGuidanceMode}
           />
         );
       case "committee":
@@ -318,6 +348,8 @@ export function Shell({ session, onLogout }) {
             token={session.access_token}
             user={session.user}
             onReload={load}
+            guidanceMode={guidanceMode}
+            onToggleGuidance={toggleGuidanceMode}
           />
         );
       case "providers":
@@ -327,6 +359,8 @@ export function Shell({ session, onLogout }) {
             areas={data.areas}
             token={session.access_token}
             onReload={load}
+            guidanceMode={guidanceMode}
+            onToggleGuidance={toggleGuidanceMode}
           />
         );
       case "arco":
@@ -338,6 +372,8 @@ export function Shell({ session, onLogout }) {
             token={session.access_token}
             user={session.user}
             onReload={load}
+            guidanceMode={guidanceMode}
+            onToggleGuidance={toggleGuidanceMode}
           />
         );
       case "breaches":
@@ -347,6 +383,8 @@ export function Shell({ session, onLogout }) {
             token={session.access_token}
             user={session.user}
             onReload={load}
+            guidanceMode={guidanceMode}
+            onToggleGuidance={toggleGuidanceMode}
           />
         );
       case "audit":
@@ -355,6 +393,8 @@ export function Shell({ session, onLogout }) {
             auditLogs={data.auditLogs}
             token={session.access_token}
             onReload={load}
+            guidanceMode={guidanceMode}
+            onToggleGuidance={toggleGuidanceMode}
           />
         );
       case "opensource_privacy":
@@ -370,6 +410,8 @@ export function Shell({ session, onLogout }) {
             token={session.access_token}
             onReload={load}
             onNavigate={handleNavigate}
+            guidanceMode={guidanceMode}
+            onToggleGuidance={toggleGuidanceMode}
           />
         );
       case "cyber_phases":
@@ -379,6 +421,8 @@ export function Shell({ session, onLogout }) {
             token={session.access_token}
             user={session.user}
             onReload={load}
+            guidanceMode={guidanceMode}
+            onToggleGuidance={toggleGuidanceMode}
           />
         );
       case "cyber_assets":
@@ -389,6 +433,8 @@ export function Shell({ session, onLogout }) {
             token={session.access_token}
             user={session.user}
             onReload={load}
+            guidanceMode={guidanceMode}
+            onToggleGuidance={toggleGuidanceMode}
           />
         );
       case "cyber_risks":
@@ -399,6 +445,8 @@ export function Shell({ session, onLogout }) {
             token={session.access_token}
             user={session.user}
             onReload={load}
+            guidanceMode={guidanceMode}
+            onToggleGuidance={toggleGuidanceMode}
           />
         );
       case "cyber_maturity":
@@ -408,6 +456,8 @@ export function Shell({ session, onLogout }) {
             token={session.access_token}
             user={session.user}
             onReload={load}
+            guidanceMode={guidanceMode}
+            onToggleGuidance={toggleGuidanceMode}
           />
         );
       case "cyber_incidents":
@@ -417,6 +467,8 @@ export function Shell({ session, onLogout }) {
             token={session.access_token}
             user={session.user}
             onReload={load}
+            guidanceMode={guidanceMode}
+            onToggleGuidance={toggleGuidanceMode}
           />
         );
       case "cyber_simulations":
@@ -426,6 +478,8 @@ export function Shell({ session, onLogout }) {
             token={session.access_token}
             user={session.user}
             onReload={load}
+            guidanceMode={guidanceMode}
+            onToggleGuidance={toggleGuidanceMode}
           />
         );
       case "cyber_training":
@@ -436,6 +490,8 @@ export function Shell({ session, onLogout }) {
             token={session.access_token}
             user={session.user}
             onReload={load}
+            guidanceMode={guidanceMode}
+            onToggleGuidance={toggleGuidanceMode}
           />
         );
       case "cyber_opensource":
@@ -447,6 +503,8 @@ export function Shell({ session, onLogout }) {
             token={session.access_token}
             user={session.user}
             onReload={load}
+            guidanceMode={guidanceMode}
+            onToggleGuidance={toggleGuidanceMode}
           />
         );
       case "cyber_providers":
@@ -457,6 +515,8 @@ export function Shell({ session, onLogout }) {
             token={session.access_token}
             onReload={load}
             isCyber={true}
+            guidanceMode={guidanceMode}
+            onToggleGuidance={toggleGuidanceMode}
           />
         );
       case "cyber_audit":
@@ -570,11 +630,26 @@ export function Shell({ session, onLogout }) {
           
           <div className="flex items-center gap-3">
             
+            {/* Guidance Mode Toggle Button */}
+            <button
+              type="button"
+              onClick={toggleGuidanceMode}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-bold transition-all shadow-2xs cursor-pointer ${
+                guidanceMode
+                  ? "border-amber-300 bg-amber-50 text-amber-900 hover:bg-amber-100 ring-1 ring-amber-400/50"
+                  : "border-slate-200 bg-white text-slate-500 hover:bg-slate-50"
+              }`}
+              title={guidanceMode ? "Modo Asistido Activo: Muestra explicaciones, tips y flujos paso a paso. Haz clic para desactivar." : "Modo Experto Activo: Haz clic para activar el Modo Guía Asistido."}
+            >
+              <Lightbulb size={14} className={guidanceMode ? "text-amber-600 fill-amber-400" : "text-slate-400"} />
+              <span className="hidden sm:inline">{guidanceMode ? "Modo Guía: ON" : "Modo Guía: OFF"}</span>
+            </button>
+
             {/* Citizen Portal & CVD Trigger */}
             <button
               type="button"
               onClick={() => setCitizenModalOpen(true)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 hover:bg-slate-50 transition-colors text-xs font-bold text-slate-700 shadow-2xs"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 hover:bg-slate-50 transition-colors text-xs font-bold text-slate-700 shadow-2xs cursor-pointer"
               title="Ventanilla Única Ciudadana: Consulta ARCO+ y Canal CVD"
             >
               <Globe size={15} className="text-teal-600" />

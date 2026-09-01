@@ -16,6 +16,8 @@ import {
   Filter 
 } from "lucide-react";
 import { Panel } from "../components/Panel";
+import { GuidanceBanner } from "../components/GuidanceBanner";
+import { DsarPipeline } from "../components/DsarPipeline";
 import { api, API_URL } from "../lib/api";
 
 const TIPOS_DERECHOS = [
@@ -35,7 +37,7 @@ const ESTADOS_ARCO = [
   "Prorrogada"
 ];
 
-export function ArcoRequests({ arcoRequests = [], areas = [], users = [], token, user, onReload }) {
+export function ArcoRequests({ arcoRequests = [], areas = [], users = [], token, user, onReload, guidanceMode = true, onToggleGuidance }) {
   const [filterTipo, setFilterTipo] = useState("Todos");
   const [filterEstado, setFilterEstado] = useState("Todos");
   const [searchQuery, setSearchQuery] = useState("");
@@ -242,6 +244,25 @@ export function ArcoRequests({ arcoRequests = [], areas = [], users = [], token,
   return (
     <div className="p-6 lg:p-8 max-w-7xl mx-auto space-y-6">
       
+      {/* Contextual Guidance Banner (Active when guidanceMode is true) */}
+      {guidanceMode && (
+        <GuidanceBanner
+          title="Gestor de Derechos ARCO+ (SLA 15 Días Hábiles)"
+          legalBasis="Ley N° 21.719 (Artículos 8 al 12 y Art. 50)"
+          objective="Atiende y resuelve las solicitudes ciudadanas de Acceso, Rectificación, Cancelación, Oposición, Portabilidad y Bloqueo. El silencio o respuesta fuera de plazo genera multas de hasta 5.000 UTM."
+          steps={[
+            { title: "Verificar Identidad", desc: "El sistema valida la identidad del titular vía ClaveÚnica o documento de identidad." },
+            { title: "Derivar a División", desc: "Asigna la solicitud al área responsable de la base de datos (TI, Finanzas, etc.)." },
+            { title: "Emitir Dictamen DPO", desc: "Resuelve favorablemente o fundamenta el rechazo legal bajo causales del Art. 10." }
+          ]}
+          tip="Puedes utilizar el 'Sandbox Portal Ciudadano' para simular cómo un ciudadano radicaría su solicitud en tiempo real con su ClaveÚnica."
+          onClose={onToggleGuidance}
+        />
+      )}
+
+      {/* DSAR Automation Pipeline Visualizer */}
+      <DsarPipeline activeStep={pending > 0 ? 3 : 5} totalRequests={total} pendingCount={pending} />
+
       {/* Header */}
       <div className="rounded-xl border border-line bg-white p-5 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div className="flex items-center gap-4">
@@ -260,14 +281,14 @@ export function ArcoRequests({ arcoRequests = [], areas = [], users = [], token,
         <div className="flex items-center gap-2.5 flex-wrap">
           <button
             onClick={() => { setCitizenResult(null); setError(""); setCitizenModalOpen(true); }}
-            className="flex items-center gap-1.5 rounded bg-indigo-50 border border-indigo-200 px-3.5 py-2 text-xs font-bold text-indigo-800 hover:bg-indigo-100 shadow-2xs shrink-0 transition-colors"
+            className="flex items-center gap-1.5 rounded bg-indigo-50 border border-indigo-200 px-3.5 py-2 text-xs font-bold text-indigo-800 hover:bg-indigo-100 shadow-2xs shrink-0 transition-colors cursor-pointer"
           >
             <span>🌐 Sandbox Portal Ciudadano</span>
           </button>
 
           <button
             onClick={openCreate}
-            className="flex items-center gap-1.5 rounded bg-brand px-4 py-2 text-xs font-bold text-white hover:bg-opacity-95 shadow-sm shrink-0"
+            className="flex items-center gap-1.5 rounded bg-brand px-4 py-2 text-xs font-bold text-white hover:bg-opacity-95 shadow-sm shrink-0 cursor-pointer"
           >
             <Plus size={15} />
             Ingresar Solicitud ARCO+

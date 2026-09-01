@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from "react";
 import { AlertTriangle, Clock, ListTodo, Briefcase, Activity, UserCheck, ShieldAlert, ChevronRight, Download, FileText, Calendar } from "lucide-react";
 import { ComplianceTimeline } from "../components/ComplianceTimeline";
+import { GuidanceBanner } from "../components/GuidanceBanner";
+import { PrivacyOpsTelemetryBar } from "../components/PrivacyOpsTelemetryBar";
 import { API_URL } from "../lib/api";
 
-export function Dashboard({ data, token, onReload, onNavigate }) {
+export function Dashboard({ data, token, onReload, onNavigate, guidanceMode = true, onToggleGuidance }) {
   const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
 
   useEffect(() => {
@@ -53,6 +55,25 @@ export function Dashboard({ data, token, onReload, onNavigate }) {
   return (
     <div className="space-y-6 p-6 lg:p-8 max-w-7xl mx-auto">
       
+      {/* PrivacyOps Live Telemetry & Event Stream Bar */}
+      <PrivacyOpsTelemetryBar token={token} onReload={onReload} />
+
+      {/* Contextual Guidance Banner (Active when guidanceMode is true) */}
+      {guidanceMode && (
+        <GuidanceBanner
+          title="Panel de Control & Observabilidad de Privacidad"
+          legalBasis="Ley N° 21.719 (Art. 15, 18, 25 y 50)"
+          objective="Supervisa el índice de madurez institucional, la cuenta regresiva legal, las alertas perentorias de brechas (72h) y el avance de cumplimiento por división."
+          steps={[
+            { title: "Completar Matriz RAT", desc: "Levanta los tratamientos de datos por área en el módulo Matriz." },
+            { title: "Atender Derechos ARCO+", desc: "Resuelve solicitudes ciudadanas dentro del plazo legal de 15 días hábiles." },
+            { title: "Descargar Informes", desc: "Genera el One-Pager Ejecutivo y el Plan Anual para el Directorio." }
+          ]}
+          tip="Un índice de avance superior al 80% permite aplicar hasta un 50% de descuento en atenuantes del Art. 52 ante eventuales fiscalizaciones de la Agencia."
+          onClose={onToggleGuidance}
+        />
+      )}
+
       {/* Top Action Bar */}
       <div className="rounded-xl border border-line bg-white p-4 shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
