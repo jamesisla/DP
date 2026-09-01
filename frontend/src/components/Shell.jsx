@@ -814,6 +814,7 @@ export function Shell({ session, onLogout }) {
         isOpen={citizenModalOpen}
         onClose={() => setCitizenModalOpen(false)}
         token={session.access_token}
+        onReloadInternal={load}
       />
     </main>
   );

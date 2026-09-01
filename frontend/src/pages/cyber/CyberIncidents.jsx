@@ -55,7 +55,12 @@ export function CyberIncidents({ incidents = [], token, user, onReload }) {
   const [cvdScore, setCvdScore] = useState(8.2);
   const [cvdDesc, setCvdDesc] = useState("Se identificó parámetro 'id_tramite' sin sanitizar que permite inferir esquema de BD y enumerar registros de ciudadanos.");
   const [cvdPoa, setCvdPoa] = useState("Aplicar consultas preparadas (PreparedStatements) y validación de tipos estricta.");
-  const [cvdSubmitting, setCvdSubmitting] = useState(false);
+  // CVD resolution modal state
+  const [resolveCvdModalOpen, setResolveCvdModalOpen] = useState(false);
+  const [selectedCvd, setSelectedCvd] = useState(null);
+  const [cvdResolveEstado, setCvdResolveEstado] = useState("En Remediación");
+  const [cvdResolvePoa, setCvdResolvePoa] = useState("");
+  const [cvdResolving, setCvdResolving] = useState(false);
 
   React.useEffect(() => {
     loadCvdReports();
@@ -67,6 +72,33 @@ export function CyberIncidents({ incidents = [], token, user, onReload }) {
       setCvdReports(data);
     } catch (err) {
       console.error("Error cargando reportes CVD:", err);
+    }
+  }
+
+  function openResolveCvd(report) {
+    setSelectedCvd(report);
+    setCvdResolveEstado(report.estado || "En Remediación");
+    setCvdResolvePoa(report.poa_remediacion || "");
+    setResolveCvdModalOpen(true);
+  }
+
+  async function handleCvdResolveSubmit(e) {
+    e.preventDefault();
+    if (!selectedCvd) return;
+    setCvdResolving(true);
+    try {
+      await api(`/gateways/cvd-reports/${selectedCvd.id}/status?nuevo_estado=${encodeURIComponent(cvdResolveEstado)}&poa_remediacion=${encodeURIComponent(cvdResolvePoa)}`, token, {
+        method: "PUT"
+      });
+
+      setResolveCvdModalOpen(false);
+      loadCvdReports();
+      if (onReload) onReload();
+      alert(`Reporte ${selectedCvd.folio} actualizado a '${cvdResolveEstado}' con éxito.`);
+    } catch (err) {
+      alert("Error al actualizar estado CVD: " + err.message);
+    } finally {
+      setCvdResolving(false);
     }
   }
 
@@ -946,9 +978,20 @@ export function CyberIncidents({ incidents = [], token, user, onReload }) {
 
                   {r.poa_remediacion && (
                     <div className="text-[11px] text-emerald-800 bg-emerald-50/60 p-2.5 rounded-lg border border-emerald-200">
-                      <strong>Plan de Remediación / Parche:</strong> {r.poa_remediacion}
+                      <strong>Plan de Remediación / Parche CISO:</strong> {r.poa_remediacion}
                     </div>
                   )}
+
+                  {/* Actions Bar */}
+                  <div className="flex justify-end pt-2 border-t border-slate-100">
+                    <button
+                      onClick={() => openResolveCvd(r)}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-700 text-white rounded-lg text-xs font-bold hover:bg-indigo-800 shadow-2xs cursor-pointer"
+                    >
+                      <Edit3 size={13} />
+                      Gestionar Estado / Remediación CISO
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
@@ -957,6 +1000,76 @@ export function CyberIncidents({ incidents = [], token, user, onReload }) {
               No hay reportes de vulnerabilidades recibidos. Usa el botón "Simular Reporte Ético" para probar el gateway.
             </div>
           )}
+        </div>
+      )}
+
+      {/* --- CVD RESOLUTION MODAL --- */}
+      {resolveCvdModalOpen && selectedCvd && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 overflow-y-auto">
+          <div className="w-full max-w-xl rounded-2xl bg-white p-6 shadow-2xl space-y-4">
+            <div className="flex justify-between items-center border-b border-slate-100 pb-3">
+              <div>
+                <span className="text-[10px] uppercase font-bold text-indigo-600 tracking-wider">Gestión de Hallazgos CVD (Art. 12 ANCI)</span>
+                <h3 className="text-base font-bold text-slate-800">Actualizar Estado: {selectedCvd.folio}</h3>
+              </div>
+              <button
+                onClick={() => setResolveCvdModalOpen(false)}
+                className="text-slate-400 hover:text-slate-600 text-lg font-bold cursor-pointer"
+              >
+                &times;
+              </button>
+            </div>
+
+            <form onSubmit={handleCvdResolveSubmit} className="space-y-4">
+              <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs space-y-1">
+                <p><strong>Hallazgo:</strong> {selectedCvd.titulo}</p>
+                <p><strong>Activo Afectado:</strong> {selectedCvd.activo_afectado} · <strong>CVSS:</strong> {selectedCvd.cvss_score} ({selectedCvd.severidad})</p>
+                <p><strong>Investigador Ético:</strong> {selectedCvd.investigador_alias} ({selectedCvd.investigador_email || "Anónimo"})</p>
+              </div>
+
+              <div>
+                <label className="field-label text-xs">Estado de la Vulnerabilidad</label>
+                <select
+                  className="field mt-1 text-xs font-bold"
+                  value={cvdResolveEstado}
+                  onChange={(e) => setCvdResolveEstado(e.target.value)}
+                >
+                  <option value="Recibido">Recibido (En cola de triaje)</option>
+                  <option value="En Verificación">En Verificación Técnica (SOC / CISO)</option>
+                  <option value="En Remediación">En Remediación / Desarrollo de Parche</option>
+                  <option value="Resuelto">Resuelto (Vulnerabilidad Mitigada & Reconocida)</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="field-label text-xs">Plan de Acción / Respuesta al Investigador (POA)</label>
+                <textarea
+                  className="field mt-1 text-xs h-24 py-2"
+                  value={cvdResolvePoa}
+                  onChange={(e) => setCvdResolvePoa(e.target.value)}
+                  placeholder="Detalla las acciones tomadas por el equipo de TI/CISO para mitigar esta vulnerabilidad..."
+                  required
+                />
+              </div>
+
+              <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setResolveCvdModalOpen(false)}
+                  className="btn-secondary text-xs cursor-pointer"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={cvdResolving}
+                  className="btn bg-indigo-700 hover:bg-indigo-800 text-white text-xs font-bold cursor-pointer"
+                >
+                  {cvdResolving ? "Guardando..." : "Guardar & Notificar Remediación"}
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
 

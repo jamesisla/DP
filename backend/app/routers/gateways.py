@@ -28,16 +28,15 @@ router = APIRouter(prefix="/gateways", tags=["gateways"])
 
 
 # ==============================================================================
-# 1. SANDBOX PORTAL CIUDADANO ARCO+ (CLAVEÚNICA INBOUND GATEWAY)
+# 1. SANDBOX & PORTAL CIUDADANO ARCO+ (CLAVEÚNICA & LOGIN SIMPLE GATEWAY)
 # ==============================================================================
 
 @router.post("/simulate-citizen-arco")
 def simulate_citizen_arco(
     payload: CitizenArcoSimulationRequest,
-    current_user: Annotated[User, Depends(get_current_user)],
     db: Annotated[Session, Depends(get_db)]
 ):
-    """Simula el ingreso de una solicitud ciudadana ARCO+ a través del Portal Ciudadano con ClaveÚnica."""
+    """Permite el ingreso público o autenticado de una solicitud ciudadana ARCO+."""
     now = datetime.now()
     count = db.query(ArcoRequest).count() + 1
     folio = f"ARCO-CU-{now.strftime('%Y%m')}-{count:03d}"
@@ -48,54 +47,133 @@ def simulate_citizen_arco(
     hash_content = f"{folio}|{payload.titular_rut}|{payload.tipo_derecho}|{now.isoformat()}"
     hash_sha256 = hashlib.sha256(hash_content.encode("utf-8")).hexdigest()
 
+    # Buscar usuario asignado por defecto (admin o primer DPO)
+    default_user = db.query(User).filter(User.role.in_(["dpo", "admin"])).first() or db.query(User).first()
+
     arco = ArcoRequest(
         folio=folio,
+        tipo_derecho=payload.tipo_derecho,
         titular_nombre=payload.titular_nombre,
         titular_rut=payload.titular_rut,
         titular_email=payload.titular_email,
-        tipo_derecho=payload.tipo_derecho,
-        tratamiento_id=payload.tratamiento_id,
-        detalle_solicitud=payload.detalle_solicitud,
         fecha_ingreso=now.date(),
         fecha_limite_legal=fecha_limite,
         estado="Ingresada",
-        prioridad="Alta",
-        requiere_verificacion_identidad=False, # Ya verificado con ClaveÚnica
-        area_responsable_id=current_user.area_id,
-        asignado_a_id=current_user.id,
-        hash_integridad=hash_sha256
+        descripcion_solicitud=payload.detalle_solicitud,
+        area_derivada_id=default_user.area_id if default_user else 1,
+        responsable_asignado_id=default_user.id if default_user else None
     )
     db.add(arco)
 
-    # Registrar evento de telemetría y auditoría
+    # Registrar evento de telemetría
     telemetry = TelemetryEvent(
-        fuente="Portal Ciudadano ClaveÚnica",
+        fuente="Portal Ciudadano ARCO+",
         suite="data_protection",
         tipo_evento="ARCO_CITIZEN_SUBMISSION",
         severidad="Alto",
-        mensaje=f"Nueva solicitud ARCO+ [{folio}] recibida vía ClaveÚnica: {payload.tipo_derecho} de {payload.titular_nombre}.",
+        mensaje=f"Nueva solicitud ARCO+ [{folio}] recibida: {payload.tipo_derecho} de {payload.titular_nombre}.",
         payload_json=json.dumps({"folio": folio, "rut": payload.titular_rut, "derecho": payload.tipo_derecho}),
         accion_automatica="Temporizador legal de 15 días hábiles activado."
     )
     db.add(telemetry)
 
-    log_action(
-        db,
-        current_user.id,
-        f"Sandbox: Recepción Solicitud Ciudadana ARCO+ {folio}",
-        "ArcoRequest",
-        {"folio": folio, "derecho": payload.tipo_derecho, "titular": payload.titular_nombre, "canal": "ClaveÚnica"}
-    )
+    if default_user:
+        log_action(
+            db,
+            default_user.id,
+            f"Ventanilla Ciudadana: Recepción Solicitud ARCO+ {folio}",
+            "ArcoRequest",
+            {"folio": folio, "derecho": payload.tipo_derecho, "titular": payload.titular_nombre}
+        )
     db.commit()
     db.refresh(arco)
 
     return {
         "success": True,
-        "message": f"Solicitud ciudadana recibida y radicada exitosamente con Folio {folio}.",
+        "message": f"Solicitud ciudadana radicada exitosamente con Folio {folio}.",
         "folio": folio,
         "fecha_limite_legal": fecha_limite.isoformat(),
         "plazo_dias_habiles": 15,
         "hash_sha256": hash_sha256
+    }
+
+
+@router.post("/citizen-auth")
+def citizen_auth(
+    payload: dict,
+    db: Annotated[Session, Depends(get_db)]
+):
+    """Autenticación simple para usuarios externos (Ciudadanos e Investigadores Éticos)."""
+    identifier = payload.get("email_or_rut", "").strip()
+    password = payload.get("password", "").strip()
+
+    if not identifier:
+        raise HTTPException(status_code=400, detail="Debe ingresar un RUT o Correo Electrónico")
+
+    # Si es login simple o demo
+    nombre = "Camila Andrea Rojas Morales" if "16." in identifier or "rojas" in identifier.lower() else (
+        "Investigador/a de Seguridad" if "researcher" in identifier.lower() else "Usuario Ciudadano/a"
+    )
+
+    return {
+        "success": True,
+        "authenticated": True,
+        "identifier": identifier,
+        "nombre": nombre,
+        "tipo_acceso": "Ingreso Simple Ciudadano / Investigador",
+        "token": f"citizen-token-{hashlib.md5(identifier.encode('utf-8')).hexdigest()[:12]}"
+    }
+
+
+@router.get("/citizen-my-submissions")
+def get_citizen_my_submissions(
+    email_or_rut: str,
+    db: Annotated[Session, Depends(get_db)]
+):
+    """Obtiene el historial de solicitudes ARCO+ y reportes CVD pertenecientes al usuario externo."""
+    ident = email_or_rut.strip().lower()
+    
+    # Buscar solicitudes ARCO coincidentes
+    arcos = db.query(ArcoRequest).filter(
+        (ArcoRequest.titular_email.ilike(f"%{ident}%")) | 
+        (ArcoRequest.titular_rut.ilike(f"%{ident}%"))
+    ).order_by(ArcoRequest.created_at.desc()).all()
+
+    # Buscar reportes CVD coincidentes
+    cvds = db.query(CvdReport).filter(
+        (CvdReport.investigador_email.ilike(f"%{ident}%")) | 
+        (CvdReport.investigador_alias.ilike(f"%{ident}%"))
+    ).order_by(CvdReport.created_at.desc()).all()
+
+    return {
+        "arco_requests": [
+            {
+                "id": a.id,
+                "folio": a.folio,
+                "tipo_derecho": a.tipo_derecho,
+                "titular_nombre": a.titular_nombre,
+                "fecha_ingreso": a.fecha_ingreso.isoformat() if a.fecha_ingreso else "",
+                "fecha_limite_legal": a.fecha_limite_legal.isoformat() if a.fecha_limite_legal else "",
+                "estado": a.estado,
+                "descripcion_solicitud": a.descripcion_solicitud,
+                "fundamento_respuesta": a.fundamento_respuesta or "En análisis por el Delegado de Protección de Datos."
+            }
+            for a in arcos
+        ],
+        "cvd_reports": [
+            {
+                "id": c.id,
+                "folio": c.folio,
+                "titulo": c.titulo,
+                "activo_afectado": c.activo_afectado,
+                "severidad": c.severidad,
+                "cvss_score": c.cvss_score,
+                "estado": c.estado,
+                "poa_remediacion": c.poa_remediacion or "Evaluación técnica en curso por el equipo CISO.",
+                "created_at": c.created_at.strftime("%d/%m/%Y %H:%M") if c.created_at else ""
+            }
+            for c in cvds
+        ]
     }
 
 
@@ -157,10 +235,9 @@ def get_cvd_reports(
 @router.post("/simulate-cvd-report", response_model=CvdReportRead)
 def simulate_cvd_report(
     payload: CvdReportCreate,
-    current_user: Annotated[User, Depends(get_current_user)],
     db: Annotated[Session, Depends(get_db)]
 ):
-    """Simula el reporte de una vulnerabilidad por parte de un investigador ético (CVD Gateway)."""
+    """Simula o procesa el reporte público de una vulnerabilidad por parte de un investigador ético (CVD Gateway)."""
     now = datetime.now()
     count = db.query(CvdReport).count() + 1
     folio = f"CVD-ANCI-{now.strftime('%Y%m')}-{count:03d}"
@@ -195,13 +272,15 @@ def simulate_cvd_report(
     )
     db.add(telemetry)
 
-    log_action(
-        db,
-        current_user.id,
-        f"Sandbox: Reporte de Vulnerabilidad Ética CVD {folio}",
-        "CvdReport",
-        {"folio": folio, "severidad": payload.severidad, "cvss": payload.cvss_score}
-    )
+    default_user = db.query(User).filter(User.role.in_(["ciso", "admin"])).first() or db.query(User).first()
+    if default_user:
+        log_action(
+            db,
+            default_user.id,
+            f"Ventanilla CVD: Reporte de Vulnerabilidad Ética {folio}",
+            "CvdReport",
+            {"folio": folio, "severidad": payload.severidad, "cvss": payload.cvss_score}
+        )
     db.commit()
     db.refresh(cvd)
 
