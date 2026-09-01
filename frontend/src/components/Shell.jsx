@@ -18,6 +18,7 @@ import { AuditLogs } from "../pages/AuditLogs";
 import { OracleMissions } from "../pages/OracleMissions";
 import { TrainingCampaigns } from "../pages/TrainingCampaigns";
 import { OpenSourcePrivacy } from "../pages/OpenSourcePrivacy";
+import { ArchitectureBlueprint } from "../pages/ArchitectureBlueprint";
 
 // Cybersecurity Pages (Ley 21.663 / ANCI)
 import { CyberDashboard } from "../pages/cyber/CyberDashboard";
@@ -281,6 +282,15 @@ export function Shell({ session, onLogout }) {
             onToggleGuidance={toggleGuidanceMode}
           />
         );
+      case "architecture":
+        return (
+          <ArchitectureBlueprint
+            token={session.access_token}
+            isCyber={false}
+            guidanceMode={guidanceMode}
+            onToggleGuidance={toggleGuidanceMode}
+          />
+        );
       case "project":
         return (
           <ProjectTasks
@@ -410,6 +420,15 @@ export function Shell({ session, onLogout }) {
             token={session.access_token}
             onReload={load}
             onNavigate={handleNavigate}
+            guidanceMode={guidanceMode}
+            onToggleGuidance={toggleGuidanceMode}
+          />
+        );
+      case "cyber_architecture":
+        return (
+          <ArchitectureBlueprint
+            token={session.access_token}
+            isCyber={true}
             guidanceMode={guidanceMode}
             onToggleGuidance={toggleGuidanceMode}
           />

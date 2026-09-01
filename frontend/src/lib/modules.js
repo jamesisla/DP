@@ -40,6 +40,7 @@ export const suites = [
 
 export const dataProtectionModules = [
   { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { id: "architecture", label: "Arquitectura & Ecosistema", icon: Layers },
   { id: "project", label: "Proyecto (6 Fases)", icon: Gauge },
   { id: "matrix", label: "Matriz (Wizard)", icon: ClipboardList },
   { id: "risks", label: "Riesgos y EIPD", icon: AlertTriangle },
@@ -55,6 +56,7 @@ export const dataProtectionModules = [
 
 export const cybersecurityModules = [
   { id: "cyber_dashboard", label: "Dashboard ANCI", icon: LayoutDashboard },
+  { id: "cyber_architecture", label: "Arquitectura & Ecosistema", icon: Layers },
   { id: "cyber_phases", label: "Ruta Metodológica (6 Fases)", icon: Gauge },
   { id: "cyber_assets", label: "Activos Críticos (RSIC / OIV)", icon: Server },
   { id: "cyber_risks", label: "Matriz Riesgos 5x5 & Gap", icon: AlertTriangle },
